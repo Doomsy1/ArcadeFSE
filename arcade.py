@@ -10,4 +10,3 @@ running = True
 
 class Game:
     pass
-    pass
