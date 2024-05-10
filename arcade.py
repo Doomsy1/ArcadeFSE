@@ -1,12 +1,34 @@
-from pygame import *
+import pygame
+from src.chess.chess import ChessGame
+from src.pacman.pacman import PacmanGame
+from src.main_menu.main_menu import MainMenu
 
-init()
-size = width, height = 800, 600
-screen = display.set_mode(size)
-display.set_caption("My Game")
-my_clock = time.Clock()
-running = True
+class Arcade:
+    def __init__(self, menu):
+        pygame.init()
+        WIDTH, HEIGHT = 800, 800
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.menu = menu
 
+    def run(self):
+        running = True
+        while running:
+            match self.menu:
+                case "main menu":
+                    game = MainMenu(self.screen)
+                case "chess":
+                    game = ChessGame(self.screen)
+                case "pacman":
+                    game = PacmanGame(self.screen)
+                case "exit":
+                    pygame.quit()
+                    return
+            self.menu = game.main_loop()
 
-class Game:
-    pass
+# Run the game
+if __name__ == "__main__":
+
+    menu = "chess"
+
+    arcade = Arcade(menu)
+    arcade.run()
