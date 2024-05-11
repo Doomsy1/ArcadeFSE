@@ -4,7 +4,6 @@ import pygame
 # set directory to src/chess
 sys.path.append("src/chess")
 
-from constants import GRID_SIZE
 from board import Board
 
 # Constants
@@ -16,8 +15,8 @@ class ChessGame:
         self.screen = screen
         pygame.display.set_caption("Chess Game")
         self.clock = pygame.time.Clock()
-        self.board = Board(GRID_SIZE, screen)
-        self.turn = 'white'
+        self.board = Board()
+        self.board.load_images(self.screen)
 
 
     def main_loop(self):
@@ -38,7 +37,8 @@ class ChessGame:
 
             self.board.update()
             if mouse_up:
-                self.board.make_move(mx, my)
+                row, col = self.board.get_row_col(mx, my)
+                self.board.make_move(row, col)
             
 
 
