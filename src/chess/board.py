@@ -12,7 +12,9 @@ class Board:
         self.selected_piece = [None, None]
         self.en_passant = None # col of the en passant square (the square behind the pawn that just moved 2 squares forward)
 
-        self.game_FEN = "rn1qqn1r/p1p1pnpp/1R1KPp2/2k1q1n1/1Q1P1pPb/4bp2/P1PP1P1P/RNB2BN1"
+        self.game_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+        self.game_board = []
+        print(self.FEN_to_board(self.game_FEN))
 
         self.piece_imgs = {}
         self.load_images()
@@ -36,7 +38,22 @@ class Board:
         for img in self.piece_imgs:
             self.piece_imgs[img] = pygame.transform.scale(self.piece_imgs[img], (self.grid_size, self.grid_size))
 
-    def draw(self):
+    def FEN_to_board(self, FEN):
+        board = []
+        for row_str in FEN.split("/"):
+            row = []
+            for piece in row_str:
+                if piece.isdigit():
+                    row += ['' for _ in range(int(piece))]
+                else:
+                    row.append(piece)
+            board.append(row)
+
+        return board
+                    
+
+
+    def update(self):
         self.draw_board()
         if self.selected_piece[0] is not None and self.selected_piece[1] is not None:
             moves = self.list_moves(self.selected_piece[0], self.selected_piece[1])
@@ -58,6 +75,14 @@ class Board:
             x_pos = move[1] * self.grid_size + OFFSET_X
             y_pos = move[0] * self.grid_size + OFFSET_Y
             pygame.draw.circle(self.screen, (0, 255, 0), (x_pos + self.grid_size // 2, y_pos + self.grid_size // 2), 10)
+
+    def make_move(self, row, col):
+        if self.selected_piece[0] is not None and self.selected_piece[1] is not None:
+            moves = self.list_moves(self.selected_piece[0], self.selected_piece[1])
+            if (row, col) in moves:
+                self.game_FEN = self.update_FEN(self.selected_piece[0], self.selected_piece[1], row, col)
+                self.selected_piece = [None, None]
+                self.en_passant = None
 
     def list_moves(self, row, col):
         piece = self.get_piece(row, col)

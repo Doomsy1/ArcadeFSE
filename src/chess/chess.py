@@ -43,7 +43,7 @@ class ChessGame:
                         self.board.selected_piece = [row, col]
 
 
-            self.board.draw()
+            self.board.update()
             
 
 
