@@ -4,7 +4,9 @@ import pygame
 from constants import LIGHT_SQUARE, DARK_SQUARE, OFFSET_X, OFFSET_Y, GRID_SIZE
 from pieces import Piece
 
-starting_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+ROW_INITIAL = {0: 2, 1: 1}  # Initial rows for white and black pawns
+EN_PASSANT_ROW = {0: 5, 1: 2}  # Row for en passant for white and black pawns
 
 class Board:
     def __init__(self):
@@ -13,49 +15,46 @@ class Board:
         self.black_color = DARK_SQUARE
         self.selected_piece = [None, None]
         self.turn = "white"
-        self.en_passant = None # col of the en passant square (the square behind the pawn that just moved 2 squares forward)
+        self.en_passant = None  # Column of the en passant square
 
-        self.game_FEN = starting_FEN
+        self.game_FEN = STARTING_FEN
         self.game_board = self.FEN_to_board(self.game_FEN)
 
         self.piece_imgs = {}
 
     def ally_king_in_check(self):
-        # check if the ally king is in check
         for row in range(8):
             for col in range(8):
                 piece = self.get_piece(row, col)
-                if piece == '':
-                    continue
-                if piece.get_team() == self.turn:
-                    continue
+                if piece and piece.get_team() != self.turn and self.piece_threatens_king(row, col):
+                    return True
+        return False
 
-                moves = self.list_moves(row, col)
-                for move in moves:
-                    new_row, new_col = move
-                    new_piece = self.get_piece(new_row, new_col)
-                    if new_piece == '':
-                        continue
-                    if new_piece.get_team() != self.turn:
-                        continue
-                    if new_piece.get_type().lower() == 'k':
-                        return True
+    def piece_threatens_king(self, row, col):
+        moves = self.list_moves(row, col)
+        for move in moves:
+            new_row, new_col = move
+            new_piece = self.get_piece(new_row, new_col)
+            if new_piece and new_piece.get_type().lower() == 'k':
+                return True
         return False
 
     def is_checkmate(self):
-        # check if the ally king is in checkmate
+        if not self.ally_king_in_check():
+            return False
+        
         for row in range(8):
             for col in range(8):
                 piece = self.get_piece(row, col)
-                if piece == '':
-                    continue
-                if piece.get_team() != self.turn:
-                    continue
-
-                moves = self.get_legal_moves(row, col)
-                if len(moves) > 0:
-                    return False
+                if piece and piece.get_team() == self.turn:
+                    if self.has_legal_moves(row, col):
+                        return False
+        
         return True
+
+    def has_legal_moves(self, row, col):
+        moves = self.get_legal_moves(row, col)
+        return bool(moves)
 
     def piece_selected(self):
         return self.selected_piece[0] is not None and self.selected_piece[1] is not None
@@ -94,7 +93,7 @@ class Board:
 
         if self.is_checkmate():
             print("Checkmate")
-            self.game_board = self.FEN_to_board(starting_FEN)
+            self.game_board = self.FEN_to_board(STARTING_FEN)
             self.turn = "white"
             self.en_passant = None
 
@@ -108,10 +107,20 @@ class Board:
         return row, col
     
     def display_moves(self, moves):
+        # display the possible moves for the selected piece as squares on the board
+        # the squares are displayed in orange if the move is a non-capture move
+        # the squares are displayed in red if the move is a capture move
         for move in moves:
-            x_pos = move[1] * self.grid_size + OFFSET_X
-            y_pos = move[0] * self.grid_size + OFFSET_Y
-            pygame.draw.circle(self.screen, (0, 255, 0), (x_pos + self.grid_size // 2, y_pos + self.grid_size // 2), 10)
+            row, col = move
+            x_pos = col * self.grid_size + OFFSET_X
+            y_pos = row * self.grid_size + OFFSET_Y
+            color = (255, 165, 0) if not self.is_piece(row, col) else (255, 0, 0)
+            
+            # Check if it is an en passant move and display the square in green
+            if self.en_passant is not None and row == EN_PASSANT_ROW[self.turn == "white"] and col == self.en_passant:
+                color = (255, 0, 0)
+
+            pygame.draw.rect(self.screen, color, (x_pos, y_pos, self.grid_size, self.grid_size), 3)
 
     def make_move(self, row, col):
         # if a piece is already selected, move the piece to the new position if it is a valid move. if it is not a valid move, deselect the piece
@@ -123,7 +132,13 @@ class Board:
                 self.deselect_piece()
                 return
             else:
-                print("Invalid move")
+                # if the player was trying to select another piece, select the new piece unless it is the same piece
+                if self.is_piece(row, col) and self.selected_piece != [row, col]:
+                    piece = self.get_piece(row, col)
+                    if piece.get_team() == self.turn:
+                        print(f"Selecting piece at {row, col}")
+                        self.select_piece(row, col)
+                        return
                 self.deselect_piece()
                 return
         # if no piece is selected, select the piece in the new position if it is a valid piece

@@ -18,7 +18,6 @@ class ChessGame:
         self.board = Board()
         self.board.load_images(self.screen)
 
-
     def main_loop(self):
         running = True
         while running:
