@@ -34,16 +34,11 @@ class ChessGame:
             mx, my = pygame.mouse.get_pos()
             mb = pygame.mouse.get_pressed()
 
-            if mouse_up:
-                row, col = self.board.get_row_col(mx, my)
-                if row is not None and col is not None:
-                    if self.board.selected_piece == [row, col]:
-                        self.board.selected_piece = [None, None]
-                    elif self.board.is_piece(row, col):
-                        self.board.selected_piece = [row, col]
 
 
             self.board.update()
+            if mouse_up:
+                self.board.make_move(mx, my)
             
 
 
