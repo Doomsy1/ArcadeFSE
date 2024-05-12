@@ -1,133 +1,113 @@
-# board.py
-
-import pygame
-from constants import LIGHT_SQUARE, DARK_SQUARE, OFFSET_X, OFFSET_Y, GRID_SIZE
 from pieces import Piece
 
-STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
-ROW_INITIAL = {0: 2, 1: 1}  # Initial rows for white and black pawns
-EN_PASSANT_ROW = {0: 5, 1: 2}  # Row for en passant for white and black pawns
+STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+
 
 class Board:
     def __init__(self):
-        self.grid_size = GRID_SIZE
-        self.white_color = LIGHT_SQUARE
-        self.black_color = DARK_SQUARE
-        self.selected_piece = [None, None]
-        self.turn = "white"
-        self.en_passant = None  # Column of the en passant square
+        self.selected_piece = None
+        self.undo_list = [] # list of board states for undoing moves
 
+    def init_board(self):
+        '''
+        Initializes the game board to the starting position
+        '''
         self.game_FEN = STARTING_FEN
-        self.game_board = self.FEN_to_board(self.game_FEN)
+        self.FEN_to_board(self.game_FEN)
 
-        self.piece_imgs = {}
+    def set_board(self, board):
+        '''
+        Sets the game board to the given board
+        '''
+        self.game_board = board
 
-    def ally_king_in_check(self):
-        for row in range(8):
-            for col in range(8):
-                piece = self.get_piece(row, col)
-                if piece and piece.get_team() != self.turn and self.piece_threatens_king(row, col):
-                    return True
-        return False
+    def get_piece(self, row, col):
+        '''
+        Returns the piece in the given row and column
+        '''
+        return self.game_board[row][col]
 
-    def piece_threatens_king(self, row, col):
-        moves = self.list_moves(row, col)
-        for move in moves:
-            new_row, new_col = move
-            new_piece = self.get_piece(new_row, new_col)
-            if new_piece and new_piece.get_type().lower() == 'k':
-                return True
-        return False
+    def is_piece(self, row, col):
+        '''
+        Returns True if there is a piece in the given row and column, False otherwise
+        '''
+        return self.get_piece(row, col) != ''
+
+    def select_piece(self, row, col):
+        '''
+        Selects the piece in the given row and column
+        '''
+        self.selected_piece = [row, col]
+
+    def piece_selected(self):
+        '''
+        Returns True if a piece is selected, False otherwise
+        '''
+        return self.selected_piece is not None
+    
+    def deselect_piece(self):
+        '''
+        Deselects the selected piece
+        '''
+        self.selected_piece = None
+    
+    def has_legal_moves(self, row, col):
+        '''
+        Returns True if the piece in the given row and column has legal moves, False otherwise
+        '''
+        moves = self.get_legal_moves(row, col)
+        return bool(moves)
 
     def is_checkmate(self):
+        '''
+        Returns True if the current player is in checkmate, False otherwise
+        '''
         if not self.ally_king_in_check():
             return False
         
         for row in range(8):
             for col in range(8):
                 piece = self.get_piece(row, col)
-                if piece and piece.get_team() == self.turn:
+                if piece and piece.team == self.turn:
                     if self.has_legal_moves(row, col):
                         return False
         
         return True
 
-    def has_legal_moves(self, row, col):
-        moves = self.get_legal_moves(row, col)
-        return bool(moves)
+    def ally_king_in_check(self):
+        '''
+        Returns True if the ally king is in check, False otherwise
+        '''
+        for row in range(8):
+            for col in range(8):
+                piece = self.get_piece(row, col)
+                if piece and piece.team != self.turn and self.piece_threatens_king(row, col):
+                    return True
+        return False
 
-    def piece_selected(self):
-        return self.selected_piece[0] is not None and self.selected_piece[1] is not None
-    
-    def deselect_piece(self):
-        self.selected_piece = [None, None]
-
-    def load_images(self, screen):
-        self.screen = screen
-
-        self.piece_imgs["r"] = pygame.image.load("src/chess/pieces/black_rook.png")
-        self.piece_imgs["n"] = pygame.image.load("src/chess/pieces/black_knight.png")
-        self.piece_imgs["b"] = pygame.image.load("src/chess/pieces/black_bishop.png")
-        self.piece_imgs["q"] = pygame.image.load("src/chess/pieces/black_queen.png")
-        self.piece_imgs["k"] = pygame.image.load("src/chess/pieces/black_king.png")
-        self.piece_imgs["p"] = pygame.image.load("src/chess/pieces/black_pawn.png")
-
-        self.piece_imgs["R"] = pygame.image.load("src/chess/pieces/white_rook.png")
-        self.piece_imgs["N"] = pygame.image.load("src/chess/pieces/white_knight.png")
-        self.piece_imgs["B"] = pygame.image.load("src/chess/pieces/white_bishop.png")
-        self.piece_imgs["Q"] = pygame.image.load("src/chess/pieces/white_queen.png")
-        self.piece_imgs["K"] = pygame.image.load("src/chess/pieces/white_king.png")
-        self.piece_imgs["P"] = pygame.image.load("src/chess/pieces/white_pawn.png")
-
-        # scale the images to the grid size
-        for img in self.piece_imgs:
-            self.piece_imgs[img] = pygame.transform.scale(self.piece_imgs[img], (self.grid_size, self.grid_size))
-                    
-    def update(self):
-        self.draw_board()
-        if self.selected_piece[0] is not None and self.selected_piece[1] is not None:
-            moves = self.get_legal_moves(self.selected_piece[0], self.selected_piece[1])
-            self.display_moves(moves)
-        self.draw_selected_piece()
-        self.draw_pieces()
-
-        if self.is_checkmate():
-            print("Checkmate")
-            self.game_board = self.FEN_to_board(STARTING_FEN)
-            self.turn = "white"
-            self.en_passant = None
-
-    def get_row_col(self, x, y):
-        row = (y - OFFSET_Y) // self.grid_size
-        col = (x - OFFSET_X) // self.grid_size
-
-        # if the click is outside the board
-        if row < 0 or row > 7 or col < 0 or col > 7:
-            return None, None
-        return row, col
-    
-    def display_moves(self, moves):
-        # display the possible moves for the selected piece as squares on the board
-        # the squares are displayed in orange if the move is a non-capture move
-        # the squares are displayed in red if the move is a capture move
+    def piece_threatens_king(self, row, col):
+        '''
+        Returns True if the piece in the given row and column threatens the enemy king, False otherwise
+        '''
+        moves = self.list_moves(row, col)
         for move in moves:
-            row, col = move
-            x_pos = col * self.grid_size + OFFSET_X
-            y_pos = row * self.grid_size + OFFSET_Y
-            color = (255, 165, 0) if not self.is_piece(row, col) else (255, 0, 0)
-            
-            # Check if it is an en passant move and display the square in green
-            if self.en_passant is not None and row == EN_PASSANT_ROW[self.turn == "white"] and col == self.en_passant:
-                color = (255, 0, 0)
+            new_row, new_col = move
+            new_piece = self.get_piece(new_row, new_col)
+            if new_piece and new_piece.type.lower() == 'k':
+                return True
+        return False
 
-            pygame.draw.rect(self.screen, color, (x_pos, y_pos, self.grid_size, self.grid_size), 3)
 
-    def make_move(self, row, col):
+
+    def make_move(self, row, col): # this is the function that will be called when a player makes a move
+        '''
+        Moves the selected piece to the given row and column if it is a valid move
+        '''
         # if a piece is already selected, move the piece to the new position if it is a valid move. if it is not a valid move, deselect the piece
         if self.piece_selected():
             moves = self.get_legal_moves(self.selected_piece[0], self.selected_piece[1])
             if (row, col) in moves:
-                print(f"Moving piece from {self.selected_piece[0], self.selected_piece[1]} to {row, col}")
                 self.move_piece(row, col)
                 self.deselect_piece()
                 return
@@ -135,8 +115,7 @@ class Board:
                 # if the player was trying to select another piece, select the new piece unless it is the same piece
                 if self.is_piece(row, col) and self.selected_piece != [row, col]:
                     piece = self.get_piece(row, col)
-                    if piece.get_team() == self.turn:
-                        print(f"Selecting piece at {row, col}")
+                    if piece.team == self.turn:
                         self.select_piece(row, col)
                         return
                 self.deselect_piece()
@@ -145,16 +124,20 @@ class Board:
         else:
             if self.is_piece(row, col):
                 piece = self.get_piece(row, col)
-                if piece.get_team() == self.turn:
-                    print(f"Selecting piece at {row, col}")
+                if piece.team == self.turn:
                     self.select_piece(row, col)
                     return
 
     def move_piece(self, row, col):
+        '''
+        Moves the selected piece to the given row and column
+        '''
+        self.undo_list.append(self.game_board.copy())
+
         # move the piece to the new position
         piece = self.get_piece(self.selected_piece[0], self.selected_piece[1])
         # if the piece is a pawn and it moved 2 squares forward, set the en passant variable to the column of the en passant square
-        if piece.get_type().lower() == 'p':
+        if piece.type.lower() == 'p':
             if abs(self.selected_piece[0] - row) == 2:
                 self.en_passant = col
             else:
@@ -163,30 +146,140 @@ class Board:
             self.en_passant = None
 
         # if the piece is a pawn and it moved diagonally, check if it is an en passant move and remove the enemy pawn that just moved 2 squares forward
-        if piece.get_type().lower() == 'p' and col != self.selected_piece[1] and not self.is_piece(row, col):
+        if piece.type.lower() == 'p' and col != self.selected_piece[1] and not self.is_piece(row, col):
             self.game_board[self.selected_piece[0]][col] = ''
+
+
+        # if the king moved, disable castling for that king
+        if piece.type == 'k':
+            self.castling[2] = False
+            self.castling[3] = False
+        elif piece.type == 'K':
+            self.castling[0] = False
+            self.castling[1] = False
+
+        # if the piece is a king and it moved 2 squares to the right or left, move the rook to the new position
+        if piece.type.lower() == 'k' and abs(col - self.selected_piece[1]) == 2:
+            if col == 6:
+                self.game_board[row][5] = self.game_board[row][7]
+                self.game_board[row][7] = ''
+            else:
+                self.game_board[row][3] = self.game_board[row][0]
+                self.game_board[row][0] = ''
+
+        # if a rook moved, disable castling for that rook
+        if piece.type.lower() == 'r':
+            if self.selected_piece == (7, 0):
+                self.castling[1] = False
+            elif self.selected_piece == (7, 7):
+                self.castling[0] = False
+            elif self.selected_piece == (0, 0):
+                self.castling[3] = False
+            elif self.selected_piece == (0, 7):
+                self.castling[2] = False
+
+        # if the move is a pawn promotion, promote the pawn to a queen
+        if piece.type == 'p' and row == 7:
+            piece = Piece('q')
+        elif piece.type == 'P' and row == 0:
+            piece = Piece('Q')
 
         self.game_board[row][col] = piece
         self.game_board[self.selected_piece[0]][self.selected_piece[1]] = ''
         self.turn = 'white' if self.turn == 'black' else 'black'
 
-    def FEN_to_board(self, FEN):
-        board = []
-        for row_str in FEN.split("/"):
-            row = []
-            for piece in row_str:
-                if piece.isdigit():
-                    row += ['' for _ in range(int(piece))]
-                else:
-                    row.append(Piece(piece))
-            board.append(row)
+    def undo_move(self):
+        '''
+        Undoes the last move
+        '''
+        if self.undo_list:
+            self.game_board = self.undo_list.pop()
+            self.turn = 'white' if self.turn == 'black' else 'black'
 
-        return board
+    def full_move(self, start, end):
+        '''
+        Moves the piece from the start position to the end position
+        '''
+        start_row, start_col = start
+        end_row, end_col = end
+        self.select_piece(start_row, start_col)
+        self.make_move(end_row, end_col)
+
+
+    def FEN_to_board(self, FEN):
+        '''
+        Converts the FEN string to a 2D list representing the game board
+        '''
+        board = []
+        # split the FEN string to get the board state and the turn and castling information
+        FEN = FEN.split()
+        board_state = FEN[0]
+        turn = FEN[1]
+        castling = FEN[2]
+        en_passant = FEN[3]
+        half_move = FEN[4]
+        full_move = FEN[5]
+
+        # split the board state to get the rows
+        rows = board_state.split('/')
+        for row in rows:
+            new_row = []
+            for char in row:
+                if char.isdigit():
+                    new_row += ['' for _ in range(int(char))]
+                else:
+                    new_row.append(Piece(char))
+            board.insert(0, new_row)
+
+        self.game_board = board
+        self.turn = "white" if turn == "w" else "black"
+        self.castling = [True if char in castling else False for char in "KQkq"]
+        self.en_passant = None if en_passant == "-" else ord(en_passant[0]) - ord('a')
+
+        self.half_move = half_move
+        self.full_move = full_move
+
+    def generate_FEN(self):
+        ''''
+        Generates the FEN string from the game board
+        '''
+        fen = ''
+        for row in self.game_board[::-1]:
+            empty = 0
+            for piece in row:
+                if piece is None:
+                    empty += 1
+                else:
+                    if empty:
+                        fen += str(empty)
+                        empty = 0
+                    fen += piece.type
+            if empty:
+                fen += str(empty)
+            fen += '/'
+
+        fen = fen[:-1] + ' '
+        fen += 'w' if self.turn == 'white' else 'b'
+        fen += ' '
+        fen += ''.join(['K' if self.castling[0] else '', 'Q' if self.castling[1] else '', 'k' if self.castling[2] else '', 'q' if self.castling[3] else ''])
+        fen += ' '
+        fen += chr(self.en_passant + ord('a')) if self.en_passant is not None else '-'
+        fen += ' '
+        fen += str(self.half_move) + ' ' + str(self.full_move)
+        return fen
+
+
 
     def list_moves(self, row, col):
+        '''
+        Returns a list of moves for the piece in the given row and column
+        '''
         piece = self.get_piece(row, col)
         moves = []
-        match piece.get_type().lower():
+        if not self.is_piece(row, col): # if there is no piece in the given row and column
+            return moves
+        
+        match piece.type.lower():
             case "r":
                 moves = self.list_rook_moves(row, col)
             case "n":
@@ -198,14 +291,29 @@ class Board:
             case "k":
                 moves = self.list_king_moves(row, col)
             case "p":
-                if piece.get_team() == "white":
+                if piece.team == "white":
                     moves = self.list_white_pawn_moves(row, col)
                 else:
                     moves = self.list_black_pawn_moves(row, col)
 
         return moves
 
+    def list_all_moves(self):
+        '''
+        Returns a list of all possible moves for the current player
+        '''
+        moves = []
+        for row in range(8):
+            for col in range(8):
+                piece = self.get_piece(row, col)
+                if piece and piece.team == self.turn:
+                    moves += [((row, col), move) for move in self.get_legal_moves(row, col)]
+        return moves
+
     def get_legal_moves(self, row, col):
+        '''
+        Returns a list of legal moves for the piece in the given row and column
+        '''
         piece = self.get_piece(row, col)
         legal_moves = []
         moves = self.list_moves(row, col)
@@ -224,46 +332,12 @@ class Board:
 
         return legal_moves
 
-    def get_piece(self, row, col):
-        return self.game_board[row][col]
-
-    def is_piece(self, row, col):
-        return self.get_piece(row, col) != ''
-
-    def select_piece(self, row, col):
-        self.selected_piece = [row, col]
-
-    def draw_selected_piece(self):
-        if self.selected_piece[0] is not None and self.selected_piece[1] is not None:
-            row, col = self.selected_piece
-            x_pos = col * self.grid_size + OFFSET_X
-            y_pos = row * self.grid_size + OFFSET_Y
-            pygame.draw.rect(self.screen, (0, 255, 0), (x_pos, y_pos, self.grid_size, self.grid_size), 3)
-
-    def draw_board(self):
-        for row in range(8):
-            for col in range(8):
-                color = self.white_color if (row + col) % 2 == 0 else self.black_color
-
-                x_pos = col * self.grid_size + OFFSET_X
-                y_pos = row * self.grid_size + OFFSET_Y
-                pygame.draw.rect(self.screen, color, (x_pos, y_pos, self.grid_size, self.grid_size))
-    
-    def draw_piece(self, piece, row, col):
-        x_pos = col * self.grid_size + OFFSET_X
-        y_pos = row * self.grid_size + OFFSET_Y
-        self.screen.blit(self.piece_imgs[piece], (x_pos, y_pos))
-
-    def draw_pieces(self):
-        for row in range(8):
-            for col in range(8):
-                piece = self.get_piece(row, col)
-                if piece != '':
-                    self.draw_piece(piece.get_type(), row, col)
-
     def list_rook_moves(self, row, col):
+        '''
+        Returns a list of moves for the rook in the given row and column
+        '''
         moves = []
-        team = self.get_piece(row, col).get_team()
+        team = self.get_piece(row, col).team
 
         # check the moves in the same row to the right (stop if there is a piece)
         # if there is a piece, check if it is an enemy piece
@@ -271,7 +345,7 @@ class Board:
         # if it is a friendly piece, stop
         for i in range(col + 1, 8):
             if self.is_piece(row, i):
-                if self.get_piece(row, i).get_team() == team:
+                if self.get_piece(row, i).team == team:
                     break
                 moves.append((row, i))
                 break
@@ -280,7 +354,7 @@ class Board:
         # same row to the left
         for i in range(col - 1, -1, -1):
             if self.is_piece(row, i):
-                if self.get_piece(row, i).get_team() == team:
+                if self.get_piece(row, i).team == team:
                     break
                 moves.append((row, i))
                 break
@@ -289,7 +363,7 @@ class Board:
         # same column to the top
         for i in range(row - 1, -1, -1):
             if self.is_piece(i, col):
-                if self.get_piece(i, col).get_team() == team:
+                if self.get_piece(i, col).team == team:
                     break
                 moves.append((i, col))
                 break
@@ -298,7 +372,7 @@ class Board:
         # same column to the bottom
         for i in range(row + 1, 8):
             if self.is_piece(i, col):
-                if self.get_piece(i, col).get_team() == team:
+                if self.get_piece(i, col).team == team:
                     break
                 moves.append((i, col))
                 break
@@ -307,9 +381,12 @@ class Board:
         return moves
 
     def list_knight_moves(self, row, col):
+        ''''
+        Returns a list of moves for the knight in the given row and column
+        '''
         # the knight moves in an L shape
         moves = []
-        team = self.get_piece(row, col).get_team()
+        team = self.get_piece(row, col).team
 
         # Define the possible knight moves
         knight_moves = [
@@ -329,20 +406,23 @@ class Board:
             if not self.is_piece(new_row, new_col):
                 moves.append((new_row, new_col))
 
-            elif self.get_piece(new_row, new_col).get_team() != team:
+            elif self.get_piece(new_row, new_col).team != team:
                 moves.append((new_row, new_col))
         return moves
 
     def list_bishop_moves(self, row, col):
+        '''
+        Returns a list of moves for the bishop in the given row and column
+        '''
         moves = []
-        team = self.get_piece(row, col).get_team()
+        team = self.get_piece(row, col).team
         
         # check the moves in the diagonal to the top right
         for i in range(1, 8):
             if row - i < 0 or col + i > 7:
                 break
             if self.is_piece(row - i, col + i):
-                if self.get_piece(row - i, col + i).get_team() == team:
+                if self.get_piece(row - i, col + i).team == team:
                     break
                 moves.append((row - i, col + i))
                 break
@@ -353,7 +433,7 @@ class Board:
             if row - i < 0 or col - i < 0:
                 break
             if self.is_piece(row - i, col - i):
-                if self.get_piece(row - i, col - i).get_team() == team:
+                if self.get_piece(row - i, col - i).team == team:
                     break
                 moves.append((row - i, col - i))
                 break
@@ -364,7 +444,7 @@ class Board:
             if row + i > 7 or col + i > 7:
                 break
             if self.is_piece(row + i, col + i):
-                if self.get_piece(row + i, col + i).get_team() == team:
+                if self.get_piece(row + i, col + i).team == team:
                     break
                 moves.append((row + i, col + i))
                 break
@@ -375,7 +455,7 @@ class Board:
             if row + i > 7 or col - i < 0:
                 break
             if self.is_piece(row + i, col - i):
-                if self.get_piece(row + i, col - i).get_team() == team:
+                if self.get_piece(row + i, col - i).team == team:
                     break
                 moves.append((row + i, col - i))
                 break
@@ -384,13 +464,19 @@ class Board:
         return moves
 
     def list_queen_moves(self, row, col):
+        '''
+        Returns a list of moves for the queen in the given row and column
+        '''
         # the queen moves are the same as the rook and bishop moves
         return self.list_rook_moves(row, col) + self.list_bishop_moves(row, col)
 
     def list_king_moves(self, row, col):
+        '''
+        Returns a list of moves for the king in the given row and column
+        '''
         # the king moves in all directions by 1 square
         moves = []
-        team = self.get_piece(row, col).get_team()
+        team = self.get_piece(row, col).team
 
         # Define the possible directions for the king to move
         directions = [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)]
@@ -408,17 +494,32 @@ class Board:
             if not self.is_piece(new_row, new_col):
                 moves.append((new_row, new_col))
 
-            elif self.get_piece(new_row, new_col).get_team() != team:
+            elif self.get_piece(new_row, new_col).team != team:
                 moves.append((new_row, new_col))
+
+        # Check for castling moves KQkq
+        if team == "white":
+            if self.castling[0] and not self.is_piece(0, 5) and not self.is_piece(0, 6):
+                moves.append((0, 6))
+            if self.castling[1] and not self.is_piece(0, 1) and not self.is_piece(0, 2) and not self.is_piece(0, 3):
+                moves.append((0, 2))
+        else:
+            if self.castling[2] and not self.is_piece(7, 5) and not self.is_piece(7, 6):
+                moves.append((7, 6))
+            if self.castling[3] and not self.is_piece(7, 1) and not self.is_piece(7, 2) and not self.is_piece(7, 3):
+                moves.append((7, 2))
 
         return moves
 
-    def list_white_pawn_moves(self, row, col):
+    def list_black_pawn_moves(self, row, col):
+        '''
+        Returns a list of moves for the black pawn in the given row and column
+        '''
         moves = []
-        # the white pawn moves forward if the square in front is empty
-        # the white pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 6)
-        # the white pawn can move diagonally to the right or left if there is an enemy piece
-        # the white pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
+        # the black pawn moves forward if the square in front is empty
+        # the black pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 6)
+        # the black pawn can move diagonally to the right or left if there is an enemy piece
+        # the black pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
 
         # check the square in front
         if not self.is_piece(row - 1, col):
@@ -429,10 +530,10 @@ class Board:
 
         # check the diagonal to the top right and top left for enemy pieces or en passant
         if col < 7 and self.is_piece(row - 1, col + 1):
-            if self.get_piece(row - 1, col + 1).get_team() == "black":
+            if self.get_piece(row - 1, col + 1).team == "white":
                 moves.append((row - 1, col + 1))
         if col > 0 and self.is_piece(row - 1, col - 1):
-            if self.get_piece(row - 1, col - 1).get_team() == "black":
+            if self.get_piece(row - 1, col - 1).team == "white":
                 moves.append((row - 1, col - 1))
 
         # check en passant
@@ -442,12 +543,15 @@ class Board:
 
         return moves
     
-    def list_black_pawn_moves(self, row, col):
+    def list_white_pawn_moves(self, row, col):
+        '''
+        Returns a list of moves for the white pawn in the given row and column
+        '''
         moves = []
-        # the black pawn moves forward if the square in front is empty
-        # the black pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 1)
-        # the black pawn can move diagonally to the right or left if there is an enemy piece
-        # the black pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
+        # the white pawn moves forward if the square in front is empty
+        # the white pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 1)
+        # the white pawn can move diagonally to the right or left if there is an enemy piece
+        # the white pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
 
         # check the square in front
         if not self.is_piece(row + 1, col):
@@ -458,10 +562,10 @@ class Board:
 
         # check the diagonal to the bottom right and bottom left for enemy pieces or en passant
         if col < 7 and self.is_piece(row + 1, col + 1):
-            if self.get_piece(row + 1, col + 1).get_team() == "white":
+            if self.get_piece(row + 1, col + 1).team == "black":
                 moves.append((row + 1, col + 1))
         if col > 0 and self.is_piece(row + 1, col - 1):
-            if self.get_piece(row + 1, col - 1).get_team() == "white":
+            if self.get_piece(row + 1, col - 1).team == "black":
                 moves.append((row + 1, col - 1))
 
         # check en passant

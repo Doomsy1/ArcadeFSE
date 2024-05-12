@@ -6,7 +6,7 @@ from src.main_menu.main_menu import MainMenu
 class Arcade:
     def __init__(self, menu):
         pygame.init()
-        WIDTH, HEIGHT = 900, 900
+        WIDTH, HEIGHT = 800, 800
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.menu = menu
 
@@ -28,7 +28,7 @@ class Arcade:
 # Run the game
 if __name__ == "__main__":
 
-    menu = "chess"
+    menu = "main menu"
 
     arcade = Arcade(menu)
     arcade.run()
