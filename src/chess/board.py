@@ -230,12 +230,12 @@ class Board:
         rows = board_state.split('/')
         for row in rows:
             new_row = []
-            for char in row[::-1]:
+            for char in row:
                 if char.isdigit():
                     new_row += [None for _ in range(int(char))]
                 else:
                     new_row.append(Piece(char))
-            board.insert(0, new_row)
+            board.append(new_row)
 
         self.game_board = board
         self.turn = "white" if turn == "w" else "black"
@@ -511,27 +511,27 @@ class Board:
 
         # Check for castling moves KQkq
         if team == "white":
-            if self.castling[0] and not self.is_piece(0, 5) and not self.is_piece(0, 6):
-                moves.append((0, 6))
-            if self.castling[1] and not self.is_piece(0, 1) and not self.is_piece(0, 2) and not self.is_piece(0, 3):
-                moves.append((0, 2))
-        else:
-            if self.castling[2] and not self.is_piece(7, 5) and not self.is_piece(7, 6):
+            if self.castling[0] and not self.is_piece(7, 5) and not self.is_piece(7, 6):
                 moves.append((7, 6))
-            if self.castling[3] and not self.is_piece(7, 1) and not self.is_piece(7, 2) and not self.is_piece(7, 3):
+            if self.castling[1] and not self.is_piece(7, 1) and not self.is_piece(7, 2) and not self.is_piece(7, 3):
                 moves.append((7, 2))
+        else:
+            if self.castling[2] and not self.is_piece(0, 5) and not self.is_piece(0, 6):
+                moves.append((0, 6))
+            if self.castling[3] and not self.is_piece(0, 1) and not self.is_piece(0, 2) and not self.is_piece(0, 3):
+                moves.append((0, 2))
 
         return moves
 
-    def list_black_pawn_moves(self, row, col):
+    def list_white_pawn_moves(self, row, col):
         '''
-        Returns a list of moves for the black pawn in the given row and column
+        Returns a list of moves for the white pawn in the given row and column
         '''
         moves = []
-        # the black pawn moves forward if the square in front is empty
-        # the black pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 6)
-        # the black pawn can move diagonally to the right or left if there is an enemy piece
-        # the black pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
+        # the white pawn moves forward if the square in front is empty
+        # the white pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 6)
+        # the white pawn can move diagonally to the right or left if there is an enemy piece
+        # the white pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
 
         # check the square in front
         if not self.is_piece(row - 1, col):
@@ -542,10 +542,10 @@ class Board:
 
         # check the diagonal to the top right and top left for enemy pieces or en passant
         if col < 7 and self.is_piece(row - 1, col + 1):
-            if self.get_piece(row - 1, col + 1).team == "white":
+            if self.get_piece(row - 1, col + 1).team == "black":
                 moves.append((row - 1, col + 1))
         if col > 0 and self.is_piece(row - 1, col - 1):
-            if self.get_piece(row - 1, col - 1).team == "white":
+            if self.get_piece(row - 1, col - 1).team == "black":
                 moves.append((row - 1, col - 1))
 
         # check en passant
@@ -555,15 +555,15 @@ class Board:
 
         return moves
     
-    def list_white_pawn_moves(self, row, col):
+    def list_black_pawn_moves(self, row, col):
         '''
-        Returns a list of moves for the white pawn in the given row and column
+        Returns a list of moves for the black pawn in the given row and column
         '''
         moves = []
-        # the white pawn moves forward if the square in front is empty
-        # the white pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 1)
-        # the white pawn can move diagonally to the right or left if there is an enemy piece
-        # the white pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
+        # the black pawn moves forward if the square in front is empty
+        # the black pawn can move 2 squares forward if it is in the starting position and the 2 squares in front are empty (row 1)
+        # the black pawn can move diagonally to the right or left if there is an enemy piece
+        # the black pawn can move diagonally to the right or left if there is an enemy pawn that just moved 2 squares forward (en passant) (use the en passant variable)
 
         # check the square in front
         if not self.is_piece(row + 1, col):
@@ -574,10 +574,10 @@ class Board:
 
         # check the diagonal to the bottom right and bottom left for enemy pieces or en passant
         if col < 7 and self.is_piece(row + 1, col + 1):
-            if self.get_piece(row + 1, col + 1).team == "black":
+            if self.get_piece(row + 1, col + 1).team == "white":
                 moves.append((row + 1, col + 1))
         if col > 0 and self.is_piece(row + 1, col - 1):
-            if self.get_piece(row + 1, col - 1).team == "black":
+            if self.get_piece(row + 1, col - 1).team == "white":
                 moves.append((row + 1, col - 1))
 
         # check en passant

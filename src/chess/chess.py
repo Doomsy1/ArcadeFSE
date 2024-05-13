@@ -18,7 +18,7 @@ from engine import Engine
 
 # Constants
 FPS = 144
-EN_PASSANT_ROW = {0: 2, 1: 5}  # Row for en passant for white and black pawns
+EN_PASSANT_ROW = {0: 5, 1: 2}  # Row for en passant for white and black pawns
 
 
 class ChessGame:
@@ -31,7 +31,7 @@ class ChessGame:
         self.root = tk.Tk()
         self.root.withdraw()
 
-        self.board.FEN_to_board("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
+        # self.board.FEN_to_board("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
 
         self.load_images()
 
