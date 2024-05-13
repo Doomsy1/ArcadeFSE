@@ -13,7 +13,7 @@ from tkinter import simpledialog
 # set directory to src/chess
 sys.path.append("src/chess")
 
-from board import Board
+from board import Board, Piece, Move
 from engine import Engine
 
 # Constants
@@ -26,10 +26,11 @@ class ChessGame:
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.board = Board()
-        self.board.init_board()
 
         self.root = tk.Tk()
         self.root.withdraw()
+
+        self.selected_piece = None
 
         # self.board.FEN_to_board("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
 
@@ -44,6 +45,9 @@ class ChessGame:
         # the FEN is then set to the board
         self.board.FEN_to_board(fen)
 
+    def piece_selected(self):
+        # return True if a piece is selected
+        return self.selected_piece is not None
 
     def draw_arrow(self, start, end):
         # start and end are tuples with the row and column of the start and end positions
@@ -97,33 +101,31 @@ class ChessGame:
         col = (x - OFFSET_X) // GRID_SIZE
         return row, col
 
-    def display_moves(self, moves):
+    def display_moves(self):
         # display the possible moves for the selected piece as squares on the board
         # the squares are displayed in orange if the move is a non-capture move
         # the squares are displayed in red if the move is a capture move
+        moves = self.board.legal_moves
         for move in moves:
-            row, col = move
-            color = CAPTURE_SQUARE if self.board.is_piece(move[0], move[1]) else MOVE_SQUARE
+            start = move.start
+            end = move.end
+            # if the start is the selected piece, display the end square
+            if start == self.selected_piece:
+                row, col = end
+                x_pos = col * GRID_SIZE + OFFSET_X
+                y_pos = row * GRID_SIZE + OFFSET_Y
+                if self.board.get_piece(row, col):
+                    pygame.draw.rect(self.screen, CAPTURE_SQUARE, (x_pos, y_pos, GRID_SIZE, GRID_SIZE))
+                    print(f"Capture move at {row, col}")
+                else:
+                    pygame.draw.rect(self.screen, MOVE_SQUARE, (x_pos, y_pos, GRID_SIZE, GRID_SIZE))
+                    print(f"Move to {row, col}")
 
-            # Check if the move is an en passant move
-            if self.board.en_passant is not None and row == EN_PASSANT_ROW[self.board.turn == "white"] and col == self.board.en_passant:
-                color = CAPTURE_SQUARE
-
-            # draw the rectangle on the board
-            x_pos = col * GRID_SIZE + OFFSET_X
-            y_pos = row * GRID_SIZE + OFFSET_Y
-            pygame.draw.rect(self.screen, color, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), 3)
-
-            # draw the circle on the board
-            center = (x_pos + GRID_SIZE // 2, y_pos + GRID_SIZE // 2)
-            radius = GRID_SIZE // 6
-            alpha = 128
-            draw_transparent_circle(self.screen, center, radius, color, alpha)
 
     def draw_selected_piece(self):
-        if self.board.selected_piece is None:
+        if self.selected_piece is None:
             return   
-        row, col = self.board.selected_piece
+        row, col = self.selected_piece
         x_pos = col * GRID_SIZE + OFFSET_X
         y_pos = row * GRID_SIZE + OFFSET_Y
         alpha = 128
@@ -133,7 +135,10 @@ class ChessGame:
         piece = self.board.get_piece(row, col)
         if self.mb[0]:
             # draw the piece on the curser (self.mx, self.my)
-            self.screen.blit(self.piece_imgs[piece.type], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
+            if piece.color == "black":
+                self.screen.blit(self.piece_imgs[piece.type], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
+            else:
+                self.screen.blit(self.piece_imgs[piece.type.upper()], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
         else:
             # draw the piece on the board
             self.draw_piece(piece, row, col)
@@ -150,14 +155,17 @@ class ChessGame:
         x_pos = col * GRID_SIZE + OFFSET_X
         y_pos = row * GRID_SIZE + OFFSET_Y
         if piece:
-            self.screen.blit(self.piece_imgs[piece.type], (x_pos, y_pos))
+            if piece.color == "black":
+                self.screen.blit(self.piece_imgs[piece.type], (x_pos, y_pos))
+            else:
+                self.screen.blit(self.piece_imgs[piece.type.upper()], (x_pos, y_pos))
 
     def draw_pieces(self):
         for row in range(8):
             for col in range(8):
                 piece = self.board.get_piece(row, col)
                 # dont draw the piece if it is the selected piece
-                if (row, col) == self.board.selected_piece:
+                if (row, col) == self.selected_piece:
                     continue
                 self.draw_piece(piece, row, col)
 
@@ -175,11 +183,10 @@ class ChessGame:
             temp_board.append(self.board.game_board[7 - row][::-1])
         self.board.game_board = temp_board
 
-
     def draw_game(self):
         self.draw_board()
-        if self.board.piece_selected():
-            self.display_moves(self.board.get_legal_moves(self.board.selected_piece[0], self.board.selected_piece[1]))
+        if self.piece_selected():
+            self.display_moves()
         self.draw_pieces()
 
         if self.board.is_checkmate():
@@ -194,7 +201,7 @@ class ChessGame:
 
         self.draw_preview_arrow()
 
-        if self.board.piece_selected():
+        if self.piece_selected():
             self.draw_selected_piece()
 
     def handle_events(self):
@@ -249,23 +256,24 @@ class ChessGame:
 
             row, col = self.get_row_col(self.mx, self.my)
             # if row, col is a valid piece, select the piece
-            if self.board.is_piece(row, col):
-                self.board.selected_piece = (row, col)
+            if self.board.get_piece(row, col):
+                self.selected_piece = (row, col)
             
             #
             
 
         elif self.L_mouse_up: # move the piece if the move is valid
             row, col = self.get_row_col(self.mx, self.my)
-            if self.board.piece_selected():
-                if (row, col) in self.board.get_legal_moves(self.board.selected_piece[0], self.board.selected_piece[1]):
-                    self.board.make_move(row, col)
-                
+            move = Move(self.selected_piece, (row, col))
+            if self.piece_selected():
+                if move in self.board.legal_moves:
+                    self.board.make_move(move)
+
                 # if the same piece is clicked again dont deselect the piece
-                elif (row, col) == self.board.selected_piece:
+                elif (row, col) == self.selected_piece:
                     pass
                 else:
-                    self.board.deselect_piece()
+                    self.selected_piece = None
         
         self.preview_arrow = None
         # if right mouse button is down draw the preview of a circle or arrow
