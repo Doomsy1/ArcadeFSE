@@ -109,3 +109,14 @@ def write_centered_text(screen, text, rect, colour, cache={}):
 
         # Cache the rendered text
         cache[key].append((text_surface, x, y + i * size[1]))
+
+def draw_transparent_rect(screen, rect, color, alpha, thickness=0):
+    # Create a temporary surface to handle transparency
+    temp_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    rgba_color = color + (alpha,)  # Create RGBA color tuple
+
+    # Draw the rectangle on the temporary surface
+    pygame.draw.rect(temp_surface, rgba_color, rect, thickness)
+
+    # Blit the temporary surface onto the main screen surface
+    screen.blit(temp_surface, (0, 0))

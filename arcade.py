@@ -19,7 +19,7 @@ class Arcade:
                 case "chess":
                     game = ChessGame(self.screen)
                 case "pacman":
-                    game = PacmanGame(self.screen)
+                    game = PacmanGame(self.screen) 
                 case "exit":
                     pygame.quit()
                     return

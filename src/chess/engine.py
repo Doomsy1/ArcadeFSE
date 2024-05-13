@@ -5,50 +5,59 @@ class Engine:
         self.board = board
         self.max_depth = depth
 
-    def evaluate_board(self): # TODO: make this more sophisticated
-        '''
-        Returns: float representing the evaluation of the current board position
-        '''
-        eval = 0
+    def evaluate_board(self):
+        """
+        Evaluate the board position
+        Negative score means black is winning
+        Positive score means white is winning
+        """
+        # checkmate
+        if self.board.is_checkmate():
+            if self.board.turn == 'white':
+                return -1000
+            else:
+                return 1000
+            
+        # stalemate
+        if self.board.is_stalemate():
+            return 0
 
-        # Material score
-        material_score = 0
+        # material evaluation
+        evaluation = 0
         for row in self.board.game_board:
             for piece in row:
                 if piece:
-                    material_score += piece.value if piece.team == self.board.turn else -piece.value
-
-        if self.board.is_checkmate():
-            return float('inf') if self.board.turn == 'white' else float('-inf')
-
-        
-        eval += material_score
-        return eval
-
-    def minimax(self, depth, alpha, beta, maximizing_player):
-        '''
-        Args:
-            depth (int): The depth of the minimax tree
-            alpha (int): The best value that the maximizing player currently can guarantee at the current depth
-            beta (int): The best value that the minimizing player currently can guarantee at the current depth
-            maximizing_player (bool): True if the current player is the maximizing player, False otherwise
-        Returns:
-            (int, ((start_row, start_col), (end_row, end_col))) tuple representing the best evaluation and the best move
-            '''
-        pass
-
-    def get_best_move(self):
-        '''
-        Returns: ((start_row, start_col), (end_row, end_col)) tuple representing the best move
-        '''
-        pass
+                    if piece.team == 'white':
+                        evaluation += piece.value
+                    else:
+                        evaluation -= piece.value
+        return evaluation
     
-# test engine
-if __name__ == "__main__":
-    from board import Board
-    board = Board()
-    board.FEN_to_board("4k3/Q6Q/8/8/8/8/PPPPP1PP/RNB1KBNq w KQkq - 0 1")
-    engine = Engine(board)
+    def negamax(self, depth, alpha, beta):
+        if depth == 0 or self.board.is_game_over():
+            return self.evaluate_board()
 
+        max_score = -float('inf')
+        for move in self.board.list_all_moves():
+            self.board.full_move(move[0], move[1])
+            score = -self.negamax(depth - 1, -beta, -alpha)
+            self.board.undo_move()
 
-    print(engine.get_best_move())
+            max_score = max(max_score, score)
+            alpha = max(alpha, score)
+            if alpha >= beta:
+                break
+        return max_score
+    
+    def get_best_move(self):
+        best_move = None
+        max_score = -float('inf')
+        for move in self.board.list_all_moves():
+            self.board.full_move(move[0], move[1])
+            score = -self.negamax(self.max_depth - 1, -float('inf'), float('inf'))
+            self.board.undo_move()
+
+            if score > max_score:
+                max_score = score
+                best_move = move
+        return best_move

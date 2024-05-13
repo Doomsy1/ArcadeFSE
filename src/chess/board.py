@@ -16,6 +16,15 @@ class Board:
         self.game_FEN = STARTING_FEN
         self.FEN_to_board(self.game_FEN)
 
+    def copy(self):
+        '''
+        Returns a copy of the board
+        '''
+        new_board = Board()
+        fen = self.generate_FEN()
+        new_board.FEN_to_board(fen)
+        return new_board
+
     def set_board(self, board):
         '''
         Sets the game board to the given board
@@ -32,7 +41,7 @@ class Board:
         '''
         Returns True if there is a piece in the given row and column, False otherwise
         '''
-        return self.get_piece(row, col) != ''
+        return self.get_piece(row, col) is not None
 
     def select_piece(self, row, col):
         '''
@@ -59,21 +68,28 @@ class Board:
         moves = self.get_legal_moves(row, col)
         return bool(moves)
 
+    def is_game_over(self):
+        '''
+        Returns True if the game is over, False otherwise
+        '''
+        return self.is_checkmate() or self.is_stalemate()
+
+    def is_stalemate(self):
+        '''
+        Returns True if the game is in stalemate, False otherwise
+        '''
+        if self.ally_king_in_check():
+            return False
+        if any(self.has_legal_moves(row, col) for row in range(8) for col in range(8) if self.get_piece(row, col) and self.get_piece(row, col).team == self.turn):
+            return False
+        return True
+    
     def is_checkmate(self):
         '''
-        Returns True if the current player is in checkmate, False otherwise
+        Returns True if the game is in checkmate, False otherwise
         '''
-        if not self.ally_king_in_check():
-            return False
-        
-        for row in range(8):
-            for col in range(8):
-                piece = self.get_piece(row, col)
-                if piece and piece.team == self.turn:
-                    if self.has_legal_moves(row, col):
-                        return False
-        
-        return True
+        # Check if the ally king is in check and it has no legal moves
+        return self.ally_king_in_check() and all(not self.has_legal_moves(row, col) for row in range(8) for col in range(8) if self.get_piece(row, col) and self.get_piece(row, col).team == self.turn)
 
     def ally_king_in_check(self):
         '''
@@ -105,34 +121,14 @@ class Board:
         Moves the selected piece to the given row and column if it is a valid move
         '''
         # if a piece is already selected, move the piece to the new position if it is a valid move. if it is not a valid move, deselect the piece
-        if self.piece_selected():
-            moves = self.get_legal_moves(self.selected_piece[0], self.selected_piece[1])
-            if (row, col) in moves:
-                self.move_piece(row, col)
-                self.deselect_piece()
-                return
-            else:
-                # if the player was trying to select another piece, select the new piece unless it is the same piece
-                if self.is_piece(row, col) and self.selected_piece != [row, col]:
-                    piece = self.get_piece(row, col)
-                    if piece.team == self.turn:
-                        self.select_piece(row, col)
-                        return
-                self.deselect_piece()
-                return
-        # if no piece is selected, select the piece in the new position if it is a valid piece
-        else:
-            if self.is_piece(row, col):
-                piece = self.get_piece(row, col)
-                if piece.team == self.turn:
-                    self.select_piece(row, col)
-                    return
+        self.move_piece(row, col)
+        self.deselect_piece()
 
     def move_piece(self, row, col):
         '''
         Moves the selected piece to the given row and column
         '''
-        self.undo_list.append(self.game_board.copy())
+        self.undo_list.append(self.generate_FEN())
 
         # move the piece to the new position
         piece = self.get_piece(self.selected_piece[0], self.selected_piece[1])
@@ -147,7 +143,7 @@ class Board:
 
         # if the piece is a pawn and it moved diagonally, check if it is an en passant move and remove the enemy pawn that just moved 2 squares forward
         if piece.type.lower() == 'p' and col != self.selected_piece[1] and not self.is_piece(row, col):
-            self.game_board[self.selected_piece[0]][col] = ''
+            self.game_board[self.selected_piece[0]][col] = None
 
 
         # if the king moved, disable castling for that king
@@ -162,30 +158,41 @@ class Board:
         if piece.type.lower() == 'k' and abs(col - self.selected_piece[1]) == 2:
             if col == 6:
                 self.game_board[row][5] = self.game_board[row][7]
-                self.game_board[row][7] = ''
+                self.game_board[row][7] = None
             else:
                 self.game_board[row][3] = self.game_board[row][0]
-                self.game_board[row][0] = ''
+                self.game_board[row][0] = None
 
         # if a rook moved, disable castling for that rook
         if piece.type.lower() == 'r':
-            if self.selected_piece == (7, 0):
+            if self.selected_piece == (0, 0):
                 self.castling[1] = False
-            elif self.selected_piece == (7, 7):
-                self.castling[0] = False
-            elif self.selected_piece == (0, 0):
-                self.castling[3] = False
             elif self.selected_piece == (0, 7):
+                self.castling[0] = False
+            elif self.selected_piece == (7, 0):
+                self.castling[3] = False
+            elif self.selected_piece == (7, 7):
+                self.castling[2] = False
+
+        # if a rook is captured, disable castling for that rook
+        if self.is_piece(row, col) and self.get_piece(row, col).type.lower() == 'r':
+            if row == 0 and col == 0:
+                self.castling[1] = False
+            elif row == 0 and col == 7:
+                self.castling[0] = False
+            elif row == 7 and col == 0:
+                self.castling[3] = False
+            elif row == 7 and col == 7:
                 self.castling[2] = False
 
         # if the move is a pawn promotion, promote the pawn to a queen
-        if piece.type == 'p' and row == 7:
+        if piece.type == 'p' and row == 0:
             piece = Piece('q')
-        elif piece.type == 'P' and row == 0:
+        elif piece.type == 'P' and row == 7:
             piece = Piece('Q')
 
         self.game_board[row][col] = piece
-        self.game_board[self.selected_piece[0]][self.selected_piece[1]] = ''
+        self.game_board[self.selected_piece[0]][self.selected_piece[1]] = None
         self.turn = 'white' if self.turn == 'black' else 'black'
 
     def undo_move(self):
@@ -193,8 +200,7 @@ class Board:
         Undoes the last move
         '''
         if self.undo_list:
-            self.game_board = self.undo_list.pop()
-            self.turn = 'white' if self.turn == 'black' else 'black'
+            self.FEN_to_board(self.undo_list.pop())
 
     def full_move(self, start, end):
         '''
@@ -217,16 +223,16 @@ class Board:
         turn = FEN[1]
         castling = FEN[2]
         en_passant = FEN[3]
-        half_move = FEN[4]
-        full_move = FEN[5]
+        half_move_count = FEN[4]
+        full_move_count = FEN[5]
 
         # split the board state to get the rows
         rows = board_state.split('/')
         for row in rows:
             new_row = []
-            for char in row:
+            for char in row[::-1]:
                 if char.isdigit():
-                    new_row += ['' for _ in range(int(char))]
+                    new_row += [None for _ in range(int(char))]
                 else:
                     new_row.append(Piece(char))
             board.insert(0, new_row)
@@ -236,8 +242,8 @@ class Board:
         self.castling = [True if char in castling else False for char in "KQkq"]
         self.en_passant = None if en_passant == "-" else ord(en_passant[0]) - ord('a')
 
-        self.half_move = half_move
-        self.full_move = full_move
+        self.half_move_count = half_move_count
+        self.full_move_count = full_move_count
 
     def generate_FEN(self):
         ''''
@@ -246,8 +252,8 @@ class Board:
         fen = ''
         for row in self.game_board[::-1]:
             empty = 0
-            for piece in row:
-                if piece is None:
+            for piece in row[::-1]:
+                if not piece:
                     empty += 1
                 else:
                     if empty:
@@ -262,10 +268,12 @@ class Board:
         fen += 'w' if self.turn == 'white' else 'b'
         fen += ' '
         fen += ''.join(['K' if self.castling[0] else '', 'Q' if self.castling[1] else '', 'k' if self.castling[2] else '', 'q' if self.castling[3] else ''])
+        if not any(self.castling):
+            fen += '-'
         fen += ' '
         fen += chr(self.en_passant + ord('a')) if self.en_passant is not None else '-'
         fen += ' '
-        fen += str(self.half_move) + ' ' + str(self.full_move)
+        fen += str(self.half_move_count) + ' ' + str(self.full_move_count)
         return fen
 
 
@@ -314,6 +322,10 @@ class Board:
         '''
         Returns a list of legal moves for the piece in the given row and column
         '''
+        # if it is not the current player's turn, return an empty list
+        if self.get_piece(row, col).team != self.turn:
+            return []
+
         piece = self.get_piece(row, col)
         legal_moves = []
         moves = self.list_moves(row, col)
@@ -322,7 +334,7 @@ class Board:
             new_row, new_col = move
             new_piece = self.get_piece(new_row, new_col)
             self.game_board[new_row][new_col] = piece
-            self.game_board[row][col] = ''
+            self.game_board[row][col] = None
             if not self.ally_king_in_check():
                 legal_moves.append(move)
 
