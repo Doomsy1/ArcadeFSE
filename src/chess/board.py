@@ -1,607 +1,477 @@
-from pieces import Piece
-
 STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
+piece_values = {
+    'p': 1,
+    'n': 3,
+    'b': 3,
+    'r': 5,
+    'q': 9,
+    'k': 1000
+}
 
-class Board:
-    def __init__(self):
-        self.undo_list = [] # list of board states for undoing moves
+class Piece:
+    def __init__(self, type, position):
+        if type is not None:
+            self.type = type.lower()
+            # True if white, False if black
+            self.is_white = type.isupper()
+            self.value = piece_values[self.type]
+            self.position = position
+        else:
+            self.type = None
+            self.is_white = None
+            self.value = 0
+            self.position = position
 
-        self.game_FEN = STARTING_FEN
-        self.FEN_to_board(self.game_FEN)
+    def __repr__(self):
+        return self.type
 
-        self.legal_moves = generate_moves(self, self.turn)
-
-    def copy(self):
-        '''
-        Returns a copy of the board
-        '''
-        new_board = Board()
-        fen = self.generate_FEN()
-        new_board.FEN_to_board(fen)
-        return new_board
-
-    def set_board(self, board):
-        '''
-        Sets the game board to the given board
-        '''
-        self.game_board = board
-
-    def get_piece(self, row, col):
-        '''
-        Returns the piece in the given row and column
-        '''
-        if 0 <= row < 8 and 0 <= col < 8:
-            return self.game_board[row][col]
-        return None
-
-    def has_legal_moves(self, row, col):
-        '''
-        Returns True if the piece in the given row and column has legal moves, False otherwise
-        '''
-        return any(move.start == (row, col) for move in self.legal_moves)
-
-    def is_game_over(self):
-        '''
-        Returns True if the game is over, False otherwise
-        '''
-        return self.is_checkmate() or self.is_stalemate()
-
-    def is_stalemate(self):
-        '''
-        Returns True if the game is in stalemate, False otherwise
-        '''
-        # Check if the ally king is not in check
-        ally_king_in_check = self.ally_king_in_check()
-
-        # Check if there are no legal moves
-        no_legal_moves = self.legal_moves == []
-
-        return not ally_king_in_check and no_legal_moves
+    def __bool__(self):
+        return self.type is not None
     
-    def is_checkmate(self):
-        '''
-        Returns True if the game is in checkmate, False otherwise
-        '''
-        # Check if the ally king is in check
-        ally_king_in_check = self.ally_king_in_check()
-
-        # Check if there are no legal moves
-        no_legal_moves = self.legal_moves == []
-        
-        return ally_king_in_check and no_legal_moves
-
-    def ally_king_in_check(self):
-        '''
-        Returns True if the ally king is in check, False otherwise
-        '''
-        # Get the position of the ally king
-        for row in range(8):
-            for col in range(8):
-                piece = self.get_piece(row, col)
-                if piece and piece.type == 'k' and piece.color == self.turn:
-                    king_position = (row, col)
-                    break
-        # Check if the ally king is in check
-        return any(move.end == king_position for move in self.legal_moves)
-
-    def temp_move(self, move):
-        '''
-        Simplified version of make_move that returns True if the king is in check after the move, False otherwise. Doesn't update any variables
-        '''
-        start_row, start_col = move.start
-        end_row, end_col = move.end
-        save = self.generate_FEN()
-        
-        # move the piece to the new position
-        piece = self.get_piece(start_row, start_col)
-
-        # if the piece is a pawn and it moved diagonally, check if it is an en passant move and remove the enemy pawn that just moved 2 squares forward
-        if piece.type.lower() == 'p' and start_col != end_col and not self.get_piece(end_row, end_col):
-            self.game_board[start_row][end_col] = None
-
-        self.game_board[end_row][end_col] = piece
-        self.game_board[start_row][start_col] = None
-
-        # update the legal moves
-        self.legal_moves = generate_temp_moves(self, self.turn)
-
-        # check if the king is in check
-        king_in_check = self.ally_king_in_check()
-
-        # undo the move
-        self.FEN_to_board(save)
-
-        return king_in_check
-
-
-    def make_move(self, move): # this is the function that will be called when a player makes a move
-        '''
-        Moves the selected piece to the given row and column if it is a valid move
-        '''
-        start_row, start_col = move.start
-        end_row, end_col = move.end
-        self.undo_list.append(self.generate_FEN())
-
-        # move the piece to the new position
-        piece = self.get_piece(start_row, start_col)
-        # if the piece is a pawn and it moved 2 squares forward, set the en passant variable to the end_column of the en passant square
-        if piece.type.lower() == 'p':
-            if abs(start_row - end_row) == 2:
-                self.en_passant = end_col
-            else:
-                self.en_passant = None
-        else:
-            self.en_passant = None
-
-        # if the piece is a pawn and it moved diagonally, check if it is an en passant move and remove the enemy pawn that just moved 2 squares forward
-        if piece.type.lower() == 'p' and start_col != end_col and not self.get_piece(end_row, end_col):
-            self.game_board[start_row][end_col] = None
-
-
-        # if the king moved, disable castling for that king
-        if piece.type == 'k':
-            self.castling[2] = False
-            self.castling[3] = False
-        elif piece.type == 'K':
-            self.castling[0] = False
-            self.castling[1] = False
-
-        # if the piece is a king and it moved 2 squares to the right or left, move the rook to the new position
-        if piece.type.lower() == 'k' and abs(end_col - start_col) == 2:
-            if end_col == 6:
-                self.game_board[end_row][5] = self.game_board[end_row][7]
-                self.game_board[end_row][7] = None
-            else:
-                self.game_board[end_row][3] = self.game_board[end_row][0]
-                self.game_board[end_row][0] = None
-
-        # if a rook moved, disable castling for that rook
-        if piece.type.lower() == 'r':
-            if move.start == (0, 0):
-                self.castling[1] = False
-            elif move.start == (0, 7):
-                self.castling[0] = False
-            elif move.start == (7, 0):
-                self.castling[3] = False
-            elif move.start == (7, 7):
-                self.castling[2] = False
-
-        # if a rook is captured, disable castling for that rook
-        if self.get_piece(end_row, end_col) and self.get_piece(end_row, end_col).type.lower() == 'r':
-            if end_row == 0 and end_col == 0:
-                self.castling[1] = False
-            elif end_row == 0 and end_col == 7:
-                self.castling[0] = False
-            elif end_row == 7 and end_col == 0:
-                self.castling[3] = False
-            elif end_row == 7 and end_col == 7:
-                self.castling[2] = False
-
-        # if the move is a pawn promotion, promote the pawn to a queen
-        if piece.type == 'p' and end_row == 0:
-            piece = Piece('q')
-        elif piece.type == 'P' and end_row == 7:
-            piece = Piece('Q')
-
-        # if the move is a pawn move or a capture, reset the half move count
-        if piece.type.lower() == 'p' or self.get_piece(end_row, end_col):
-            self.half_move_count = 0
-        else:
-            self.half_move_count += 1
-
-        self.game_board[end_row][end_col] = piece
-        self.game_board[start_row][start_col] = None
-        self.turn = 'white' if self.turn == 'black' else 'black'
-
-        # update the legal moves
-        self.legal_moves = generate_moves(self, self.turn)
-
-    def undo_move(self):
-        '''
-        Undoes the last move
-        '''
-        if self.undo_list:
-            self.FEN_to_board(self.undo_list.pop())
-
-            # update the legal moves
-            self.legal_moves = generate_moves(self, self.turn)
-
-    def FEN_to_board(self, FEN):
-        '''
-        Converts the FEN string to a 2D list representing the game board
-        '''
-        board = []
-        # split the FEN string to get the board state and the turn and castling information
-        FEN = FEN.split()
-        board_state = FEN[0]
-        turn = FEN[1]
-        castling = FEN[2]
-        en_passant = FEN[3]
-        half_move_count = FEN[4]
-        full_move_count = FEN[5]
-
-        # split the board state to get the rows
-        rows = board_state.split('/')
-        for row_num, row in enumerate(rows):
-            new_row = []
-            col_num = 0
-            for char in row:
-                if char.isdigit():
-                    for _ in range(int(char)):
-                        new_row.append(Piece(None, (row_num, col_num)))
-                        col_num += 1
-                else:
-                    new_row.append(Piece(char, (row_num, col_num)))
-                    col_num += 1
-            board.append(new_row)
-
-        self.game_board = board
-        self.turn = "white" if turn == "w" else "black"
-        self.castling = [True if char in castling else False for char in "KQkq"]
-        self.en_passant = None if en_passant == "-" else ord(en_passant[0]) - ord('a')
-
-        self.half_move_count = half_move_count
-        self.full_move_count = full_move_count
-
-    def generate_FEN(self):
-        ''''
-        Generates the FEN string from the game board
-        '''
-        fen = ''
-        for row in self.game_board[::-1]:
-            empty = 0
-            for piece in row[::-1]:
-                if not piece:
-                    empty += 1
-                else:
-                    if empty:
-                        fen += str(empty)
-                        empty = 0
-                    if piece.color == 'white':
-                        fen += piece.type.upper()
-                    else:
-                        fen += piece.type
-            if empty:
-                fen += str(empty)
-            fen += '/'
-
-        fen = fen[:-1] + ' '
-        fen += 'w' if self.turn == 'white' else 'b'
-        fen += ' '
-        fen += ''.join(['K' if self.castling[0] else '', 'Q' if self.castling[1] else '', 'k' if self.castling[2] else '', 'q' if self.castling[3] else ''])
-        if not any(self.castling):
-            fen += '-'
-        fen += ' '
-        fen += chr(self.en_passant + ord('a')) if self.en_passant is not None else '-'
-        fen += ' '
-        fen += str(self.half_move_count) + ' ' + str(self.full_move_count)
-        return fen
-
+    def __str__(self):
+        if self.type.type is None:
+            return ""
+        return self.type
+    
+    def promote(self):
+        self.type = "q"
+        self.value = piece_values[self.type]
 
 class Move:
     def __init__(self, start, end):
-        self.start = start
-        self.end = end
+        self.start = start # (file, rank)
+        self.end = end # (file, rank)
 
-def generate_temp_moves(board: Board, turn):
-    moves = []
-    for row in range(8):
-        for col in range(8):
-            piece = board.get_piece(row, col)
-            # if there is a piece in the current square and it is the current player's turn
-            if piece and piece.color == turn:
-                match piece.type:
-                    case "p":
-                        moves += list_pawn_moves(board, piece)
-                    case "n":
-                        moves += list_knight_moves(board, piece)
-                    case "b":
-                        moves += list_bishop_moves(board, piece)
-                    case "r":
-                        moves += list_rook_moves(board, piece)
-                    case "q":
-                        moves += list_queen_moves(board, piece)
-                    case "k":
-                        moves += list_king_moves(board, piece)
-    return moves
+    def __repr__(self):
+        return f"{self.start}->{self.end}"
+    
+    def __str__(self):
+        return f"{self.start}->{self.end}"
 
-def generate_moves(board: Board, turn):
-    moves = []
-    for row in range(8):
-        for col in range(8):
-            piece = board.get_piece(row, col)
-            # if there is a piece in the current square and it is the current player's turn
-            if piece and piece.color == turn:
-                match piece.type:
-                    case "p":
-                        print("p")
-                        moves += list_pawn_moves(board, piece)
-                    case "n":
-                        moves += list_knight_moves(board, piece)
-                    case "b":
-                        moves += list_bishop_moves(board, piece)
-                    case "r":
-                        moves += list_rook_moves(board, piece)
-                    case "q":
-                        moves += list_queen_moves(board, piece)
-                    case "k":
-                        moves += list_king_moves(board, piece)
-    legal_moves = filter_moves(board, moves)
-    return legal_moves
+class Board:
+    def __init__(self, fen=STARTING_FEN):
+        self.parse_fen(fen)
+        self.undo_list = [fen] # list of board states (fen) to undo moves
+    
+    def parse_fen(self, fen):
+        # example: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        self.board = []
+        fen_data = fen.split(" ") # 
+        piece_placements = fen_data[0]
+        active_color = fen_data[1]
+        castling_availability = fen_data[2]
+        en_passant_target = fen_data[3]
+        halfmove_clock = fen_data[4]
+        fullmove_number = fen_data[5]
+
+        # parse the piece placements part of the fen
+        for rank_num, rank in enumerate(piece_placements.split("/")):
+            self.board.append([])
+            file_num = 0
+            for char in rank:
+                if char.isdigit():
+                    for _ in range(int(char)):
+                        self.board[rank_num].append(Piece(None, (file_num, rank_num)))
+                        file_num += 1
+                else:
+                    self.board[rank_num].append(Piece(char, (file_num, rank_num)))
+                    file_num += 1
+
+        # transpose the board to be [file][rank] instead of [rank][file]
+        self.board = list(map(list, zip(*self.board)))
                 
-def list_rook_moves(board: Board, piece: Piece):
-    moves = []
-    team = piece.color
+        
+        self.white_to_move = active_color == "w"
 
-    piece_row, piece_col = piece.position
+        self.castling_availability = castling_availability
 
-    # check the moves in the same row to the right (stop if there is a piece)
-    # if there is a piece, check if it is an enemy piece
-    # if it is an enemy piece, add the move and stop
-    # if it is a friendly piece, stop
+        # if en passant target is "-", then it.type is None
+        if en_passant_target == "-":
+            self.en_passant_target = None
+        else:
+            # convert the algebraic notation to a tuple
+            en_passant_file = ord(en_passant_target[0]) - ord("a")
+            en_passant_rank = 8 - int(en_passant_target[1])
+            self.en_passant_target = (en_passant_file, en_passant_rank)
 
-    # same row to the right
-    for i in range(piece_col + 1, 8):
-        new_piece = board.get_piece(piece_row, i)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (piece_row, i)))
-            break
-        moves.append(Move(piece.position, (piece_row, i)))
+        self.halfmove_clock = int(halfmove_clock)
+        self.fullmove_number = int(fullmove_number)
 
-    # same row to the left
-    for i in range(piece_col - 1, -1, -1):
-        new_piece = board.get_piece(piece_row, i)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (piece_row, i)))
-            break
-        moves.append(Move(piece.position, (piece_row, i)))
+    def generate_fen(self):
+        fen = ""
+        # board is [file][rank] instead of [rank][file] so we need to transpose it
+        for rank in list(map(list, zip(*self.board))):
+            empty = 0
+            for piece in rank:
+                if piece.type is None:
+                    empty += 1
+                else:
+                    if empty > 0:
+                        fen += str(empty)
+                        empty = 0
+                    fen += piece.type
+            if empty > 0:
+                fen += str(empty)
+            fen += "/"
+        fen = fen[:-1] # remove the last "/"
 
-    # same column to the top
-    for i in range(piece_row - 1, -1, -1):
-        new_piece = board.get_piece(i, piece_col)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (i, piece_col)))
-            break
-        moves.append(Move(piece.position, (i, piece_col)))
+        fen += " "
+        fen += "w" if self.white_to_move else "b"
 
-    # same column to the bottom
-    for i in range(piece_row + 1, 8):
-        new_piece = board.get_piece(i, piece_col)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (i, piece_col)))
-            break
-        moves.append(Move(piece.position, (i, piece_col)))
+        fen += " "
+        fen += self.castling_availability
 
-    return moves
+        fen += " "
+        fen += "-" if self.en_passant_target is None else chr(self.en_passant_target[0] + ord("a")) + str(8 - self.en_passant_target[1])
 
-def list_knight_moves(board: Board, piece: Piece):
-    moves = []
-    team = piece.color
+        fen += " "
+        fen += str(self.halfmove_clock)
 
-    piece_row, piece_col = piece.position
+        fen += " "
+        fen += str(self.fullmove_number)
 
-    # Define the possible knight moves
-    knight_moves = [
-        (-2, 1), (-1, 2), (1, 2), (2, 1), # top right, right top, right bottom, bottom right
-        (-2, -1), (-1, -2), (1, -2), (2, -1) # top left, left top, left bottom, bottom left
-    ]
+        return fen
 
-    # Iterate over each possible move
-    for move in knight_moves:
-        new_row = piece_row + move[0]
-        new_col = piece_col + move[1]
+    def get_piece(self, position):
+        file, rank = position
+        return self.board[file][rank]
+    
+    def make_move(self, move):
+        start = move.start # (file, rank)
+        end = move.end # (file, rank)
+        piece = self.get_piece(start)
 
-        new_piece = board.get_piece(new_row, new_col)
+        capture = False
+        
+        # if the piece is a pawn
+        if piece.type == "p":
+            # check if the move is a promotion
+            if end[1] == 0 or end[1] == 7:
+                piece.promote()
 
-        # Check if the new position is within the board boundaries
-        if 0 > new_row or new_row > 7 or 0 > new_col or new_col > 7:
-            continue
-        # Check if the new position is empty or contains an enemy piece
-        if not new_piece:
-            moves.append(Move(piece.position, (new_row, new_col)))
+            # check if the move is an en passant
+            if self.en_passant_target is not None and end == self.en_passant_target:
+                # remove the pawn that was captured
+                self.board[start[0]][end[1]] = Piece(None, (start[0], end[1]))
+                capture = True
 
-        elif new_piece.color != team:
-            moves.append(Move(piece.position, (new_row, new_col)))
-    return moves
+        # remove the en passant target
+        self.en_passant_target = None
+        if piece.type == "p":
+            # check if the move is a double pawn push
+            if abs(start[1] - end[1]) == 2:
+                self.en_passant_target = (start[0], (start[1] + end[1]) // 2)
 
-def list_bishop_moves(board: Board, piece: Piece):
-    moves = []
-    team = piece.color
+        
+        # if the piece is a king
+        if piece.type == "k":
+            # update the castling availability
+            if self.white_to_move:
+                self.castling_availability = self.castling_availability.replace("K", "")
+                self.castling_availability = self.castling_availability.replace("Q", "")
+            else:
+                self.castling_availability = self.castling_availability.replace("k", "")
+                self.castling_availability = self.castling_availability.replace("q", "")
 
-    piece_row, piece_col = piece.position
+            # check if the move is a castling move
+            if abs(start[0] - end[0]) == 2:
+                # if the king is castling kingside
+                if end[0] == 6:
+                    # move the rook
+                    self.board[7][end[1]] = Piece(None, (5, end[1]))
+                # if the king is castling queenside
+                elif end[0] == 2:
+                    # move the rook
+                    self.board[0][end[1]] = Piece(None, (3, end[1]))
 
-    # check the moves in the diagonal to the top right
-    for i in range(1, 8):
-        if piece_row - i < 0 or piece_col + i > 7:
-            break
+        # if the piece is a rook
+        if piece.type == "r":
+            # update the castling availability
+            if start == (0, 0):
+                self.castling_availability = self.castling_availability.replace("Q", "") # white queenside
+            elif start == (7, 0):
+                self.castling_availability = self.castling_availability.replace("K", "") # white kingside
+            elif start == (0, 7):
+                self.castling_availability = self.castling_availability.replace("q", "") # black queenside
+            elif start == (7, 7):
+                self.castling_availability = self.castling_availability.replace("k", "") # black kingside
 
-        new_piece = board.get_piece(piece_row - i, piece_col + i)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (piece_row - i, piece_col + i)))
-            break
-        moves.append(Move(piece.position, (piece_row - i, piece_col + i)))
+        # check if the move is a capture
+        if self.get_piece(end).type is not None:
+            capture = True
 
-    # check the moves in the diagonal to the top left
-    for i in range(1, 8):
-        if piece_row - i < 0 or piece_col - i < 0:
-            break
+        # move the piece
+        self.board[end[0]][end[1]] = piece
+        self.board[start[0]][start[1]] = Piece(None, start)
 
-        new_piece = board.get_piece(piece_row - i, piece_col - i)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (piece_row - i, piece_col - i)))
-            break
-        moves.append(Move(piece.position, (piece_row - i, piece_col - i)))
+        # update the turn
+        self.white_to_move = not self.white_to_move
 
-    # check the moves in the diagonal to the bottom right
-    for i in range(1, 8):
-        if piece_row + i > 7 or piece_col + i > 7:
-            break
+        # update the halfmove clock
+        if piece.type == "p" or capture:
+            self.halfmove_clock = 0
+        else:
+            self.halfmove_clock += 1
 
-        new_piece = board.get_piece(piece_row + i, piece_col + i)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (piece_row + i, piece_col + i)))
-            break
-        moves.append(Move(piece.position, (piece_row + i, piece_col + i)))
+        # update the fullmove number
+        if not self.white_to_move:
+            self.fullmove_number += 1
 
-    # check the moves in the diagonal to the bottom left
-    for i in range(1, 8):
-        if piece_row + i > 7 or piece_col - i < 0:
-            break
+        # add the board state to the undo list
+        self.undo_list.append(self.generate_fen())
 
-        new_piece = board.get_piece(piece_row + i, piece_col - i)
-        if new_piece:
-            if new_piece.color == team:
-                break
-            moves.append(Move(piece.position, (piece_row + i, piece_col - i)))
-            break
-        moves.append(Move(piece.position, (piece_row + i, piece_col - i)))
+    def undo_move(self):
+        if len(self.undo_list) > 1:
+            self.parse_fen(self.undo_list.pop())
 
-    return moves
+    def generate_pawn_moves(self, piece: Piece):
+        file, rank = piece.position
+        moves = []
 
-def list_queen_moves(board, piece):
-    return list_rook_moves(board, piece) + list_bishop_moves(board, piece) # the queen moves are the same as the rook and bishop moves
+        direction = 1 if piece.is_white else -1
 
-def list_king_moves(board, piece):
-    moves = []
-    team = piece.color
+        # check if the pawn can move forward one square
+        if self.get_piece((file, rank + direction)).type is None:
+            moves.append(Move(piece.position, (file, rank + direction)))
 
-    piece_row, piece_col = piece.position
+            # check if the pawn can move forward two squares
+            if (rank == 1 and piece.is_white) or (rank == 6 and not piece.is_white):
+                if self.get_piece((file, rank + 2 * direction)).type is None:
+                    moves.append(Move(piece.position, (file, rank + 2 * direction)))
 
-    # Define the possible directions for the king to move
-    directions = [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)]
+        # check if the pawn can capture a piece
+        for i in [-1, 1]:
+            if 0 <= file + i <= 7:
+                target = self.get_piece((file + i, rank + direction))
+                # if there is a piece to capture and it is an enemy piece
+                if target and target.is_white != piece.is_white:
+                    moves.append(Move(piece.position, (file + i, rank + direction)))
+                    
+        # check if the pawn can capture en passant
+        if self.en_passant_target is not None:
+            if self.en_passant_target == (file - 1, rank + direction) or self.en_passant_target == (file + 1, rank + direction):
+                moves.append(Move(piece.position, self.en_passant_target))
 
-    # Iterate over each direction
-    for direction in directions:
-        new_row = piece_row + direction[0]
-        new_col = piece_col + direction[1]
+        return moves
+    
+    def generate_rook_moves(self, piece: Piece):
+        file, rank = piece.position
+        moves = []
+        
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        for direction in directions:
+            # check if the rook can move in the direction until it hits a piece or the edge of the board
+            for i in range(1, 8):
+                # check if the move is on the board
+                if 0 > file + i * direction[0] or file + i * direction[0] > 7 or 0 > rank + i * direction[1] or rank + i * direction[1] > 7:
+                    break
 
-        # Check if the new position is within the board boundaries
-        if 0 > new_row or new_row > 7 or 0 > new_col or new_col > 7:
-            continue
+                # get the piece at the target square
+                target = self.get_piece((file + i * direction[0], rank + i * direction[1]))
 
-        # Check if the new position is empty or contains an enemy piece
-        new_position = board.get_piece(new_row, new_col)
-        if not new_position:
-            moves.append(Move(piece.position, (new_row, new_col)))
+                # if the target square is empty, add the move
+                if target.type is None:
+                    moves.append(Move(piece.position, (file + i * direction[0], rank + i * direction[1])))
 
-        elif new_position.color != team:
-            moves.append(Move(piece.position, (new_row, new_col)))
+                # if the target square is not empty, add the move if it is an enemy piece and break
+                else:
+                    if target.is_white != piece.is_white:
+                        moves.append(Move(piece.position, (file + i * direction[0], rank + i * direction[1])))
+                    break
 
-    # Check for castling moves KQkq
-    if team == "white":
-        if board.castling[0] and not board.get_piece(7, 5) and not board.get_piece(7, 6):
-            moves.append(Move(piece.position, (7, 6)))
-        if board.castling[1] and not board.get_piece(7, 1) and not board.get_piece(7, 2) and not board.get_piece(7, 3):
-            moves.append(Move(piece.position, (7, 2)))
-    else:
-        if board.castling[2] and not board.get_piece(0, 5) and not board.get_piece(0, 6):
-            moves.append(Move(piece.position, (0, 6)))
-        if board.castling[3] and not board.get_piece(0, 1) and not board.get_piece(0, 2) and not board.get_piece(0, 3):
-            moves.append(Move(piece.position, (0, 2)))
+        return moves
+    
+    def generate_bishop_moves(self, piece: Piece):
+        file, rank = piece.position
+        moves = []
 
-    return moves
+        directions = [(1, 1), (-1, 1), (1, -1), (-1, -1)]
+        for direction in directions:
+            # check if the bishop can move in the direction until it hits a piece or the edge of the board
+            for i in range(1, 8):
+                # check if the move is on the board
+                if 0 > file + i * direction[0] or file + i * direction[0] > 7 or 0 > rank + i * direction[1] or rank + i * direction[1] > 7:
+                    break
 
-def list_pawn_moves(board, piece):
-    moves = []
-    team = piece.color
+                # get the piece at the target square
+                target = self.get_piece((file + i * direction[0], rank + i * direction[1]))
 
-    piece_row, piece_col = piece.position
+                # if the target square is empty, add the move
+                if target.type is None:
+                    moves.append(Move(piece.position, (file + i * direction[0], rank + i * direction[1])))
 
-    # Define the possible directions for the pawn to move
-    if team == "white":
-        direction = -1 # the direction the pawn moves
-        starting_row = 6 # the row where the pawn can move 2 squares forward
-        en_passant_row = 3 # the row where the ally pawn can capture the enemy pawn en passant
-    else:
-        direction = 1
-        starting_row = 1
-        en_passant_row = 4
+                # if the target square is not empty, add the move if it is an enemy piece and break
+                else:
+                    if target.is_white != piece.is_white:
+                        moves.append(Move(piece.position, (file + i * direction[0], rank + i * direction[1])))
+                    break
 
-    # If the square in front of the pawn is empty, the pawn can move forward
-    if not board.get_piece(piece_row + direction, piece_col):
-        moves.append(Move(piece.position, (piece_row + direction, piece_col)))
+        return moves
 
-        # If the pawn is in the starting position, the pawn can move 2 squares forward
-        if piece_row == starting_row and not board.get_piece(piece_row + 2 * direction, piece_col):
-            moves.append(Move(piece.position, (piece_row + 2 * direction, piece_col)))
+    def generate_knight_moves(self, piece: Piece):
+        file, rank = piece.position
+        moves = []
 
-    # If there is an enemy piece in the diagonal to the right, the pawn can move there
-    new_piece = board.get_piece(piece_row + direction, piece_col + 1)
-    if new_piece and new_piece.color != team:
-        moves.append(Move(piece.position, (piece_row + direction, piece_col + 1)))
+        directions = [(1, 2), # top right
+                      (2, 1), # right top
 
-    new_piece = board.get_piece(piece_row + direction, piece_col - 1)
-    # If there is an enemy piece in the diagonal to the left, the pawn can move there
-    if new_piece and new_piece.color != team:
-        moves.append(Move(piece.position, (piece_row + direction, piece_col - 1)))
+                      (2, -1), # right bottom
+                      (1, -2), # bottom right
 
-    # Check for en passant
-    if board.en_passant is not None and piece_row == en_passant_row:
-        if piece_col == board.en_passant + 1 or piece_col == board.en_passant - 1:
-            moves.append(Move(piece.position, (piece_row + direction, board.en_passant)))
+                      (-1, -2), # bottom left
+                      (-2, -1), # left bottom
 
-    return moves
+                      (-2, 1), # left top
+                      (-1, 2)] # top left
 
-def king_in_check(board, team):
-    for row in range(8):
-        for col in range(8):
-            piece = board.get_piece(row, col)
-            if piece and piece.color != team:
-                moves = []
-                match piece:
-                    case "p":
-                        moves = list_pawn_moves(board, piece)
-                    case "n":
-                        moves = list_knight_moves(board, piece)
-                    case "b":
-                        moves = list_bishop_moves(board, piece)
-                    case "r":
-                        moves = list_rook_moves(board, piece)
-                    case "q":
-                        moves = list_queen_moves(board, piece)
-                    case "k":
-                        moves = list_king_moves(board, piece)
-                for move in moves:
-                    new_row, new_col = move.end
-                    if board.get_piece(new_row, new_col).type == "k":
-                        return True
-    return False
+        for direction in directions:
+            # check if the move is on the board
+            if 0 > file + direction[0] or file + direction[0] > 7 or 0 > rank + direction[1] or rank + direction[1] > 7:
+                continue
 
-def filter_moves(board, moves):
-    legal_moves = []
-    for move in moves:
+            # get the piece at the target square
+            target = self.get_piece((file + direction[0], rank + direction[1]))
+
+            # if the target square is empty, add the move
+            if target.type is None:
+                moves.append(Move(piece.position, (file + direction[0], rank + direction[1])))
+
+            # if the target square is not empty, add the move if it is an enemy piece
+            else:
+                if target.is_white != piece.is_white:
+                    moves.append(Move(piece.position, (file + direction[0], rank + direction[1])))
+
+        return moves
+    
+    def generate_queen_moves(self, piece: Piece):
+        # the queen moves are the combination of the rook and bishop moves
+        return self.generate_rook_moves(piece) + self.generate_bishop_moves(piece)
+    
+    def generate_king_moves(self, piece: Piece):
+        file, rank = piece.position
+        moves = []
+
+        # moving the king one square in any direction
+        directions = [(1, 1), (-1, 1), (1, -1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1)]
+        for direction in directions:
+            # check if the move is on the board
+            if 0 > file + direction[0] or file + direction[0] > 7 or 0 > rank + direction[1] or rank + direction[1] > 7:
+                continue
+
+            # get the piece at the target square
+            target = self.get_piece((file + direction[0], rank + direction[1]))
+
+            # if the target square is empty, add the move
+            if target.type is None:
+                moves.append(Move(piece.position, (file + direction[0], rank + direction[1])))
+
+            # if the target square is not empty, add the move if it is an enemy piece
+            else:
+                if target.is_white != piece.is_white:
+                    moves.append(Move(piece.position, (file + direction[0], rank + direction[1])))
+
+        # castling moves
+        if piece.is_white:
+            if "K" in self.castling_availability:
+                if self.get_piece((5, 0)).type is None and self.get_piece((6, 0)).type is None:
+                    moves.append(Move(piece.position, (6, 0)))
+            if "Q" in self.castling_availability:
+                if self.get_piece((1, 0)).type is None and self.get_piece((2, 0)).type is None and self.get_piece((3, 0)).type is None:
+                    moves.append(Move(piece.position, (2, 0)))
+        else:
+            if "k" in self.castling_availability:
+                if self.get_piece((5, 7)).type is None and self.get_piece((6, 7)).type is None:
+                    moves.append(Move(piece.position, (6, 7)))
+            if "q" in self.castling_availability:
+                if self.get_piece((1, 7)).type is None and self.get_piece((2, 7)).type is None and self.get_piece((3, 7)).type is None:
+                    moves.append(Move(piece.position, (2, 7)))
+
+        return moves
+    
+    def generate_moves(self, turn):
+        moves = []
+        for rank in self.board:
+            for piece in rank:
+                if piece.is_white == turn:
+                    if piece.type == "p":
+                        moves += self.generate_pawn_moves(piece)
+                    elif piece.type == "r":
+                        moves += self.generate_rook_moves(piece)
+                    elif piece.type == "n":
+                        moves += self.generate_knight_moves(piece)
+                    elif piece.type == "b":
+                        moves += self.generate_bishop_moves(piece)
+                    elif piece.type == "q":
+                        moves += self.generate_queen_moves(piece)
+                    elif piece.type == "k":
+                        moves += self.generate_king_moves(piece)
+
+        return moves
+    
+    def is_en_passant_move(self, move):
         start = move.start
         end = move.end
-        # filter illegal castling moves (the king cannot move through check)
-        start_piece = board.get_piece(start[0], start[1])
-        if start_piece.type == "k" and start[1] - end[1] == 2:
-            # simulate moving the king 1 square to the right (the king cannot move through check so if the king is in check after moving 1 square to the right, the move is illegal)
-            if not board.temp_move(Move(start, (start[0], start[1] + 1))):
+        piece = self.get_piece(start)
+
+        # if the piece is not a pawn, return False
+        if piece.type != "p":
+            return False
+        # if end is the en passant target square
+        if self.en_passant_target is not None and end == self.en_passant_target:
+            return True
+        return False
+
+    def is_check(self, turn):
+        '''
+        Check if the king of the player with the turn is in check
+        turn is the player to check if they are in check
+        '''
+        # generate all the moves of the opponent
+        moves = self.generate_moves(not turn)
+        for move in moves:
+            # check if the move is a capture of the king
+            piece = self.get_piece(move.end)
+            if piece.type == "k" and piece.is_white == turn:
+                return True
+        return False
+
+    def generate_legal_moves(self):
+        moves = self.generate_moves(self.white_to_move)
+        legal_moves = []
+        for move in moves:
+            self.make_move(move)
+            if not self.is_check(self.white_to_move):
                 legal_moves.append(move)
+            self.undo_move()
 
-        elif start_piece.type == "k" and end[1] - start[1] == 2:
-            # simulate moving the king 1 square to the left
-            if not board.temp_move(Move(start, (start[0], start[1] - 1))):
-                legal_moves.append(move)
+        return legal_moves
+    
+    def is_checkmate(self):
+        return len(self.generate_legal_moves()) == 0
+    
+    def is_stalemate(self):
+        return len(self.generate_legal_moves()) == 0 and not self.is_check(self.white_to_move)
+    
+    def is_insufficient_material(self):
+        # check if there are only kings left
+        pieces = []
+        for rank in self.board:
+            for piece in rank:
+                if piece.type is not None:
+                    pieces.append(piece.type)
+        if len(pieces) == 2:
+            return True
 
-        else: # if the move is not a castling move (it is a normal move)
-            if not board.temp_move(move):
-                legal_moves.append(move)
+        # check if there are only kings and one knight or one bishop left
+        if len(pieces) == 3:
+            if pieces.count("n") == 1 or pieces.count("b") == 1:
+                return True
 
+        return False
 
-    return legal_moves
+    def is_draw(self):
+        return self.is_stalemate() or self.is_insufficient_material() or self.halfmove_clock >= 50
+    
+    def is_game_over(self):
+        return self.is_checkmate() or self.is_draw()

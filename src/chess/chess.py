@@ -32,9 +32,22 @@ class ChessGame:
 
         self.selected_piece = None
 
-        # self.board.FEN_to_board("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
+        self.cached_moves = {} # store the moves of the selected piece
+        # key: fen, value: moves
+
+        # self.board.parse_fen("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
 
         self.load_images()
+
+    def get_moves(self):
+        # cache the moves of the board
+        fen = self.board.generate_fen()
+        if fen in self.cached_moves:
+            return self.cached_moves[fen]
+        else:
+            moves = self.board.generate_legal_moves()
+            self.cached_moves[fen] = moves
+            return moves
 
     def is_over_board(self, x, y):
         return OFFSET_X <= x <= OFFSET_X + 8 * GRID_SIZE and OFFSET_Y <= y <= OFFSET_Y + 8 * GRID_SIZE
@@ -43,37 +56,39 @@ class ChessGame:
         # make a popup window that gets the user to set the FEN of the board
         fen = simpledialog.askstring("Input", "Please enter the FEN:", parent=self.root)
         # the FEN is then set to the board
-        self.board.FEN_to_board(fen)
+        self.board.parse_fen(fen)
 
     def piece_selected(self):
         # return True if a piece is selected
         return self.selected_piece is not None
 
     def draw_arrow(self, start, end):
-        # start and end are tuples with the row and column of the start and end positions
-        start_x = start[1] * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
-        start_y = start[0] * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
-        end_x = end[1] * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
-        end_y = end[0] * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
+        # start and end are tuples with the file and rank of the squares
+        start_file, start_rank = start
+        end_file, end_rank = end
+        start_x = start_rank * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
+        start_y = (7 - start_file) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
+        end_x = end_rank * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
+        end_y = (7 - end_file) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
 
         # draw the arrow
         tail_start_offset = GRID_SIZE // 4
         tail_width = GRID_SIZE // 4
         head_width = GRID_SIZE // 2
         head_height = GRID_SIZE // 2.5
-        colour = MOVE_SQUARE
+        color = MOVE_SQUARE
         alpha = 160
-        draw_arrow(self.screen, (start_x, start_y), (end_x, end_y), tail_start_offset, tail_width, head_width, head_height, colour, alpha)
+        draw_arrow(self.screen, (start_x, start_y), (end_x, end_y), tail_start_offset, tail_width, head_width, head_height, color, alpha)
 
-    def draw_circle(self, row, col):
+    def draw_circle(self, file, rank):
         # draw the circle
-        x_pos = col * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
-        y_pos = row * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
+        x_pos = rank * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
+        y_pos = (7 - file) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
         center = (x_pos, y_pos)
         radius = GRID_SIZE // 2
-        colour = MOVE_SQUARE
+        color = MOVE_SQUARE
         thickness = 3
-        pygame.draw.circle(self.screen, colour, center, radius, thickness)
+        pygame.draw.circle(self.screen, color, center, radius, thickness)
         
     def load_images(self):
         self.piece_imgs = {}
@@ -96,92 +111,96 @@ class ChessGame:
         for img in self.piece_imgs:
             self.piece_imgs[img] = pygame.transform.scale(self.piece_imgs[img], (GRID_SIZE, GRID_SIZE))
 
-    def get_row_col(self, x, y):
-        row = (y - OFFSET_Y) // GRID_SIZE
-        col = (x - OFFSET_X) // GRID_SIZE
-        return row, col
+    def get_file_rank(self, x, y):
+        # get the file and rank of the square
+        file = 7 - (y - OFFSET_Y) // GRID_SIZE
+        rank = (x - OFFSET_X) // GRID_SIZE
+        return file, rank
 
     def display_moves(self):
         # display the possible moves for the selected piece as squares on the board
         # the squares are displayed in orange if the move is a non-capture move
         # the squares are displayed in red if the move is a capture move
-        moves = self.board.legal_moves
+        moves = self.get_moves()
         for move in moves:
             start = move.start
             end = move.end
             # if the start is the selected piece, display the end square
             if start == self.selected_piece:
-                row, col = end
-                x_pos = col * GRID_SIZE + OFFSET_X
-                y_pos = row * GRID_SIZE + OFFSET_Y
-                if self.board.get_piece(row, col):
-                    pygame.draw.rect(self.screen, CAPTURE_SQUARE, (x_pos, y_pos, GRID_SIZE, GRID_SIZE))
-                    print(f"Capture move at {row, col}")
-                else:
-                    pygame.draw.rect(self.screen, MOVE_SQUARE, (x_pos, y_pos, GRID_SIZE, GRID_SIZE))
-                    print(f"Move to {row, col}")
+                file, rank = end
+                x_pos = rank * GRID_SIZE + OFFSET_X
+                y_pos = file * GRID_SIZE + OFFSET_Y
 
+                # draw a transparent rect
+                # if the move is a capture move (en passant as well), draw the square in red
+                # if the move is a non-capture move, draw the square in orange
+                alpha = 128
+                capture = False
+                if self.board.get_piece(end):
+                    capture = True
+                # if the move is an en passant move, draw the square in red
+                if self.board.is_en_passant_move(move):
+                    capture = True
+
+                if capture:
+                    draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), CAPTURE_SQUARE, alpha)
+                else:
+                    draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), MOVE_SQUARE, alpha)
 
     def draw_selected_piece(self):
         if self.selected_piece is None:
-            return   
-        row, col = self.selected_piece
-        x_pos = col * GRID_SIZE + OFFSET_X
-        y_pos = row * GRID_SIZE + OFFSET_Y
+            return
+        file, rank = self.selected_piece
+        x_pos = rank * GRID_SIZE + OFFSET_X
+        y_pos = (7 - file) * GRID_SIZE + OFFSET_Y
         alpha = 128
         # draw the transparent rect
         draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), (196,196,196), alpha)
 
-        piece = self.board.get_piece(row, col)
+        piece = self.board.get_piece((file, rank))
         if self.mb[0]:
             # draw the piece on the curser (self.mx, self.my)
-            if piece.color == "black":
+            if piece.is_white:
                 self.screen.blit(self.piece_imgs[piece.type], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
             else:
                 self.screen.blit(self.piece_imgs[piece.type.upper()], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
         else:
             # draw the piece on the board
-            self.draw_piece(piece, row, col)
+            self.draw_piece(piece, file, rank)
         
     def draw_board(self):
-        for row in range(8):
-            for col in range(8):
-                color = LIGHT_SQUARE if (row + col) % 2 == 0 else DARK_SQUARE
-                x_pos = col * GRID_SIZE + OFFSET_X
-                y_pos = row * GRID_SIZE + OFFSET_Y
+        for rank in range(8):
+            for file in range(8):
+                x_pos = rank * GRID_SIZE + OFFSET_X
+                y_pos = (7 - file) * GRID_SIZE + OFFSET_Y
+                
+                color = LIGHT_SQUARE if (rank + file) % 2 == 0 else DARK_SQUARE
                 pygame.draw.rect(self.screen, color, (x_pos, y_pos, GRID_SIZE, GRID_SIZE))
 
-    def draw_piece(self, piece, row, col):
-        x_pos = col * GRID_SIZE + OFFSET_X
-        y_pos = row * GRID_SIZE + OFFSET_Y
-        if piece:
-            if piece.color == "black":
-                self.screen.blit(self.piece_imgs[piece.type], (x_pos, y_pos))
-            else:
-                self.screen.blit(self.piece_imgs[piece.type.upper()], (x_pos, y_pos))
+    def draw_piece(self, piece: Piece, file, rank):
+        if piece.type is None:
+            return
+        
+        x_pos = rank * GRID_SIZE + OFFSET_X
+        y_pos = (7 - file) * GRID_SIZE + OFFSET_Y
+        if piece.is_white:
+            self.screen.blit(self.piece_imgs[piece.type], (x_pos, y_pos))
+        else:
+            self.screen.blit(self.piece_imgs[piece.type.upper()], (x_pos, y_pos))
 
     def draw_pieces(self):
-        for row in range(8):
-            for col in range(8):
-                piece = self.board.get_piece(row, col)
-                # dont draw the piece if it is the selected piece
-                if (row, col) == self.selected_piece:
-                    continue
-                self.draw_piece(piece, row, col)
+        for file in range(8):
+            for rank in range(8):
+                # selected piece is drawn in the draw_selected_piece method
+                if (file, rank) != self.selected_piece:
+                    piece = self.board.get_piece((file, rank))
+                    self.draw_piece(piece, file, rank)
 
     def make_engine_suggestion(self):
         engine = Engine(self.board)
         move = engine.get_best_move()
         # draw an arrow from the start to the end of the move
-        self.arrows.append(((move[0][0], move[0][1]), (move[1][0], move[1][1])))
-
-    def flip_board(self):# unused
-        # rotate the board 180 degrees
-        # this is done by flipping the board array in the vertical and horizontal direction
-        temp_board = []
-        for row in range(8):
-            temp_board.append(self.board.game_board[7 - row][::-1])
-        self.board.game_board = temp_board
+        self.arrows.append((move.start, move.end))
 
     def draw_game(self):
         self.draw_board()
@@ -254,23 +273,28 @@ class ChessGame:
             self.circles = []
             self.arrows = []
 
-            row, col = self.get_row_col(self.mx, self.my)
-            # if row, col is a valid piece, select the piece
-            if self.board.get_piece(row, col):
-                self.selected_piece = (row, col)
-            
-            #
-            
+            file, rank = self.get_file_rank(self.mx, self.my)
+            # if file, rank is a valid piece, select the piece 
+            # else, deselect the piece unless the piece you clicked is a valid move
+            if self.board.get_piece((file, rank)):
+                self.selected_piece = (file, rank)
+            elif self.piece_selected():
+                move = Move(self.selected_piece, (file, rank))
+                if move in self.board.legal_moves:
+                    self.board.make_move(move)
+                self.selected_piece = None
+            else:
+                self.selected_piece = None
 
         elif self.L_mouse_up: # move the piece if the move is valid
-            row, col = self.get_row_col(self.mx, self.my)
-            move = Move(self.selected_piece, (row, col))
+            file, rank = self.get_file_rank(self.mx, self.my)
+            move = Move(self.selected_piece, (file, rank))
             if self.piece_selected():
                 if move in self.board.legal_moves:
                     self.board.make_move(move)
 
                 # if the same piece is clicked again dont deselect the piece
-                elif (row, col) == self.selected_piece:
+                elif (file, rank) == self.selected_piece:
                     pass
                 else:
                     self.selected_piece = None
@@ -278,40 +302,43 @@ class ChessGame:
         self.preview_arrow = None
         # if right mouse button is down draw the preview of a circle or arrow
         if self.mb[2]:
-            start_row, start_col = self.get_row_col(self.rmx, self.rmy)
-            end_row, end_col = self.get_row_col(self.mx, self.my)
-            self.preview_arrow = ((start_row, start_col), (end_row, end_col))
+            start_file, start_rank = self.get_file_rank(self.rmx, self.rmy)
+            end_file, end_rank = self.get_file_rank(self.mx, self.my)
+            self.preview_arrow = ((start_file, start_rank), (end_file, end_rank))
 
         if self.R_mouse_up: # draw an arrow or circle
-            start_row, start_col = self.get_row_col(self.rmx, self.rmy)
-            end_row, end_col = self.get_row_col(self.mx, self.my)
+            start_file, start_rank = self.get_file_rank(self.rmx, self.rmy)
+            end_file, end_rank = self.get_file_rank(self.mx, self.my)
 
-            if start_row == end_row and start_col == end_col:
+            # if the start and end are the same, draw a circle
+            if (start_file, start_rank) == (end_file, end_rank):
                 # if the circle already exists, remove it
-                if (start_row, start_col) in self.circles:
-                    self.circles.remove((start_row, start_col))
+                if (start_file, start_rank) in self.circles:
+                    self.circles.remove((start_file, start_rank))
                 else:
-                    self.circles.append((start_row, start_col))
+                    self.circles.append((start_file, start_rank))
             else:
                 # if the arrow already exists, remove it
-                if ((start_row, start_col), (end_row, end_col)) in self.arrows:
-                    self.arrows.remove(((start_row, start_col), (end_row, end_col)))
+                if ((start_file, start_rank), (end_file, end_rank)) in self.arrows:
+                    self.arrows.remove(((start_file, start_rank), (end_file, end_rank)))
                 else:
-                    self.arrows.append(((start_row, start_col), (end_row, end_col)))
+                    self.arrows.append(((start_file, start_rank), (end_file, end_rank)))
 
     def draw_preview_arrow(self):
         if not self.preview_arrow:
             return
-        if self.preview_arrow[0] == self.preview_arrow[1]:
-            self.draw_circle(self.preview_arrow[0][0], self.preview_arrow[0][1])
+        # draw the preview arrow or circle
+        start, end = self.preview_arrow
+        if start == end:
+            self.draw_circle(start[0], start[1])
         else:
-            self.draw_arrow(self.preview_arrow[0], self.preview_arrow[1])
+            self.draw_arrow(start, end)
 
 
     def developer_display(self):
         # write the FEN of the board to the screen
         FEN_rect = pygame.Rect(0, 0, 800, 100)
-        write_centered_text(self.screen, self.board.generate_FEN(), FEN_rect, (0, 0, 0))
+        write_centered_text(self.screen, self.board.generate_fen(), FEN_rect, (0, 0, 0))
 
     def main_loop(self):
         running = True
