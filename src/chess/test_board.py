@@ -1,133 +1,107 @@
 import unittest
-from board import Board
-from pieces import Piece
+from board import Piece, Move, Board, STARTING_FEN, piece_values
 
-STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+class TestPiece(unittest.TestCase):
+    def test_initialization(self):
+        p = Piece('P', (0, 1))
+        self.assertEqual(p.type, 'p')
+        self.assertTrue(p.is_white)
+        self.assertEqual(p.value, piece_values['p'])
+        self.assertEqual(p.position, (0, 1))
+        
+        p = Piece(None, (0, 1))
+        self.assertIsNone(p.type)
+        self.assertIsNone(p.is_white)
+        self.assertEqual(p.value, 0)
+        self.assertEqual(p.position, (0, 1))
 
-checkmate_position = "1r5K/r7/8/8/8/8/8/3k4 w - - 0 1"
-stalemate_position = "7K/r7/8/8/8/8/8/3k2r1 w - - 0 1"
+    def test_promote(self):
+        p = Piece('p', (0, 1))
+        p.promote()
+        self.assertEqual(p.type, 'q')
+        self.assertEqual(p.value, piece_values['q'])
 
-class TestChessBoard(unittest.TestCase):
+class TestMove(unittest.TestCase):
+    def test_initialization(self):
+        m = Move((0, 1), (0, 2))
+        self.assertEqual(m.start, (0, 1))
+        self.assertEqual(m.end, (0, 2))
+
+    def test_equality(self):
+        m1 = Move((0, 1), (0, 2))
+        m2 = Move((0, 1), (0, 2))
+        self.assertEqual(m1, m2)
+        m3 = Move((1, 1), (0, 2))
+        self.assertNotEqual(m1, m3)
+
+class TestBoard(unittest.TestCase):
     def setUp(self):
-        """Set up a new chess board for each test."""
         self.board = Board()
-        self.board.init_board()
 
-    def test_init_board(self):
-        """Test if the board initializes correctly with the starting FEN."""
-        self.assertEqual(self.board.generate_FEN(), STARTING_FEN)
+    def test_parse_fen(self):
+        self.board.parse_fen(STARTING_FEN)
+        self.assertEqual(self.board.generate_fen(), STARTING_FEN)
 
-    def test_set_board(self):
-        """Test setting a custom board setup."""
-        custom_board = [[None] * 8 for _ in range(8)]
-        custom_board[0][0] = Piece('R')  # Example: place a rook at 0,0
-        self.board.set_board(custom_board)
-        self.assertIsInstance(self.board.get_piece(0, 0), Piece)
+    def test_generate_fen(self):
+        fen = self.board.generate_fen()
+        self.assertEqual(fen, STARTING_FEN)
 
-    def test_get_piece(self):
-        """Test retrieving a piece from a specified location."""
-        self.board.select_piece(0, 1)  # Select knight
-        piece = self.board.get_piece(0, 1)
-        self.assertIsInstance(piece, Piece)
-        self.assertEqual(piece.type, 'N')
+    def test_make_and_undo_move(self):
+        initial_fen = self.board.generate_fen()
+        move = Move((0, 1), (0, 3))
+        self.board.make_move(move)
+        self.board.undo_move()
+        self.assertEqual(self.board.generate_fen(), initial_fen)
 
-    def test_is_piece(self):
-        """Test checking if there is a piece at the specified location."""
-        self.assertTrue(self.board.is_piece(0, 0))  # Starting position rook
-        self.assertFalse(self.board.is_piece(3, 3))  # Empty space at start
+    def test_pawn_moves(self):
+        self.board.parse_fen(STARTING_FEN)
+        pawn_moves = self.board.generate_pawn_moves(self.board.get_piece((0, 1)))
+        expected_moves = [Move((0, 1), (0, 2)), Move((0, 1), (0, 3))]
+        self.assertEqual(pawn_moves, expected_moves)
 
-    def test_select_and_deselect_piece(self):
-        """Test selecting and deselecting a piece."""
-        self.board.select_piece(0, 1)  # Select knight
-        self.assertEqual(self.board.selected_piece, [0, 1])
-        self.board.deselect_piece()
-        self.assertIsNone(self.board.selected_piece)
+    def test_rook_moves(self):
+        self.board.parse_fen("8/8/8/8/8/8/R7/8 w - - 0 1")
+        rook_moves = self.board.generate_rook_moves(self.board.get_piece((0, 1)))
+        self.assertIn(Move((0, 1), (0, 7)), rook_moves)
 
-    def test_piece_selected(self):
-        """Test if a piece is currently selected."""
-        self.assertFalse(self.board.piece_selected())
-        self.board.select_piece(0, 1)
-        self.assertTrue(self.board.piece_selected())
+    def test_king_moves(self):
+        self.board.parse_fen("8/8/8/4K3/8/8/8/8 w - - 0 1")
+        king_moves = self.board.generate_king_moves(self.board.get_piece((4, 4)))
+        expected_moves = [Move((4, 4), (5, 4)), Move((4, 4), (3, 4))]
+        self.assertIn(expected_moves[0], king_moves)
+        self.assertIn(expected_moves[1], king_moves)
 
-    def test_move_piece(self):
-        """Test moving a piece to a new location."""
-        self.board.select_piece(1, 4)  # Select pawn
-        self.board.make_move(3, 4)  # Move pawn two spaces forward
-        self.assertIsNone(self.board.get_piece(1, 4))  # Old position empty
-        self.assertIsInstance(self.board.get_piece(3, 4), Piece)  # New position has pawn
-
-    def test_has_legal_moves(self):
-        """Test checking for legal moves available for a piece."""
-        self.board.select_piece(0, 1)  # Select knight
-        self.assertTrue(self.board.has_legal_moves(0, 1))  # Knights have moves at start
-
-    def test_is_game_over(self):
-        """Test if the game over check works correctly."""
-        self.assertFalse(self.board.is_game_over())  # At start, game is not over
-
-    def test_is_stalemate(self):
-        """Test stalemate detection."""
-        # Setup a stalemate position manually or through a series of moves
-        self.assertFalse(self.board.is_stalemate())  # Not a stalemate at start
+    def test_is_check(self):
+        self.board.parse_fen("4k3/8/8/8/8/4R3/8/4K3 w - - 0 1")
+        self.assertTrue(self.board.is_check(False))
+        self.board.parse_fen("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
+        self.assertFalse(self.board.is_check(False))
 
     def test_is_checkmate(self):
-        """Test checkmate detection."""
-        self.assertFalse(self.board.is_checkmate())  # Not a checkmate at start
-
-    def test_ally_king_in_check(self):
-        """Test detection of the ally king being in check."""
-        self.assertFalse(self.board.ally_king_in_check())  # At start, no check
-
-    def test_make_move(self):
-        """Test making a move and updating game state."""
-        initial_fen = self.board.generate_FEN()
-        self.board.select_piece(1, 4)  # Select pawn
-        self.board.make_move(2, 4)  # Move forward one space
-        self.assertNotEqual(self.board.generate_FEN(), initial_fen)
-
-    def test_undo_move(self):
-        """Test undo functionality to revert the last move."""
-        initial_fen = self.board.generate_FEN()
-        self.board.select_piece(1, 4)  # Select pawn
-        self.board.make_move(2, 4)  # Move forward one space
-        self.board.undo_move()  # Undo the move
-        self.assertEqual(self.board.generate_FEN(), initial_fen)
-
-    def test_FEN_to_board_and_generate_FEN(self):
-        """Test FEN string conversion to board setup and vice versa."""
-        fen = "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1"
-        self.board.FEN_to_board(fen)
-        self.assertEqual(self.board.generate_FEN(), fen)
-
-    def test_board_initialization(self):
-        """Test board initialization to the starting position."""
-        self.assertEqual(self.board.generate_FEN(), STARTING_FEN)
-
-    def test_select_piece(self):
-        """Test selecting a piece on the board."""
-        self.board.select_piece(0, 0)  # Selecting a rook at the starting position
-        self.assertEqual(self.board.selected_piece, [0, 0])
-
-    def test_checkmate(self):
-        """Test checkmate detection."""
-        # You would set up a board state here that represents a checkmate scenario
-        # For simplicity, assume we set it up directly or simulate moves to reach that state
-        self.board.FEN_to_board(checkmate_position)
+        self.board.parse_fen("R3k3/8/4K3/8/8/8/8/8 b - - 0 1")
         self.assertTrue(self.board.is_checkmate())
+        self.board.parse_fen("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
+        self.assertFalse(self.board.is_checkmate())
 
-    def test_stalemate(self):
-        """Test stalemate detection."""
-        # Similar to checkmate, set up a stalemate position
-        self.board.FEN_to_board(stalemate_position)
+    def test_is_draw(self):
+        self.board.parse_fen("4k3/7n/8/8/8/8/8/4K3 w - - 50 1")
+        self.assertTrue(self.board.is_draw())
+        self.board.parse_fen("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
+        self.assertTrue(self.board.is_draw())
+
+    def test_is_stalemate(self):
+        self.board.parse_fen("4k3/2Q3K1/8/8/8/8/8/8 b - - 0 1")
         self.assertTrue(self.board.is_stalemate())
 
-    def test_legal_moves(self):
-        """Test the generation of legal moves."""
-        # Setup the board in a certain configuration, and check if the generated legal moves are correct
-        self.board.select_piece(0, 1)  # Select knight at the beginning
-        moves = self.board.get_legal_moves(0, 1)
-        expected_moves = [(2, 0), (2, 2)]  # Assuming only these two moves are legal
-        self.assertEqual(set(moves), set(expected_moves))
+    def test_is_insufficient_material(self):
+        self.board.parse_fen("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
+        self.assertTrue(self.board.is_insufficient_material())
+
+    def test_is_game_over(self):
+        self.board.parse_fen("4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1")
+        self.assertFalse(self.board.is_game_over())
+        self.board.parse_fen("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
+        self.assertTrue(self.board.is_game_over())
 
 if __name__ == '__main__':
     unittest.main()
