@@ -1,5 +1,25 @@
-from board import Board
+from board import Board, decode_move
 import time
+
+PIECE_VALUES = {
+    "P": 1,
+    "N": 3,
+    "B": 3,
+    "R": 5,
+    "Q": 9,
+    "K": 1000,
+
+    "p": -1,
+    "n": -3,
+    "b": -3,
+    "r": -5,
+    "q": -9,
+    "k": -1000,
+
+    " ": 0
+}
+
+LEGAL_SQUARES = [i for i in range(127) if not i & 0x88]
 
 class Engine:
     def __init__(self, board: Board, depth: int = 2):
@@ -10,30 +30,47 @@ class Engine:
         self.evaluate_board_count = 0
         self.negamax_count = 0
 
+        self.cached_legal_moves = {}
+
+    def get_piece_value(self, piece):
+        """
+        Get the value of a piece
+        """
+        return PIECE_VALUES[piece]
+
+    def get_piece_type(self, square):
+        """
+        Get the type of the piece on a given square
+        """
+        bitboards = self.board.bitboards
+        for piece_type in bitboards:
+            if bitboards[piece_type] & (1 << square):
+                return piece_type
+        return " "
+
     def get_color_legal_moves(self, color: bool):
         """
         Get all legal moves for a given color
         """
         self.get_color_legal_moves_count += 1
-        legal_moves = []
-        for move in self.board.generate_legal_moves():
-            if self.board.board[move.start[0]][move.start[1]].is_white == color:
-                legal_moves.append(move)
-
-        return legal_moves
+        fen = self.board.board_to_fen() + str(color)
+        if fen in self.cached_legal_moves:
+            return self.cached_legal_moves[fen]
+        
+        moves = self.board.generate_legal_moves(color)
+        self.cached_legal_moves[fen] = moves
+        return moves
 
     def evaluate_piece_values(self):
         """
         Evaluate the board position based on piece values
         """
         evaluation = 0
-        for row in self.board.board:
-            for piece in row:
-                if piece:
-                    if piece.is_white:
-                        evaluation += piece.value
-                    else:
-                        evaluation -= piece.value
+        for square in LEGAL_SQUARES:
+            piece = self.get_piece_type(square)
+            value = self.get_piece_value(piece)
+            evaluation += value
+
         return evaluation
 
     def evaluate_piece_mobility(self):
@@ -71,84 +108,26 @@ class Engine:
         passed_pawns_advantage = 0.5
 
         # double pawns
-        for file in self.board.board:
-            white_pawns = 0
-            black_pawns = 0
-            for piece in file:
-                if piece and piece.type == "p":
-                    if piece.is_white:
-                        white_pawns += 1
-                    else:
-                        black_pawns += 1
-            if white_pawns > 1:
-                evaluation += double_pawns_disadvantage
-            if black_pawns > 1:
-                evaluation -= double_pawns_disadvantage
 
-        # isolated pawns (check for pawns on either side (0<=file<=7))
-        for file in range(8):
-            white_pawns = 0
-            black_pawns = 0
-            for rank in range(8):
-                if self.board.board[file][rank] and self.board.board[file][rank].type == "p":
-                    if self.board.board[file][rank].is_white:
-                        white_pawns += 1
-                    else:
-                        black_pawns += 1
-            if white_pawns > 1:
-                evaluation += isolated_pawns_disadvantage
-            if black_pawns > 1:
-                evaluation -= isolated_pawns_disadvantage
+        # isolated pawns
 
         # backward pawns
-        for file in range(8):
-            for rank in range(8):
-                if self.board.board[file][rank] and self.board.board[file][rank].type == "p":
-                    #
-
-                    if self.board.board[file][rank].is_white:
-                        if self.board.board[file][rank + 1] and self.board.board[file][rank + 1].type == "p":
-                            evaluation += backward_pawns_disadvantage
-                    else:
-                        if self.board.board[file][rank - 1] and self.board.board[file][rank - 1].type == "p":
-                            evaluation -= backward_pawns_disadvantage
 
         # passed pawns
-        for file in range(8):
-            for rank in range(8):
-                if self.board.board[file][rank] and self.board.board[file][rank].type == "p":
-                    if self.board.board[file][rank].is_white:
-                        passed = True
-                        for i in range(rank + 1, 8):
-                            if self.board.board[i][file]:
-                                passed = False
-                                break
-                        if passed:
-                            evaluation += passed_pawns_advantage
-                    else:
-                        passed = True
-                        for i in range(rank - 1, -1, -1):
-                            if self.board.board[i][file]:
-                                passed = False
-                                break
-                        if passed:
-                            evaluation -= passed_pawns_advantage
-
-        return evaluation
 
     def evaluate_center_control(self):
         """
         Evaluate the board position based on control of the center
         """
         evaluation = 0
-        center = [(3, 3), (3, 4), (4, 3), (4, 4)]
+        center = [51, 52, 67, 68]
         center_control_advantage = 0.1
         for square in center:
-            if self.board.board[square[0]][square[1]]:
-                if self.board.board[square[0]][square[1]].is_white:
-                    evaluation += center_control_advantage
-                else:
-                    evaluation -= center_control_advantage
+            if self.board.is_white(square):
+                evaluation += center_control_advantage
+            elif self.board.is_black(square):
+                evaluation -= center_control_advantage
+
         return evaluation
 
     def evaluate_defending_ally_pieces(self):
@@ -157,15 +136,42 @@ class Engine:
         """
         evaluation = 0
         defending_ally_pieces_advantage = 0.1
-        moves = self.board.generate_legal_moves()
-        # if the start square of a move is the same as the end square the move, then the piece is defending an ally piece
-        for move in moves:
-            if move.start == move.end:
-                if self.board.board[move.start[0]][move.start[1]].is_white:
-                    evaluation += defending_ally_pieces_advantage
-                else:
-                    evaluation -= defending_ally_pieces_advantage
+        
+        white_moves = self.get_color_legal_moves(True)
+        black_moves = self.get_color_legal_moves(False)
 
+        for move in white_moves:
+            _, end, _, _, _, _ = decode_move(move)
+            if self.board.is_white(end):
+                evaluation += defending_ally_pieces_advantage
+
+        for move in black_moves:
+            _, end, _, _, _, _ = decode_move(move)
+            if self.board.is_black(end):
+                evaluation -= defending_ally_pieces_advantage
+            
+        return evaluation
+
+    def evaluate_attacking_enemy_pieces(self):
+        """
+        Evaluate the board position based on attacking enemy pieces
+        """
+        evaluation = 0
+        attacking_enemy_pieces_advantage = 0.1
+        
+        white_moves = self.get_color_legal_moves(True)
+        black_moves = self.get_color_legal_moves(False)
+
+        for move in white_moves:
+            _, _, _, _, _, capture = decode_move(move)
+            if capture:
+                evaluation += attacking_enemy_pieces_advantage
+
+        for move in black_moves:
+            _, _, _, _, _, capture = decode_move(move)
+            if capture:
+                evaluation -= attacking_enemy_pieces_advantage
+            
         return evaluation
 
     def evaluate_board(self):
@@ -177,14 +183,13 @@ class Engine:
         self.evaluate_board_count += 1
         # checkmate
 
-        if self.board.is_checkmate():
-            if self.board.white_to_move:
-                return -1000
-            else:
-                return 1000
+        if self.board.is_checkmate(True):
+            return -1000
+        elif self.board.is_checkmate(False):
+            return 1000
             
-        # stalemate
-        if self.board.is_stalemate():
+        # draw
+        if self.board.is_draw():
             return 0
 
         evaluation = 0
@@ -198,14 +203,17 @@ class Engine:
         # check evaluation
         evaluation += self.evaluate_check()
 
-        # pawn structure evaluation
-        evaluation += self.evaluate_pawn_structure()
+        # pawn structure evaluation TODO: implement
+        # evaluation += self.evaluate_pawn_structure()
 
         # defending the center evaluation
         evaluation += self.evaluate_center_control()
 
         # defending ally pieces evaluation
         evaluation += self.evaluate_defending_ally_pieces()
+
+        # attacking enemy pieces evaluation
+        evaluation += self.evaluate_attacking_enemy_pieces()
 
         if abs(evaluation) > 5:
             print(f"evaluation: {evaluation}")
@@ -238,6 +246,7 @@ class Engine:
         """
         Get the best move for the current position
         """
+        start = time.time()
         best_move = None
         max_score = -10000
         for move in self.get_color_legal_moves(self.board.white_to_move):
@@ -250,4 +259,5 @@ class Engine:
                 best_move = move
         
         print(f"get_color_legal_moves_count: {self.get_color_legal_moves_count}\nevaluate_board_count: {self.evaluate_board_count}\nnegamax_count: {self.negamax_count}")
+        print(f"Time taken: {time.time() - start}")
         return best_move
