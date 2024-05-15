@@ -184,9 +184,9 @@ class Engine:
         # checkmate
 
         if self.board.is_checkmate(True):
-            return -1000
+            return -10000
         elif self.board.is_checkmate(False):
-            return 1000
+            return 10000
             
         # draw
         if self.board.is_draw():
@@ -215,8 +215,6 @@ class Engine:
         # attacking enemy pieces evaluation
         evaluation += self.evaluate_attacking_enemy_pieces()
 
-        if abs(evaluation) > 5:
-            print(f"evaluation: {evaluation}")
         return evaluation
     
     def negamax(self, depth, alpha, beta):

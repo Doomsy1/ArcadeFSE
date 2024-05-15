@@ -17,7 +17,7 @@ from board import Board, decode_move
 from engine import Engine
 
 # Constants
-FPS = 144
+FPS = 9999
 EN_PASSANT_ROW = {0: 5, 1: 2}  # Row for en passant for white and black pawns
 
 
@@ -39,7 +39,7 @@ class ChessGame:
 
         self.engine_suggestion = None
 
-        # self.board.parse_fen("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
+        # self.board.fen_to_board("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
 
         self.load_images()
 
@@ -57,8 +57,9 @@ class ChessGame:
         return OFFSET_X <= x <= OFFSET_X + 8 * GRID_SIZE and OFFSET_Y <= y <= OFFSET_Y + 8 * GRID_SIZE
     
     def set_FEN(self):
+        current_fen = self.board.board_to_fen()
         # make a popup window that gets the user to set the FEN of the board
-        fen = simpledialog.askstring("Input", "Please enter the FEN:", parent=self.root)
+        fen = simpledialog.askstring("Input", "Please enter the FEN:", parent=self.root, initialvalue=current_fen)
         # the FEN is then set to the board
         self.board.fen_to_board(fen)
 
@@ -158,10 +159,8 @@ class ChessGame:
                 # if the move is a non-capture move, draw the square in orange
                 alpha = 128
 
-                if capture:
-                    draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), CAPTURE_SQUARE, alpha)
-                else:
-                    draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), MOVE_SQUARE, alpha)
+                color = CAPTURE_SQUARE if capture else MOVE_SQUARE
+                draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), color, alpha)
 
     def select_square(self):
         if self.selected_square is None:

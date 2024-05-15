@@ -60,7 +60,13 @@ def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, he
     # Cache the rendered arrow
     cache[key] = temp_surface.copy()
 
-def draw_transparent_circle(screen, center, radius, color, alpha):
+def draw_transparent_circle(screen, center, radius, color, alpha, cache={}):
+    # Check if the circle has already been rendered with the same parameters
+    key = (center, radius, color, alpha)
+    if key in cache:
+        screen.blit(cache[key], (0, 0))
+        return
+
     # Create a temporary surface to handle transparency
     temp_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
     rgba_color = color + (alpha,)  # Create RGBA color tuple
@@ -70,6 +76,9 @@ def draw_transparent_circle(screen, center, radius, color, alpha):
 
     # Blit the temporary surface onto the main screen surface
     screen.blit(temp_surface, (0, 0))
+
+    # Cache the rendered circle
+    cache[key] = temp_surface.copy()
 
 def write_centered_text(screen, text, rect, colour, cache={}):
     rect_tuple = (rect.x, rect.y, rect.width, rect.height) # Convert rect to a tuple
@@ -119,7 +128,13 @@ def write_centered_text(screen, text, rect, colour, cache={}):
         # Cache the rendered text
         cache[key].append((text_surface, x, y + i * size[1]))
 
-def draw_transparent_rect(screen, rect, color, alpha, thickness=0):
+def draw_transparent_rect(screen, rect, color, alpha, thickness=0, cache={}):
+    # Check if the rectangle has already been rendered with the same parameters
+    key = (rect, color, alpha, thickness)
+    if key in cache:
+        screen.blit(cache[key], (0, 0))
+        return
+
     # Create a temporary surface to handle transparency
     temp_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
     rgba_color = color + (alpha,)  # Create RGBA color tuple
@@ -129,3 +144,6 @@ def draw_transparent_rect(screen, rect, color, alpha, thickness=0):
 
     # Blit the temporary surface onto the main screen surface
     screen.blit(temp_surface, (0, 0))
+
+    # Cache the rendered rectangle
+    cache[key] = temp_surface.copy()

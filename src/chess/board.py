@@ -190,22 +190,40 @@ class Board:
         if castle_flag:
             if castle_flag & 0b1000: # white kingside
                 self.move_piece(7, 5)
-                self.castling_availability = self.castling_availability.replace('K', '')
 
             elif castle_flag & 0b0100: # white queenside
                 self.move_piece(0, 3)
-                self.castling_availability = self.castling_availability.replace('Q', '')
 
             elif castle_flag & 0b0010: # black kingside
                 self.move_piece(119, 117)
-                self.castling_availability = self.castling_availability.replace('k', '')
 
             elif castle_flag & 0b0001: # black queenside
                 self.move_piece(112, 115)
+
+        # check for rook move
+        if self.is_rook(start):
+            if self.is_white(start):
+                if start == 0:
+                    self.castling_availability = self.castling_availability.replace('Q', '')
+                elif start == 7:
+                    self.castling_availability = self.castling_availability.replace('K', '')
+            else:
+                if start == 112:
+                    self.castling_availability = self.castling_availability.replace('q', '')
+                elif start == 119:
+                    self.castling_availability = self.castling_availability.replace('k', '')
+
+        # check for king move
+        if self.is_king(start):
+            if self.is_white(start):
+                self.castling_availability = self.castling_availability.replace('K', '')
+                self.castling_availability = self.castling_availability.replace('Q', '')
+            else:
+                self.castling_availability = self.castling_availability.replace('k', '')
                 self.castling_availability = self.castling_availability.replace('q', '')
 
-            if self.castling_availability == '':
-                self.castling_availability = '-'
+        if self.castling_availability == '':
+            self.castling_availability = '-'
 
         # check for promotion
         elif promotion:
@@ -228,6 +246,10 @@ class Board:
             else:
                 self.clear_piece(end + 16)
                 
+        # check for capture
+        if capture:
+            self.clear_piece(end)
+
         # capture or normal move
         if not promotion:
             self.move_piece(start, end)
@@ -431,7 +453,7 @@ class Board:
 
     def is_checkmate(self, turn):
         # check if the king is in check and there are no legal moves
-        return self.is_check(turn) and not self.generate_legal_moves(turn)
+        return self.is_check(turn) and self.generate_legal_moves(turn) == []
 
     def is_stalemate(self, turn):
         # check if the king is not in check and there are no legal moves
