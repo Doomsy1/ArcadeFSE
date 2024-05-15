@@ -4,7 +4,13 @@ import pygame.font as pygame_font
 
 pygame_font.init()
 
-def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, head_height, color, alpha):
+def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, head_height, color, alpha, cache={}):
+    # Check if the arrow has already been rendered with the same parameters
+    key = (start, end, tail_start_offset, tail_width, head_width, head_height, color, alpha)
+    if key in cache:
+        screen.blit(cache[key], (0, 0))
+        return
+
     # Vector from start to end
     dx, dy = end[0] - start[0], end[1] - start[1]
     length = np.hypot(dx, dy)
@@ -50,6 +56,9 @@ def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, he
     pygame.draw.polygon(temp_surface, rgba_color, head_points)
     # Blit this surface onto the main screen surface
     screen.blit(temp_surface, (0, 0))
+
+    # Cache the rendered arrow
+    cache[key] = temp_surface.copy()
 
 def draw_transparent_circle(screen, center, radius, color, alpha):
     # Create a temporary surface to handle transparency

@@ -32,8 +32,9 @@ class ChessGame:
 
         self.selected_piece = None
 
-        self.cached_moves = {} # store the moves of the selected piece
-        # key: fen, value: moves
+        self.cached_checkmate_checks = {} # stores calculated checkmate checks
+
+        self.engine_suggestion = None
 
         # self.board.parse_fen("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
 
@@ -41,13 +42,8 @@ class ChessGame:
 
     def get_moves(self):
         # cache the moves of the board
-        fen = self.board.generate_fen()
-        if fen in self.cached_moves:
-            return self.cached_moves[fen]
-        else:
-            moves = self.board.generate_legal_moves()
-            self.cached_moves[fen] = moves
-            return moves
+        moves = self.board.generate_legal_moves()
+        return moves
 
     def is_over_board(self, x, y):
         return OFFSET_X <= x <= OFFSET_X + 8 * GRID_SIZE and OFFSET_Y <= y <= OFFSET_Y + 8 * GRID_SIZE
@@ -62,28 +58,27 @@ class ChessGame:
         # return True if a piece is selected
         return self.selected_piece is not None
 
-    def draw_arrow(self, start, end):
+    def draw_arrow(self, start, end, color=MOVE_SQUARE):
         # start and end are tuples with the file and rank of the squares
         start_file, start_rank = start
         end_file, end_rank = end
-        start_x = start_rank * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
-        start_y = (7 - start_file) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
-        end_x = end_rank * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
-        end_y = (7 - end_file) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
+        start_x = start_file * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
+        start_y = (7 - start_rank) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
+        end_x = end_file * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
+        end_y = (7 - end_rank) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
 
         # draw the arrow
         tail_start_offset = GRID_SIZE // 4
         tail_width = GRID_SIZE // 4
         head_width = GRID_SIZE // 2
         head_height = GRID_SIZE // 2.5
-        color = MOVE_SQUARE
         alpha = 160
         draw_arrow(self.screen, (start_x, start_y), (end_x, end_y), tail_start_offset, tail_width, head_width, head_height, color, alpha)
 
     def draw_circle(self, file, rank):
         # draw the circle
-        x_pos = rank * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
-        y_pos = (7 - file) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
+        x_pos = file * GRID_SIZE + OFFSET_X + GRID_SIZE // 2
+        y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y + GRID_SIZE // 2
         center = (x_pos, y_pos)
         radius = GRID_SIZE // 2
         color = MOVE_SQUARE
@@ -113,8 +108,8 @@ class ChessGame:
 
     def get_file_rank(self, x, y):
         # get the file and rank of the square
-        file = 7 - (y - OFFSET_Y) // GRID_SIZE
-        rank = (x - OFFSET_X) // GRID_SIZE
+        file = (x - OFFSET_X) // GRID_SIZE
+        rank = 7 - (y - OFFSET_Y) // GRID_SIZE
         return file, rank
 
     def display_moves(self):
@@ -128,8 +123,8 @@ class ChessGame:
             # if the start is the selected piece, display the end square
             if start == self.selected_piece:
                 file, rank = end
-                x_pos = rank * GRID_SIZE + OFFSET_X
-                y_pos = file * GRID_SIZE + OFFSET_Y
+                x_pos = file * GRID_SIZE + OFFSET_X
+                y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
 
                 # draw a transparent rect
                 # if the move is a capture move (en passant as well), draw the square in red
@@ -151,8 +146,8 @@ class ChessGame:
         if self.selected_piece is None:
             return
         file, rank = self.selected_piece
-        x_pos = rank * GRID_SIZE + OFFSET_X
-        y_pos = (7 - file) * GRID_SIZE + OFFSET_Y
+        x_pos = file * GRID_SIZE + OFFSET_X
+        y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
         alpha = 128
         # draw the transparent rect
         draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), (196,196,196), alpha)
@@ -161,9 +156,9 @@ class ChessGame:
         if self.mb[0]:
             # draw the piece on the curser (self.mx, self.my)
             if piece.is_white:
-                self.screen.blit(self.piece_imgs[piece.type], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
-            else:
                 self.screen.blit(self.piece_imgs[piece.type.upper()], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
+            else:
+                self.screen.blit(self.piece_imgs[piece.type], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
         else:
             # draw the piece on the board
             self.draw_piece(piece, file, rank)
@@ -171,22 +166,22 @@ class ChessGame:
     def draw_board(self):
         for rank in range(8):
             for file in range(8):
-                x_pos = rank * GRID_SIZE + OFFSET_X
-                y_pos = (7 - file) * GRID_SIZE + OFFSET_Y
+                x_pos = file * GRID_SIZE + OFFSET_X
+                y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
                 
-                color = LIGHT_SQUARE if (rank + file) % 2 == 0 else DARK_SQUARE
+                color = LIGHT_SQUARE if (file + rank) % 2 == 0 else DARK_SQUARE
                 pygame.draw.rect(self.screen, color, (x_pos, y_pos, GRID_SIZE, GRID_SIZE))
 
     def draw_piece(self, piece: Piece, file, rank):
         if piece.type is None:
             return
         
-        x_pos = rank * GRID_SIZE + OFFSET_X
-        y_pos = (7 - file) * GRID_SIZE + OFFSET_Y
+        x_pos = file * GRID_SIZE + OFFSET_X
+        y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
         if piece.is_white:
-            self.screen.blit(self.piece_imgs[piece.type], (x_pos, y_pos))
-        else:
             self.screen.blit(self.piece_imgs[piece.type.upper()], (x_pos, y_pos))
+        else:
+            self.screen.blit(self.piece_imgs[piece.type], (x_pos, y_pos))
 
     def draw_pieces(self):
         for file in range(8):
@@ -197,10 +192,26 @@ class ChessGame:
                     self.draw_piece(piece, file, rank)
 
     def make_engine_suggestion(self):
+        "Get the best move from the engine and store it in self.engine_suggestion"
+        # write "thinking..." on the screen
+        thinking_rect = pygame.Rect(200, 200, 400, 400)
+        write_centered_text(self.screen, "Thinking...", thinking_rect, (0, 0, 0))
+        pygame.display.flip()
+
         engine = Engine(self.board)
         move = engine.get_best_move()
         # draw an arrow from the start to the end of the move
-        self.arrows.append((move.start, move.end))
+        self.engine_suggestion = (move.start, move.end)
+
+    def check_checkmate(self):
+        # checks checkmate and stores what it finds
+        fen = self.board.generate_fen()
+        if fen in self.cached_checkmate_checks:
+            return self.cached_checkmate_checks[fen]
+        else:
+            checkmate = self.board.is_checkmate()
+            self.cached_checkmate_checks[fen] = checkmate
+            return checkmate
 
     def draw_game(self):
         self.draw_board()
@@ -208,9 +219,12 @@ class ChessGame:
             self.display_moves()
         self.draw_pieces()
 
-        if self.board.is_checkmate():
+        if self.check_checkmate():
             checkmate_rect = pygame.Rect(200, 200, 400, 400)
             write_centered_text(self.screen, "Checkmate!", checkmate_rect, (0, 0, 0))
+
+        if self.engine_suggestion is not None:
+            self.draw_arrow(self.engine_suggestion[0], self.engine_suggestion[1], (0, 255, 0))
 
         for arrow in self.arrows:
             self.draw_arrow(arrow[0], arrow[1])
@@ -257,6 +271,9 @@ class ChessGame:
                 # if the user presses the f key, set the FEN of the board
                 elif event.key == pygame.K_f:
                     self.set_FEN()
+                # if the user presses the s key print the board's cached moves
+                elif event.key == pygame.K_s:
+                    print(self.board.cached_legal_moves)
 
                 
         self.mx, self.my = pygame.mouse.get_pos()
@@ -269,35 +286,35 @@ class ChessGame:
         # draw arrow
         # draw circle
 
-        if self.L_mouse_down: # select a piece
+        moves = self.get_moves()
+
+        # if left mouse pressed, select piece, move piece, or deselect piece
+        if self.L_mouse_down:
             self.circles = []
             self.arrows = []
-
+            self.engine_suggestion = None
+            # select piece if no piece is selected or if the new square that is clicked is one of the legal moves of the selected piece
+            no_piece_selected = self.selected_piece is None
             file, rank = self.get_file_rank(self.mx, self.my)
-            # if file, rank is a valid piece, select the piece 
-            # else, deselect the piece unless the piece you clicked is a valid move
-            if self.board.get_piece((file, rank)):
-                self.selected_piece = (file, rank)
-            elif self.piece_selected():
-                move = Move(self.selected_piece, (file, rank))
-                if move in self.board.legal_moves:
-                    self.board.make_move(move)
-                self.selected_piece = None
+            if no_piece_selected:
+                self.select_piece(file, rank)
             else:
-                self.selected_piece = None
-
-        elif self.L_mouse_up: # move the piece if the move is valid
+                # check if the new square is a legal move of the selected piece
+                move = Move(self.selected_piece, (file, rank))
+                if move in moves and self.board.white_to_move == self.board.get_piece(self.selected_piece).is_white:
+                    self.board.make_move(move)
+                    self.selected_piece = None
+                else:
+                    self.select_piece(file, rank)
+            
+        # if the left mouse button is released and there is a piece selected, move the piece if the new square is a legal move
+        if self.L_mouse_up:
             file, rank = self.get_file_rank(self.mx, self.my)
             move = Move(self.selected_piece, (file, rank))
-            if self.piece_selected():
-                if move in self.board.legal_moves:
-                    self.board.make_move(move)
+            if move in moves and self.board.white_to_move == self.board.get_piece(self.selected_piece).is_white:
+                self.board.make_move(move)
 
-                # if the same piece is clicked again dont deselect the piece
-                elif (file, rank) == self.selected_piece:
-                    pass
-                else:
-                    self.selected_piece = None
+
         
         self.preview_arrow = None
         # if right mouse button is down draw the preview of a circle or arrow
@@ -324,6 +341,14 @@ class ChessGame:
                 else:
                     self.arrows.append(((start_file, start_rank), (end_file, end_rank)))
 
+    def select_piece(self, file, rank):
+        # if the square is a piece, select the piece
+        piece = self.board.get_piece((file, rank))
+        if piece:
+            self.selected_piece = (file, rank)
+        else:
+            self.selected_piece = None
+
     def draw_preview_arrow(self):
         if not self.preview_arrow:
             return
@@ -334,11 +359,26 @@ class ChessGame:
         else:
             self.draw_arrow(start, end)
 
-
     def developer_display(self):
         # write the FEN of the board to the screen
-        FEN_rect = pygame.Rect(0, 0, 800, 100)
+        FEN_rect = pygame.Rect(0, 0, 800, 800)
         write_centered_text(self.screen, self.board.generate_fen(), FEN_rect, (0, 0, 0))
+
+        # draw all legal moves
+        moves = self.get_moves()
+        for move in moves:
+            self.draw_arrow(move.start, move.end)
+
+        # write whose turn it is
+        turn_rect = pygame.Rect(0, 300, 100, 100)
+        write_centered_text(self.screen, f"{self.board.white_to_move}'s turn", turn_rect, (0, 0, 0))
+
+        # if there is a piece selected, write the info of the piece
+        if self.selected_piece is not None:
+            piece = self.board.get_piece(self.selected_piece)
+            piece_rect = pygame.Rect(0, 500, 100, 100)
+            piece_data = f"Piece: {piece.type}\nColor: {'White' if piece.is_white else 'Black'}\nValue: {piece.value}\nFile: {self.selected_piece[0]}\nRank: {self.selected_piece[1]}"
+            write_centered_text(self.screen, piece_data, piece_rect, (0, 0, 0))
 
     def main_loop(self):
         running = True
@@ -350,6 +390,7 @@ class ChessGame:
         self.screen.fill((0, 0, 0))
 
         while running:
+            self.get_moves()
             # handle events
             result = self.handle_events()
             if result: # if the result is not None, return the result
@@ -360,7 +401,7 @@ class ChessGame:
 
             self.draw_game()
 
-            # self.developer_display() # remove this line if you dont want to display the FEN of the board
+            self.developer_display() # remove this line if you dont want to display the FEN of the board
 
             # set the caption to be the fps
             pygame.display.set_caption(str(int(self.clock.get_fps())))
