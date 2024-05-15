@@ -103,5 +103,18 @@ class TestBoard(unittest.TestCase):
         self.board.parse_fen("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
         self.assertTrue(self.board.is_game_over())
 
+    def test_moving_to_check_enemy_king(self):
+        self.board.parse_fen("4k3/8/4K3/8/8/8/8/3Q4 w - - 0 1")
+        move = Move((3, 0), (3, 6))
+        self.board.make_move(move)
+        self.assertFalse(self.board.is_game_over())
+        only_legal_move = Move((4, 7), (5, 7))
+        legal_moves = self.board.generate_legal_moves()
+        self.assertIn(only_legal_move, legal_moves)
+        move = Move((3, 6), (5, 6))
+        self.board.make_move(move)
+        self.board.white_to_move = not self.board.white_to_move
+        self.assertTrue(self.board.is_checkmate()) # <- fails
+
 if __name__ == '__main__':
     unittest.main()

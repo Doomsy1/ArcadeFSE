@@ -401,7 +401,7 @@ class ChessGame:
 
             self.draw_game()
 
-            self.developer_display() # remove this line if you dont want to display the FEN of the board
+            # self.developer_display() # remove this line if you dont want to display the FEN of the board
 
             # set the caption to be the fps
             pygame.display.set_caption(str(int(self.clock.get_fps())))
