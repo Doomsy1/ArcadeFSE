@@ -33,6 +33,8 @@ class ChessGame:
         self.selected_piece = None
 
         self.cached_checkmate_checks = {} # stores calculated checkmate checks
+        
+        self.developer_display_toggle = False
 
         self.engine_suggestion = None
 
@@ -274,6 +276,9 @@ class ChessGame:
                 # if the user presses the s key print the board's cached moves
                 elif event.key == pygame.K_s:
                     print(self.board.cached_legal_moves)
+                # if the user presses the d key, toggle the developer display
+                elif event.key == pygame.K_d:
+                    self.developer_display_toggle = not self.developer_display_toggle
 
                 
         self.mx, self.my = pygame.mouse.get_pos()
@@ -400,8 +405,9 @@ class ChessGame:
                 self.handle_game_inputs()
 
             self.draw_game()
-
-            # self.developer_display() # remove this line if you dont want to display the FEN of the board
+            
+            if self.developer_display_toggle:
+                self.developer_display()
 
             # set the caption to be the fps
             pygame.display.set_caption(str(int(self.clock.get_fps())))
