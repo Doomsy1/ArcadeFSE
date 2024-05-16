@@ -23,6 +23,7 @@ LEGAL_SQUARES = [i for i in range(127) if not i & 0x88]
 
 class Engine:
     def __init__(self, board: Board, depth: int = 2):
+        print(f"Engine initialized with depth {depth}")
         self.board = board
         self.max_depth = depth
 

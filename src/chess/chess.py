@@ -212,6 +212,16 @@ class ChessGame:
         write_centered_text(self.screen, "Thinking...", thinking_rect, (0, 0, 0))
         pygame.display.flip()
 
+        # calculate the depth based on the numer of pieces on the board
+        occupied_bitboard = self.board.bitboards["occupied"]
+        num_pieces = bin(occupied_bitboard).count("1")
+        if num_pieces <= 10:
+            depth = 4
+        elif num_pieces <= 20:
+            depth = 3
+        else:
+            depth = 2
+
         engine = Engine(self.board)
         move = engine.get_best_move()
         # draw an arrow from the start to the end of the move
@@ -416,6 +426,13 @@ class ChessGame:
             piece_rect = pygame.Rect(0, 500, 100, 100)
             piece_data = f"Selected piece: {piece_type}"
             write_centered_text(self.screen, piece_data, piece_rect, (0, 0, 0))
+
+        # write the square numbers on the board
+        for rank in range(8):
+            for file in range(8):
+                x_pos = file * GRID_SIZE + OFFSET_X
+                y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
+                write_centered_text(self.screen, str(rank * 16 + file), pygame.Rect(x_pos, y_pos, GRID_SIZE//2, GRID_SIZE//2), (0, 128, 128))
 
     def main_loop(self):
         running = True

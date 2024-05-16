@@ -245,10 +245,17 @@ class Board:
                 self.clear_piece(end - 16)
             else:
                 self.clear_piece(end + 16)
-                
+        
+        # reset en passant square
+        self.en_passant_square = None
+
         # check for capture
         if capture:
             self.clear_piece(end)
+
+        # update en passant square
+        if self.is_pawn(start) and abs(end - start) == 32:
+            self.en_passant_square = (start + end) // 2
 
         # capture or normal move
         if not promotion:
@@ -321,11 +328,6 @@ class Board:
     def generate_pawn_moves(self, square):
         moves = []
         direction = 16 if self.is_white(square) else -16
-
-        # en passant
-        if self.en_passant_square is not None:
-            if square + 1 == self.en_passant_square or square - 1 == self.en_passant_square:
-                moves.append(encode_move(square, self.en_passant_square - direction, capture=True))
 
         # single move forward
         end = square + direction
@@ -520,14 +522,14 @@ def decode_move(move):
 
 if __name__ == "__main__":
     b = Board()
-    fen = '1q2K3/8/8/8/8/8/8/4k3 w - - 0 1'
-    b.fen_to_board(fen)
-    print(b.undo_list)
-    print(fen)
+    # fen = '1q2K3/8/8/8/8/8/8/4k3 w - - 0 1'
+    # b.fen_to_board(fen)
+    # print(b.undo_list)
+    # print(fen)
     b.generate_legal_moves(True)
-    print(b.undo_list)
-    print(b.board_to_fen())
+    # print(b.undo_list)
+    # print(b.board_to_fen())
     
-    print(b.is_check(True))
+    # print(b.is_check(True))
 
-    
+    print(b.is_pawn(16))
