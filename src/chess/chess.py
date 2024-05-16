@@ -34,6 +34,9 @@ class ChessGame:
 
         self.cached_legal_moves = {} # stores the legal moves of the board
         self.cached_checkmate_checks = {} # stores calculated checkmate checks
+
+        self.bitboard_display_toggle = False
+        self.bitboard_display_index = 0
         
         self.developer_display_toggle = False
 
@@ -216,13 +219,13 @@ class ChessGame:
         occupied_bitboard = self.board.bitboards["occupied"]
         num_pieces = bin(occupied_bitboard).count("1")
         if num_pieces <= 10:
-            depth = 4
+            depth = 5
         elif num_pieces <= 20:
-            depth = 3
+            depth = 4
         else:
-            depth = 2
+            depth = 3
 
-        engine = Engine(self.board)
+        engine = Engine(self.board, depth=depth, time_limit=6)
         move = engine.get_best_move()
         # draw an arrow from the start to the end of the move
         start, end, _, _, _, _ = decode_move(move)
@@ -298,12 +301,20 @@ class ChessGame:
                 # if the user presses the f key, set the FEN of the board
                 elif event.key == pygame.K_f:
                     self.set_FEN()
-                # if the user presses the s key print the board's cached moves
-                elif event.key == pygame.K_s:
-                    print(self.board.cached_legal_moves)
                 # if the user presses the d key, toggle the developer display
                 elif event.key == pygame.K_d:
                     self.developer_display_toggle = not self.developer_display_toggle
+                # if the user presses the b key, toggle the bitboard display
+                elif event.key == pygame.K_b:
+                    self.bitboard_display_toggle = not self.bitboard_display_toggle
+                # if the user presses the p key, cycle through the bitboards forward
+                elif event.key == pygame.K_p:
+                    self.bitboard_display_index += 1
+                    self.bitboard_display_index %= 15
+                # if the user presses the o key, cycle through the bitboards backward
+                elif event.key == pygame.K_o:
+                    self.bitboard_display_index -= 1
+                    self.bitboard_display_index %= 15
 
                 
         self.mx, self.my = pygame.mouse.get_pos()
@@ -434,6 +445,16 @@ class ChessGame:
                 y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
                 write_centered_text(self.screen, str(rank * 16 + file), pygame.Rect(x_pos, y_pos, GRID_SIZE//2, GRID_SIZE//2), (0, 128, 128))
 
+    def draw_bitboard(self, bitboard):
+        for rank in range(8):
+            for file in range(8):
+                square = rank * 16 + file
+                if bitboard & (1 << square):
+                    x_pos = file * GRID_SIZE + OFFSET_X
+                    y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
+                    # draw a transparent rect
+                    draw_transparent_rect(self.screen, (x_pos, y_pos, GRID_SIZE, GRID_SIZE), (0, 0, 128), 128)
+
     def main_loop(self):
         running = True
         self.arrows = []
@@ -449,7 +470,7 @@ class ChessGame:
             result = self.handle_events()
             if result: # if the result is not None, return the result
                 return result
-            
+
             if self.is_over_board(self.mx, self.my):
                 self.handle_game_inputs()
 
@@ -457,6 +478,10 @@ class ChessGame:
             
             if self.developer_display_toggle:
                 self.developer_display()
+
+            if self.bitboard_display_toggle:
+                bitboard = list(self.board.bitboards.values())[self.bitboard_display_index]
+                self.draw_bitboard(bitboard)
 
             # set the caption to be the fps
             pygame.display.set_caption(str(int(self.clock.get_fps())))

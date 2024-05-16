@@ -34,10 +34,11 @@ ATTACKING_ENEMY_PIECES_ADVANTAGE = 0.5
 LEGAL_SQUARES = [i for i in range(127) if not i & 0x88]
 
 class Engine:
-    def __init__(self, board: Board, depth: int = 2):
+    def __init__(self, board: Board, depth: int = 2, time_limit: int = 5):
         print(f"Engine initialized with depth {depth}")
         self.board = board
         self.max_depth = depth
+        self.time_limit = time_limit
 
         self.get_color_legal_moves_count = 0
         self.evaluate_board_count = 0
@@ -65,13 +66,13 @@ class Engine:
         """
         Get all legal moves for a given color
         """
-        fen = self.board.board_to_fen() + str(color)
-        if fen in self.cached_legal_moves:
-            return self.cached_legal_moves[fen]
+        # fen = self.board.board_to_fen() + str(color)
+        # if fen in self.cached_legal_moves:
+        #     return self.cached_legal_moves[fen]
         
         self.get_color_legal_moves_count += 1
         moves = self.board.generate_legal_moves(color)
-        self.cached_legal_moves[fen] = moves
+        # self.cached_legal_moves[fen] = moves
         return moves
 
     def evaluate_piece_values(self):
@@ -311,9 +312,9 @@ class Engine:
         # checkmate
 
         if self.board.is_checkmate(True):
-            return -10000
+            return -100000
         elif self.board.is_checkmate(False):
-            return 10000
+            return 100000
             
         # draw
         if self.board.is_draw():
@@ -344,15 +345,60 @@ class Engine:
 
         return evaluation
     
+
+    def iterative_deepening(self, max_depth, time_limit=None):
+        best_move = None
+        start_time = time.time()
+
+        depth_reached = 0
+        for depth in range(1, max_depth + 1):
+            if time_limit and (time.time() - start_time) > time_limit:
+                depth_reached = depth - 1
+                print(f"Depth reached: {depth_reached}")
+                break
+            best_move = self.negamax_root(depth)
+
+        return best_move
+
+    def negamax_root(self, depth):
+        best_move = None
+        max_score = -float('inf')
+
+        for move in self.get_color_legal_moves(self.board.white_to_move):
+            self.board.make_move(move)
+            score = -self.negamax(depth - 1, -float('inf'), float('inf'))
+            self.board.undo_move()
+
+            if score > max_score:
+                max_score = score
+                best_move = move
+
+        return best_move
+
+    def null_move_pruning(self, depth, beta):
+        """
+        Perform null-move pruning.
+        """
+        self.board.make_null_move()
+        score = -self.negamax(depth - 1 - 2, -beta, -beta + 1)
+        self.board.undo_null_move()
+
+        return score
+
     def negamax(self, depth, alpha, beta):
         """
-        Negamax algorithm with alpha-beta pruning
+        Negamax algorithm with alpha-beta pruning and null-move pruning.
         """
         self.negamax_count += 1
         if depth == 0:
             return self.evaluate_board()
 
-        max_score = -10000
+        if depth > 2 and not self.board.is_check(True) and not self.board.is_check(False):
+            score = self.null_move_pruning(depth, beta)
+            if score >= beta:
+                return beta
+
+        max_score = -100000
         for move in self.get_color_legal_moves(self.board.white_to_move):
             self.board.make_move(move)
             score = -self.negamax(depth - 1, -beta, -alpha)
@@ -371,18 +417,38 @@ class Engine:
         """
         Get the best move for the current position
         """
-        start = time.time()
-        best_move = None
-        max_score = -10000
-        for move in self.get_color_legal_moves(self.board.white_to_move):
-            self.board.make_move(move)
-            score = -self.negamax(self.max_depth - 1, -10000, 10000)
-            self.board.undo_move()
-
-            if score > max_score:
-                max_score = score
-                best_move = move
+        start_time = time.time()
+        
+        best_move = self.iterative_deepening(self.max_depth, self.time_limit)
         
         print(f"get_color_legal_moves_count: {self.get_color_legal_moves_count}\nevaluate_board_count: {self.evaluate_board_count}\nnegamax_count: {self.negamax_count}")
-        print(f"Time taken: {time.time() - start}")
+        print(f"Time taken: {time.time() - start_time}")
         return best_move
+    
+
+
+import cProfile
+import pstats
+import io
+
+def profile_code():
+    profiler = cProfile.Profile()
+    profiler.enable()
+
+    board = Board()
+    
+    # Run the part of the code you want to profile
+    engine = Engine(board, depth=2)  # Assuming `board` is already defined
+    best_move = engine.get_best_move()
+    
+    profiler.disable()
+    
+    # Print profiling results
+    stream = io.StringIO()
+    stats = pstats.Stats(profiler, stream=stream)
+    stats.sort_stats(pstats.SortKey.CUMULATIVE)
+    stats.print_stats()
+    print(stream.getvalue())
+
+if __name__ == "__main__":
+    profile_code()

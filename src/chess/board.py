@@ -25,6 +25,21 @@ QUEEN_DIRECTIONS = BISHOP_DIRECTIONS + ROOK_DIRECTIONS
 
 LEGAL_SQUARES = [i for i in range(127) if not i & 0x88]
 
+class Move:
+    def __init__(self, start, end, piece, captured_piece, castling_rights, en_passant_square, halfmove_clock, fullmove_number):
+        self.start = start
+        self.end = end
+        self.piece = piece
+        self.captured_piece = captured_piece
+
+        self.castling_rights = castling_rights
+        self.en_passant_square = en_passant_square
+        self.halfmove_clock = halfmove_clock
+        self.fullmove_number = fullmove_number
+
+WHITE_PIECES = ['P', 'N', 'B', 'R', 'Q', 'K']
+BLACK_PIECES = ['p', 'n', 'b', 'r', 'q', 'k']
+
 class Board:
     def __init__(self, fen = STARTING_FEN):
         self.bitboards = {
@@ -35,7 +50,10 @@ class Board:
             'black': 0, # all black pieces
         }
         self.fen_to_board(fen)
-        self.undo_list = [fen]
+        self.move_stack = []
+
+        self.operations_counter = {}
+
 
     # getters
     def is_piece(self, square):
@@ -58,7 +76,17 @@ class Board:
         return bool(self.bitboards['Q'] & (1 << square) or self.bitboards['q'] & (1 << square))
     def is_king(self, square):
         return bool(self.bitboards['K'] & (1 << square) or self.bitboards['k'] & (1 << square))
-    
+    def get_piece(self, square):
+        if self.is_white(square):
+            for piece in WHITE_PIECES:
+                if self.bitboards[piece] & (1 << square):
+                    return piece
+        else:
+            for piece in BLACK_PIECES:
+                if self.bitboards[piece] & (1 << square):
+                    return piece
+        return None
+
     def set_piece(self, piece, square):
         self.bitboards[piece] |= 1 << square
         self.bitboards['occupied'] |= 1 << square
@@ -118,7 +146,10 @@ class Board:
 
         # set the state of the game
         self.white_to_move = turn == 'w'
-        self.castling_availability = castling_availability
+        
+        # convert castling availability to binary
+        self.castling_availability = self.castling_availability_to_binary(castling_availability)
+
         self.halfmove_clock = int(halfmove_clock)
         self.fullmove_number = int(fullmove_number)
         
@@ -159,7 +190,7 @@ class Board:
         fen += ' '
 
         # castling availability
-        fen += self.castling_availability
+        fen += self.binary_to_castling_availability(self.castling_availability)
         fen += ' '
 
         # en passant square
@@ -180,11 +211,36 @@ class Board:
 
         return fen
 
+    def castling_availability_to_binary(self, castling_availability):
+        binary = 0
+        if 'K' in castling_availability:
+            binary |= 0b1000
+        if 'Q' in castling_availability:
+            binary |= 0b0100
+        if 'k' in castling_availability:
+            binary |= 0b0010
+        if 'q' in castling_availability:
+            binary |= 0b0001
+        return binary
+
+    def binary_to_castling_availability(self, castling_binary):
+        castling_availability = ""
+        if castling_binary & 0b1000:
+            castling_availability += "Q"
+        if castling_binary & 0b0100:
+            castling_availability += "K"
+        if castling_binary & 0b0010:
+            castling_availability += "q"
+        if castling_binary & 0b0001:
+            castling_availability += "k"
+        return castling_availability if castling_availability else "-"
+
     def make_move(self, move):
         start, end, promotion, piece_type, castle_flag, capture = decode_move(move)
 
-        # add the move to the undo list
-        self.undo_list.append(self.board_to_fen())
+        # add the move to the move stack
+        move_data = Move(start, end, self.get_piece(start), self.get_piece(end), self.castling_availability, self.en_passant_square, self.halfmove_clock, self.fullmove_number)
+        self.move_stack.append(move_data)
         
         # check for castling
         if castle_flag:
@@ -203,27 +259,35 @@ class Board:
         # check for rook move
         if self.is_rook(start):
             if self.is_white(start):
-                if start == 0:
-                    self.castling_availability = self.castling_availability.replace('Q', '')
-                elif start == 7:
-                    self.castling_availability = self.castling_availability.replace('K', '')
+                if start == 0: # white queenside rook
+                    self.castling_availability = self.castling_availability & 0b0111
+                elif start == 7: # white kingside rook
+                    self.castling_availability = self.castling_availability & 0b1011
             else:
-                if start == 112:
-                    self.castling_availability = self.castling_availability.replace('q', '')
-                elif start == 119:
-                    self.castling_availability = self.castling_availability.replace('k', '')
+                if start == 112: # black queenside rook
+                    self.castling_availability = self.castling_availability & 0b1101
+                elif start == 119: # black kingside rook
+                    self.castling_availability = self.castling_availability & 0b1110
+
+        # check for rook capture
+        if self.is_rook(end):
+            if self.is_white(end):
+                if end == 0:
+                    self.castling_availability = self.castling_availability & 0b0111
+                elif end == 7:
+                    self.castling_availability = self.castling_availability & 0b1011
+            else:
+                if end == 112:
+                    self.castling_availability = self.castling_availability & 0b1101
+                elif end == 119:
+                    self.castling_availability = self.castling_availability & 0b1110
 
         # check for king move
         if self.is_king(start):
             if self.is_white(start):
-                self.castling_availability = self.castling_availability.replace('K', '')
-                self.castling_availability = self.castling_availability.replace('Q', '')
+                self.castling_availability = self.castling_availability & 0b0011
             else:
-                self.castling_availability = self.castling_availability.replace('k', '')
-                self.castling_availability = self.castling_availability.replace('q', '')
-
-        if self.castling_availability == '':
-            self.castling_availability = '-'
+                self.castling_availability = self.castling_availability & 0b1100
 
         # check for promotion
         elif promotion:
@@ -275,8 +339,69 @@ class Board:
         self.white_to_move = not self.white_to_move
 
     def undo_move(self):
+        if self.move_stack == []:
+            return
+        
+        last_move = self.move_stack.pop()
+        start = last_move.start
+        end = last_move.end
+        piece = last_move.piece
+        captured_piece = last_move.captured_piece
+        castling_rights = last_move.castling_rights
+        en_passant_square = last_move.en_passant_square
+        halfmove_clock = last_move.halfmove_clock
+        fullmove_number = last_move.fullmove_number
+
+        # move the piece back
+        self.move_piece(end, start)
+
+        # undo castling (move the rook back)
+        if piece == 'K' and start == 4 and end == 6:
+            self.move_piece(5, 7)
+        elif piece == 'K' and start == 4 and end == 2:
+            self.move_piece(3, 0)
+        elif piece == 'k' and start == 116 and end == 118:
+            self.move_piece(117, 119)
+        elif piece == 'k' and start == 116 and end == 114:
+            self.move_piece(115, 112)
+
+        if captured_piece is not None:
+            # undo en passant capture
+            if piece.lower() == 'p' and captured_piece.lower() == 'p' and end == en_passant_square:
+                if self.is_white(start):
+                    self.set_piece('p', end - 16)
+                else:
+                    self.set_piece('P', end + 16)
+            else:
+                self.set_piece(captured_piece, end)
+
+        # update castling rights
+        self.castling_availability = castling_rights
+
+        # update en passant square
+        self.en_passant_square = en_passant_square
+
+        # update halfmove clock
+        self.halfmove_clock = halfmove_clock
+
+        # update fullmove number
+        self.fullmove_number = fullmove_number
+
+        # update turn
+        self.white_to_move = not self.white_to_move
+
+        
+
+
+    def make_null_move(self):
+        self.undo_list.append(self.board_to_fen())
+        self.white_to_move = not self.white_to_move
+        self.halfmove_clock += 1
+        if not self.white_to_move:
+            self.fullmove_number += 1
+
+    def undo_null_move(self):
         if len(self.undo_list) >= 1:
-            fen = self.undo_list[-1]
             self.fen_to_board(self.undo_list.pop())
 
     def is_valid_square(self, square):
@@ -393,17 +518,17 @@ class Board:
 
         # castling
         if self.is_white(square):
-            if 'K' in self.castling_availability:
+            if self.castling_availability & 0b1000:
                 if not self.is_piece(5) and not self.is_piece(6):
                     moves.append(encode_move(square, 6, castle_flag=0b1000))
-            if 'Q' in self.castling_availability:
+            if self.castling_availability & 0b0100:
                 if not self.is_piece(1) and not self.is_piece(2) and not self.is_piece(3):
                     moves.append(encode_move(square, 2, castle_flag=0b0100))
         else:
-            if 'k' in self.castling_availability:
+            if self.castling_availability & 0b0010:
                 if not self.is_piece(117) and not self.is_piece(118):
                     moves.append(encode_move(square, 118, castle_flag=0b0010))
-            if 'q' in self.castling_availability:
+            if self.castling_availability & 0b0001:
                 if not self.is_piece(113) and not self.is_piece(114) and not self.is_piece(115):
                     moves.append(encode_move(square, 114, castle_flag=0b0001))
 
@@ -522,14 +647,6 @@ def decode_move(move):
 
 if __name__ == "__main__":
     b = Board()
-    # fen = '1q2K3/8/8/8/8/8/8/4k3 w - - 0 1'
-    # b.fen_to_board(fen)
-    # print(b.undo_list)
-    # print(fen)
-    b.generate_legal_moves(True)
-    # print(b.undo_list)
-    # print(b.board_to_fen())
-    
-    # print(b.is_check(True))
-
-    print(b.is_pawn(16))
+    fen = '1q2K3/8/8/8/8/8/8/4k3 w - - 0 1'
+    b.fen_to_board(fen)
+    moves = b.generate_legal_moves(True)
