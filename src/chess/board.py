@@ -1,6 +1,3 @@
-import random
-
-
 STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 OUT_OF_BOARD_MASK = 0x88
@@ -55,59 +52,11 @@ class Board:
             'white': 0, # all white pieces
             'black': 0, # all black pieces
         }
-
-        self.zobrist_table = self.initialize_zobrist()
-
-        self.tranposition_table = {}
-        # key: zobrist hash
-        # value: legal moves, check, checkmate, stalemate, draw
-
         self.fen_to_board(fen)
-        self.undo_list = []
+        self.move_stack = []
 
-    def initialize_zobrist(self):
-        zobrist_table = {}
-        pieces = 'PNBRQKpnbrqk'
-        
-        for piece in pieces:
-            zobrist_table[piece] = [random.getrandbits(128) for _ in range(128)]
-        
-        # Random numbers for castling rights, en passant, and side to move
-        zobrist_table['castling'] = [random.getrandbits(128) for _ in range(16)]
-        zobrist_table['en_passant'] = [random.getrandbits(128) for _ in range(128)]
-        zobrist_table['white_to_move'] = random.getrandbits(128)
-        
-        return zobrist_table
+        self.operations_counter = {}
 
-    def zobrist_hash(self):
-        # hash_value = 0
-        
-        # # Iterate over each bitboard
-        # for piece, bitboard in self.bitboards.items():
-        #     if piece in 'PNBRQKpnbrqk':
-        #         bit_pos = bitboard
-        #         while bit_pos:
-        #             square = bit_pos.bit_length() - 1
-        #             hash_value ^= self.zobrist_table[piece][square]
-        #             bit_pos &= bit_pos - 1  # clear the lowest set bit
-        
-        # # Side to move
-        # if self.white_to_move:
-        #     hash_value ^= self.zobrist_table['white_to_move']
-        
-        # # Castling rights
-        # hash_value ^= self.zobrist_table['castling'][self.castling_availability]
-        
-        # # En passant square
-        # if self.en_passant_square is not None:
-        #     hash_value ^= self.zobrist_table['en_passant'][self.en_passant_square]
-
-        hash_value = hash((self.bitboards['P'], self.bitboards['N'], self.bitboards['B'], self.bitboards['R'], self.bitboards['Q'], self.bitboards['K'], self.bitboards['p'], self.bitboards['n'], self.bitboards['b'], self.bitboards['r'], self.bitboards['q'], self.bitboards['k'], self.bitboards['occupied'], self.bitboards['white'], self.bitboards['black'], self.castling_availability, self.en_passant_square, self.white_to_move))
-
-        self.tranposition_table[hash_value] = {}
-        self.tranposition_table[hash_value]['bitboards'] = self.bitboards
-        
-        return hash_value
 
     # getters
     def is_piece(self, square):
@@ -402,13 +351,13 @@ class Board:
         self.white_to_move = not self.white_to_move
 
         # add to the move stack
-        self.undo_list.append(move_data)
+        self.move_stack.append(move_data)
 
     def undo_move(self):
-        if self.undo_list == []:
+        if self.move_stack == []:
             return
         
-        last_move = self.undo_list.pop()
+        last_move = self.move_stack.pop()
         start = last_move.start
         end = last_move.end
         piece = last_move.piece
@@ -456,6 +405,39 @@ class Board:
 
         # update turn
         self.white_to_move = not self.white_to_move
+
+        
+
+
+    def make_null_move(self):
+        # make a null move
+        self.white_to_move = not self.white_to_move
+
+        # update fullmove number
+        if not self.white_to_move:
+            self.fullmove_number += 1
+
+        # update halfmove clock
+        self.halfmove_clock += 1
+
+        # add to the move stack
+        self.move_stack.append(None)
+        
+
+    def undo_null_move(self):
+        # undo a null move
+        self.white_to_move = not self.white_to_move
+
+        # update fullmove number
+        if not self.white_to_move:
+            self.fullmove_number -= 1
+
+        # update halfmove clock
+        self.halfmove_clock -= 1
+
+        # remove from the move stack
+        self.move_stack.pop()
+        
 
     def is_valid_square(self, square):
         # check if the move is on the board
@@ -588,13 +570,6 @@ class Board:
         return moves
 
     def generate_moves(self, turn):
-        # check the transposition table
-        hash = self.zobrist_hash()
-        if hash in self.tranposition_table:
-            if 'moves' in self.tranposition_table[hash]:
-                return self.tranposition_table[hash]['moves']
-        else:
-            self.tranposition_table[hash] = {}
         moves = []
         for square in LEGAL_SQUARES:
             # skip empty squares and squares with the wrong color
@@ -619,20 +594,9 @@ class Board:
             elif self.is_king(square):
                 moves += self.generate_king_moves(square)
 
-        self.tranposition_table[hash]['moves'] = moves
-
         return moves
     
     def is_check(self, turn):
-        # check the transposition table
-        hash = self.zobrist_hash()
-        if hash in self.tranposition_table:
-            if 'check' in self.tranposition_table[hash]:
-                return self.tranposition_table[hash]['check']
-        else:
-            self.tranposition_table[hash] = {}
-
-
         # check if the king is attacked by any of the opponent's pieces
         # turn is the color of the king
         
@@ -645,27 +609,13 @@ class Board:
         for move in moves:
             _, end, _, _, _, _ = decode_move(move)
             if end == king_square:
-                self.tranposition_table[hash]['check'] = True
                 return True
-        
-        self.tranposition_table[hash]['check'] = False
+            
         return False
 
     def is_checkmate(self, turn):
-        # check the transposition table
-        hash = self.zobrist_hash()
-        if hash in self.tranposition_table:
-            if 'checkmate' in self.tranposition_table[hash]:
-                return self.tranposition_table[hash]['checkmate']
-        else:
-            self.tranposition_table[hash] = {}
-
         # check if the king is in check and there are no legal moves
-        checkmate = self.is_check(turn) and self.generate_legal_moves(turn) == []
-
-        self.tranposition_table[hash]['checkmate'] = checkmate
-
-        return checkmate
+        return self.is_check(turn) and self.generate_legal_moves(turn) == []
 
     def is_stalemate(self, turn):
         # check if the king is not in check and there are no legal moves
@@ -673,46 +623,24 @@ class Board:
 
     def in_threefold_repetition(self):
         # check if the position has occurred three times
-        return self.undo_list.count(self.undo_list[-1]) >= 3
+        return self.move_stack.count(self.move_stack[-1]) >= 3
 
     def is_draw(self):
-        # check the transposition table
-        hash = self.zobrist_hash()
-        if hash in self.tranposition_table:
-            if 'draw' in self.tranposition_table[hash]:
-                return self.tranposition_table[hash]['draw']
-        else:
-            self.tranposition_table[hash] = {}
-            
         # check if the game is a draw
-        draw = self.is_stalemate(True) or self.is_stalemate(False) or self.in_threefold_repetition()
-
-        self.tranposition_table[hash]['draw'] = draw
-
-        return draw
+        return self.halfmove_clock >= 50 or self.is_stalemate(True) or self.is_stalemate(False) or self.in_threefold_repetition()
 
     def generate_legal_moves(self, turn):
-        # check the transposition table
-        hash = self.zobrist_hash()
-        if hash in self.tranposition_table:
-            if 'legal_moves' in self.tranposition_table[hash]:
-                return self.tranposition_table[hash]['legal_moves']
-        else:
-            self.tranposition_table[hash] = {}
-            
         moves = self.generate_moves(turn)
         legal_moves = []
         for move in moves:
             # check if the ally king will be in check after the move
             self.make_move(move)
             if not self.is_check(turn):
-               legal_moves.append(move)
+                legal_moves.append(move)
+
             self.undo_move()
 
-        self.tranposition_table[hash]['legal_moves'] = legal_moves
-
         return legal_moves
-
 
 def encode_move(start, end, promotion=False, piece_type=0, castle_flag=0, capture=False):
     """
