@@ -66,13 +66,9 @@ class Engine:
         """
         Get all legal moves for a given color
         """
-        # fen = self.board.board_to_fen() + str(color)
-        # if fen in self.cached_legal_moves:
-        #     return self.cached_legal_moves[fen]
         
         self.get_color_legal_moves_count += 1
         moves = self.board.generate_legal_moves(color)
-        # self.cached_legal_moves[fen] = moves
         return moves
 
     def evaluate_piece_values(self):
@@ -375,28 +371,19 @@ class Engine:
 
         return best_move
 
-    def null_move_pruning(self, depth, beta):
-        """
-        Perform null-move pruning.
-        """
-        self.board.make_null_move()
-        score = -self.negamax(depth - 1 - 2, -beta, -beta + 1)
-        self.board.undo_null_move()
-
-        return score
 
     def negamax(self, depth, alpha, beta):
         """
-        Negamax algorithm with alpha-beta pruning and null-move pruning.
+        Negamax algorithm with alpha-beta pruning.
         """
         self.negamax_count += 1
         if depth == 0:
             return self.evaluate_board()
 
-        if depth > 2 and not self.board.is_check(True) and not self.board.is_check(False):
-            score = self.null_move_pruning(depth, beta)
-            if score >= beta:
-                return beta
+        # if depth > 2 and not self.board.is_check(True) and not self.board.is_check(False):
+        #     score = self.null_move_pruning(depth, beta)
+        #     if score >= beta:
+        #         return beta
 
         max_score = -100000
         for move in self.get_color_legal_moves(self.board.white_to_move):
@@ -430,6 +417,8 @@ class Engine:
 import cProfile
 import pstats
 import io
+import csv
+import timeit
 
 def profile_code():
     profiler = cProfile.Profile()
@@ -437,18 +426,18 @@ def profile_code():
 
     board = Board()
     
-    # Run the part of the code you want to profile
-    engine = Engine(board, depth=2)  # Assuming `board` is already defined
+    engine = Engine(board, depth=2, time_limit=500)
     best_move = engine.get_best_move()
     
     profiler.disable()
     
-    # Print profiling results
-    stream = io.StringIO()
-    stats = pstats.Stats(profiler, stream=stream)
-    stats.sort_stats(pstats.SortKey.CUMULATIVE)
-    stats.print_stats()
-    print(stream.getvalue())
-
+    # save the stats to a file ("profiling_results.csv")
+    s = io.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    with open("profiling_results.csv", "w") as f:
+        f.write(s.getvalue())
+    
 if __name__ == "__main__":
     profile_code()

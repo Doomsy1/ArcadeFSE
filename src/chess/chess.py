@@ -47,14 +47,7 @@ class ChessGame:
         self.load_images()
 
     def get_moves(self):
-        # cache the moves of the board
-        fen = self.board.board_to_fen()
-        if fen in self.cached_legal_moves:
-            return self.cached_legal_moves[fen]
-        
-        moves = self.board.generate_legal_moves(turn=self.board.white_to_move)
-        self.cached_legal_moves[fen] = moves
-        return moves
+        return self.board.generate_legal_moves(turn=self.board.white_to_move)
 
     def is_over_board(self, x, y):
         return OFFSET_X <= x <= OFFSET_X + 8 * GRID_SIZE and OFFSET_Y <= y <= OFFSET_Y + 8 * GRID_SIZE
@@ -219,11 +212,11 @@ class ChessGame:
         occupied_bitboard = self.board.bitboards["occupied"]
         num_pieces = bin(occupied_bitboard).count("1")
         if num_pieces <= 10:
-            depth = 5
-        elif num_pieces <= 20:
             depth = 4
-        else:
+        elif num_pieces <= 20:
             depth = 3
+        else:
+            depth = 2
 
         engine = Engine(self.board, depth=depth, time_limit=6)
         move = engine.get_best_move()
@@ -348,6 +341,7 @@ class ChessGame:
                     start, end, _, _, _, _ = decode_move(move)
                     if start == start_square and end == end_square:
                         self.board.make_move(move)
+                        self.selected_square = None
                         break
                 # if the new square is another piece, select the new piece
                 if rank * 16 + file != self.selected_square:
@@ -364,6 +358,7 @@ class ChessGame:
                     start, end, _, _, _, _ = decode_move(move)
                     if start == start_square and end == end_square:
                         self.board.make_move(move)
+                        self.selected_square = None
                         break
                 # if the new square is not a legal move, deselect the piece
                 if rank * 16 + file != self.selected_square:
