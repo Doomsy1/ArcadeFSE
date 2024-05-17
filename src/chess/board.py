@@ -55,8 +55,6 @@ class Board:
         self.fen_to_board(fen)
         self.move_stack = []
 
-        self.operations_counter = {}
-
 
     # getters
     def is_piece(self, square):

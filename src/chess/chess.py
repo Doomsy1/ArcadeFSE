@@ -477,6 +477,7 @@ class ChessGame:
             if self.bitboard_display_toggle:
                 bitboard = list(self.board.bitboards.values())[self.bitboard_display_index]
                 self.draw_bitboard(bitboard)
+                print(format(bitboard, '128b'))
 
             # set the caption to be the fps
             pygame.display.set_caption(str(int(self.clock.get_fps())))
