@@ -338,6 +338,24 @@ class Board:
     
     def make_move(self, move):
         start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant = decode_move(move)
+        move_obj = Move(
+            start = start,
+            end = end,
+            start_piece = start_piece
+            )
+
+        if castling: # move rook
+            if castling & 0b1000: # white kingside
+                self.move_piece(0b1100, 7, 5)
+
+            elif castling & 0b0100: # white queenside
+                self.move_piece(0b1100, 0, 3)
+
+            elif castling & 0b0010: # black kinside
+                self.move_piece(0b0100, 119, 117)
+
+            elif castling & 0b0001: #black queenside
+                self.move_piece(0b0100, 112, 115)
 
 
 def encode_move(start, end, start_piece, captured_piece=0b0000, promotion_piece=0b0000, castling=0b0000, capture=False, en_passant=False):
@@ -401,12 +419,4 @@ def decode_move(move):
     return start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant
 
 if __name__ == "__main__":
-    b = Board()
-    print(b.generate_fen())
-    print(b.zobrist_hash)
-    b.move_piece(0b1001, 16, 32)
-    print(b.generate_fen())
-    print(b.zobrist_hash)
-    b.move_piece(0b1001, 32, 16)
-    print(b.generate_fen())
-    print(b.zobrist_hash)
+    pass
