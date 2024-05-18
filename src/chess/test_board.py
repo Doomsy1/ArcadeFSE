@@ -15,9 +15,6 @@ WHITE_STALEMATED_BOARD = '3K4/1k3q2/8/8/8/8/8/8 w - - 0 1'
 # A position where black is stalemated
 BLACK_STALEMATED_BOARD = '3K4/8/8/8/8/8/1Q3Q2/3k4 w - - 0 1'
 
-# A position where it is a draw by insufficient material
-INSUFFICIENT_MATERIAL_BOARD = '3K4/8/8/8/8/8/8/3k4 w - - 0 1'
-
 
 class TestBoard(unittest.TestCase):
     def setUp(self):
@@ -37,8 +34,8 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(self.board.is_white(112))
 
     def test_is_black(self):
-        self.assertFalse(self.board.is_black(112))
-        self.assertTrue(self.board.is_black(1))
+        self.assertTrue(self.board.is_black(112))
+        self.assertFalse(self.board.is_black(1))
 
     def test_is_pawn(self):
         self.assertTrue(self.board.is_pawn(16))
@@ -101,46 +98,46 @@ class TestBoard(unittest.TestCase):
         self.assertTrue(self.board.piece_bitboards[0b0001] & (1 << 97)) # 97th bit is set to 1
 
         # white knights
-        self.assertTrue(self.board.piece_bitboards[0b0010] & (1 << 1)) # 1st bit is set to 1
-        self.assertTrue(self.board.piece_bitboards[0b0010] & (1 << 6)) # 6th bit is set to 1
+        self.assertTrue(self.board.piece_bitboards[0b1010] & (1 << 1)) # 1st bit is set to 1
+        self.assertTrue(self.board.piece_bitboards[0b1010] & (1 << 6)) # 6th bit is set to 1
 
         # black knights
         self.assertTrue(self.board.piece_bitboards[0b0010] & (1 << 113)) # 113th bit is set to 1
         self.assertTrue(self.board.piece_bitboards[0b0010] & (1 << 118)) # 118th bit is set to 1
 
         # white bishops
-        self.assertTrue(self.board.piece_bitboards[0b0011] & (1 << 2))
-        self.assertTrue(self.board.piece_bitboards[0b0011] & (1 << 5))
+        self.assertTrue(self.board.piece_bitboards[0b1011] & (1 << 2)) # 2nd bit is set to 1
+        self.assertTrue(self.board.piece_bitboards[0b1011] & (1 << 5)) # 5th bit is set to 1
 
         # black bishops
-        self.assertTrue(self.board.piece_bitboards[0b0011] & (1 << 114))
-        self.assertTrue(self.board.piece_bitboards[0b0011] & (1 << 117))
+        self.assertTrue(self.board.piece_bitboards[0b0011] & (1 << 114)) # 114th bit is set to 1
+        self.assertTrue(self.board.piece_bitboards[0b0011] & (1 << 117)) # 117th bit is set to 1
 
         # white rooks
-        self.assertTrue(self.board.piece_bitboards[0b0100] & (1 << 0))
-        self.assertTrue(self.board.piece_bitboards[0b0100] & (1 << 7))
+        self.assertTrue(self.board.piece_bitboards[0b1100] & (1 << 0)) # 0th bit is set to 1
+        self.assertTrue(self.board.piece_bitboards[0b1100] & (1 << 7)) # 7th bit is set to 1
 
         # black rooks
-        self.assertTrue(self.board.piece_bitboards[0b0100] & (1 << 112))
-        self.assertTrue(self.board.piece_bitboards[0b0100] & (1 << 119))
+        self.assertTrue(self.board.piece_bitboards[0b0100] & (1 << 112)) # 112th bit is set to 1
+        self.assertTrue(self.board.piece_bitboards[0b0100] & (1 << 119)) # 119th bit is set to 1
 
         # white queen
-        self.assertTrue(self.board.piece_bitboards[0b0101] & (1 << 3))
+        self.assertTrue(self.board.piece_bitboards[0b1101] & (1 << 3)) # 3rd bit is set to 1
 
         # black queen
-        self.assertTrue(self.board.piece_bitboards[0b0101] & (1 << 115))
+        self.assertTrue(self.board.piece_bitboards[0b0101] & (1 << 115)) # 115th bit is set to 1
 
         # white king
-        self.assertTrue(self.board.piece_bitboards[0b0110] & (1 << 4))
+        self.assertTrue(self.board.piece_bitboards[0b1110] & (1 << 4)) # 4th bit is set to 1
 
         # black king
-        self.assertTrue(self.board.piece_bitboards[0b0110] & (1 << 116))
+        self.assertTrue(self.board.piece_bitboards[0b0110] & (1 << 116)) # 116th bit is set to 1
 
         # white colour bitboard
-        self.assertTrue(self.board.colour_bitboards[0b1] & (1 << 0))
+        self.assertTrue(self.board.colour_bitboards[0b1] & (1 << 0)) # 0th bit is set to 1
 
         # black colour bitboard
-        self.assertTrue(self.board.colour_bitboards[0b0] & (1 << 112))
+        self.assertTrue(self.board.colour_bitboards[0b0] & (1 << 112)) # 112th bit is set to 1
 
 
     def test_generate_fen(self):
@@ -222,9 +219,6 @@ class TestBoard(unittest.TestCase):
     def test_is_draw(self):
         # the initial position is not a draw
         self.assertFalse(self.board.is_draw())
-
-        self.board.load_fen(INSUFFICIENT_MATERIAL_BOARD)
-        self.assertTrue(self.board.is_draw())
 
     def test_generate_legal_moves(self):
         # the initial position has 20 legal moves

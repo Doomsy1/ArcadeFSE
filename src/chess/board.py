@@ -219,8 +219,8 @@ class Board:
         self.colour_bitboards[colour] &= ~(1 << start)
         self.colour_bitboards[colour] |= 1 << end
 
-        self.empty_squares_bitboard &= ~(1 << start)
-        self.empty_squares_bitboard |= 1 << end
+        self.empty_squares_bitboard |= 1 << start
+        self.empty_squares_bitboard &= ~(1 << end)
 
 
     def load_fen(self, fen):
@@ -295,7 +295,6 @@ class Board:
 
                 # empy square are represented by a number
                 if self.is_empty(square):
-                    print('empty')
                     empty += 1
 
                 # piece
