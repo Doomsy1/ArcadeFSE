@@ -61,7 +61,6 @@ piece_char_to_bin = {
 }
 
 piece_bin_to_char = {
-    0b0000: 'P', # remove this
     0b1001: 'P',
     0b1010: 'N',
     0b1011: 'B',
@@ -121,7 +120,7 @@ class Board:
             0b0: 0  # black
         }
 
-        self.empty_squares_bitboard = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        self.empty_squares_bitboard = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF # all squares are empty (all bits are set to 1)
 
         self.castling_rights = 0 # 0b0000
         self.en_passant_target_square = 127 # 127 is an invalid square
@@ -129,9 +128,9 @@ class Board:
         self.fullmove_number = 0
         self.white_to_move = True # True = white, False = black
 
-        # self.zobrist_table = self.initialize_zobrist_table()
-        # self.zobrist_hash = self.compute_initial_zobrist_hash()
-        # self.cached_boards = {}
+        self.zobrist_table = self.initialize_zobrist_table()
+        self.zobrist_hash = self.compute_initial_zobrist_hash()
+        self.cached_boards = {}
 
         self.load_fen(fen)
         self.move_stack = []
@@ -153,7 +152,7 @@ class Board:
         return hash_value
 
 
-    # getters/setters
+    # getters
     def is_piece(self, square):
         return self.empty_squares_bitboard & (1 << square) == 0
     
@@ -188,21 +187,21 @@ class Board:
         for piece in self.piece_bitboards:
             if self.piece_bitboards[piece] & (1 << square):
                 return piece
-        return 0b0000 # remove this
 
+    # setters
     def set_piece(self, piece, square):
         self.piece_bitboards[piece] |= 1 << square
         self.empty_squares_bitboard &= ~(1 << square)
         self.colour_bitboards[piece >> 3] |= 1 << square
 
-        # self.zobrist_hash ^= self.zobrist_table[piece][square]
+        self.zobrist_hash ^= self.zobrist_table[piece][square]
 
     def clear_square(self, square):
         for piece in self.piece_bitboards:
             if self.piece_bitboards[piece] & (1 << square):
                 self.piece_bitboards[piece] &= ~(1 << square)
 
-                # self.zobrist_hash ^= self.zobrist_table[piece][square]
+                self.zobrist_hash ^= self.zobrist_table[piece][square]
                 
         self.colour_bitboards[0b0] &= ~(1 << square)
         self.colour_bitboards[0b1] &= ~(1 << square)
@@ -213,8 +212,8 @@ class Board:
         self.piece_bitboards[piece] &= ~(1 << start)
         self.piece_bitboards[piece] |= 1 << end
 
-        # self.zobrist_hash ^= self.zobrist_table[piece][start]
-        # self.zobrist_hash ^= self.zobrist_table[piece][end]
+        self.zobrist_hash ^= self.zobrist_table[piece][start]
+        self.zobrist_hash ^= self.zobrist_table[piece][end]
 
         self.colour_bitboards[colour] &= ~(1 << start)
         self.colour_bitboards[colour] |= 1 << end
@@ -448,6 +447,9 @@ class Board:
 
         # update turn
         self.white_to_move = not self.white_to_move
+
+        # update fullmove number
+        self.fullmove_number += 1 if start_piece >> 3 else 0
 
         # zobrist hash is updated in the move_piece and clear_square methods so no need to update it here
 
@@ -820,6 +822,12 @@ class Board:
             return True
         
         return False
+    
+    def is_game_over(self): # add caching to this with zobrist hash
+        '''
+        Check if the game is over.
+        '''
+        return self.is_checkmate(True) or self.is_checkmate(False) or self.is_draw()
     
     def generate_legal_moves(self, turn):
         '''

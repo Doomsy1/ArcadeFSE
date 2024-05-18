@@ -143,7 +143,7 @@ class ChessGame:
         # the squares are displayed in red if the move is a capture move
         moves = self.get_moves()
         for move in moves:
-            start_square, end_square, _, _, _, capture = decode_move(move)
+            start_square, end_square, _, _, _, _, capture, _ = decode_move(move)
             # if the start is the selected piece, display the end square
             if start_square == self.selected_square:
                 file, rank = self.square_to_file_rank(end_square)
@@ -208,33 +208,17 @@ class ChessGame:
         write_centered_text(self.screen, "Thinking...", thinking_rect, (0, 0, 0))
         pygame.display.flip()
 
-        # calculate the depth based on the numer of pieces on the board
-        occupied_bitboard = self.board.bitboards["occupied"]
-        num_pieces = bin(occupied_bitboard).count("1")
-        if num_pieces <= 10:
-            depth = 4
-        elif num_pieces <= 20:
-            depth = 3
-        else:
-            depth = 2
-
-        engine = Engine(self.board, depth=depth, time_limit=6)
+        engine = Engine(self.board, depth=4, time_limit=5)
         move = engine.get_best_move()
         # draw an arrow from the start to the end of the move
-        start, end, _, _, _, _ = decode_move(move)
+        start, end, _, _, _, _, _, _ = decode_move(move)
         start_file, start_rank = self.square_to_file_rank(start)
         end_file, end_rank = self.square_to_file_rank(end)
         self.engine_suggestion = ((start_file, start_rank), (end_file, end_rank))
 
     def check_checkmate(self):
         # checks checkmate and stores what it finds
-        fen = self.board.generate_fen()
-        if fen in self.cached_checkmate_checks:
-            return self.cached_checkmate_checks[fen]
-        else:
-            checkmate = self.board.is_checkmate(turn=self.board.white_to_move)
-            self.cached_checkmate_checks[fen] = checkmate
-            return checkmate
+        return self.board.is_checkmate(turn=self.board.white_to_move)
 
     def draw_game(self):
         self.draw_board()
@@ -303,11 +287,11 @@ class ChessGame:
                 # if the user presses the p key, cycle through the bitboards forward
                 elif event.key == pygame.K_p:
                     self.bitboard_display_index += 1
-                    self.bitboard_display_index %= 15
+                    self.bitboard_display_index %= 12
                 # if the user presses the o key, cycle through the bitboards backward
                 elif event.key == pygame.K_o:
                     self.bitboard_display_index -= 1
-                    self.bitboard_display_index %= 15
+                    self.bitboard_display_index %= 12
 
                 
         self.mx, self.my = pygame.mouse.get_pos()
@@ -338,7 +322,7 @@ class ChessGame:
                 end_square = rank * 16 + file
 
                 for move in moves:
-                    start, end, _, _, _, _ = decode_move(move)
+                    start, end, _, _, _, _, _, _ = decode_move(move)
                     if start == start_square and end == end_square:
                         self.board.make_move(move)
                         self.selected_square = None
@@ -355,7 +339,7 @@ class ChessGame:
                 start_square = self.selected_square
                 end_square = rank * 16 + file
                 for move in moves:
-                    start, end, _, _, _, _ = decode_move(move)
+                    start, end, _, _, _, _, _, _ = decode_move(move)
                     if start == start_square and end == end_square:
                         self.board.make_move(move)
                         self.selected_square = None
@@ -411,13 +395,17 @@ class ChessGame:
 
     def developer_display(self):
         # write the FEN of the board to the screen
-        FEN_rect = pygame.Rect(0, 0, 800, 800)
+        FEN_rect = pygame.Rect(0, 300, 200, 100)
         write_centered_text(self.screen, self.board.generate_fen(), FEN_rect, (0, 0, 0))
+
+        # write the zobrist hash of the board to the screen
+        zobrist_rect = pygame.Rect(0, 500, 800, 100)
+        write_centered_text(self.screen, str(self.board.zobrist_hash), zobrist_rect, (0, 0, 0))
 
         # draw all legal moves
         moves = self.get_moves()
         for move in moves:
-            start, end, _, _, _, _ = decode_move(move)
+            start, end, _, _, _, _, _, _ = decode_move(move)
             start_file, start_rank = self.square_to_file_rank(start)
             end_file, end_rank = self.square_to_file_rank(end)
             self.draw_arrow((start_file, start_rank), (end_file, end_rank), (0, 0, 128))
@@ -475,7 +463,7 @@ class ChessGame:
                 self.developer_display()
 
             if self.bitboard_display_toggle:
-                bitboard = list(self.board.bitboards.values())[self.bitboard_display_index]
+                bitboard = list(self.board.piece_bitboards.values())[self.bitboard_display_index]
                 self.draw_bitboard(bitboard)
                 print(format(bitboard, '128b'))
 
