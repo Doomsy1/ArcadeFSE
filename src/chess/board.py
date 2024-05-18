@@ -121,7 +121,7 @@ class Board:
             0b0: 0  # black
         }
 
-        self.empty_squares_bitboard = 0
+        self.empty_squares_bitboard = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
         self.castling_rights = 0 # 0b0000
         self.en_passant_target_square = 127 # 127 is an invalid square
@@ -129,9 +129,9 @@ class Board:
         self.fullmove_number = 0
         self.white_to_move = True # True = white, False = black
 
-        self.zobrist_table = self.initialize_zobrist_table()
-        self.zobrist_hash = self.compute_initial_zobrist_hash()
-        self.cached_boards = {}
+        # self.zobrist_table = self.initialize_zobrist_table()
+        # self.zobrist_hash = self.compute_initial_zobrist_hash()
+        # self.cached_boards = {}
 
         self.load_fen(fen)
         self.move_stack = []
@@ -195,26 +195,26 @@ class Board:
         self.empty_squares_bitboard &= ~(1 << square)
         self.colour_bitboards[piece >> 3] |= 1 << square
 
-        self.zobrist_hash ^= self.zobrist_table[piece][square]
+        # self.zobrist_hash ^= self.zobrist_table[piece][square]
 
     def clear_square(self, square):
         for piece in self.piece_bitboards:
             if self.piece_bitboards[piece] & (1 << square):
                 self.piece_bitboards[piece] &= ~(1 << square)
 
-                self.zobrist_hash ^= self.zobrist_table[piece][square]
+                # self.zobrist_hash ^= self.zobrist_table[piece][square]
                 
         self.colour_bitboards[0b0] &= ~(1 << square)
         self.colour_bitboards[0b1] &= ~(1 << square)
-        self.empty_squares_bitboard &= ~(1 << square)
+        self.empty_squares_bitboard |= 1 << square
 
     def move_piece(self, piece, start, end):
         colour = piece >> 3
         self.piece_bitboards[piece] &= ~(1 << start)
         self.piece_bitboards[piece] |= 1 << end
 
-        self.zobrist_hash ^= self.zobrist_table[piece][start]
-        self.zobrist_hash ^= self.zobrist_table[piece][end]
+        # self.zobrist_hash ^= self.zobrist_table[piece][start]
+        # self.zobrist_hash ^= self.zobrist_table[piece][end]
 
         self.colour_bitboards[colour] &= ~(1 << start)
         self.colour_bitboards[colour] |= 1 << end
@@ -231,7 +231,7 @@ class Board:
             self.piece_bitboards[piece] = 0
         self.colour_bitboards[0b0] = 0
         self.colour_bitboards[0b1] = 0
-        self.empty_squares_bitboard = 0
+        self.empty_squares_bitboard = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
         piece_placements, turn, castling_availibility, en_passant_target_square, halfmove_clock, fullmove_number = fen.split(' ')
 
@@ -280,9 +280,9 @@ class Board:
         self.halfmove_clock = int(halfmove_clock)
         self.fullmove_number = int(fullmove_number)
 
-        # update zobrist hash
-        self.zobrist_hash = self.compute_initial_zobrist_hash()
-        self.cached_boards = {}
+        # # update zobrist hash
+        # self.zobrist_hash = self.compute_initial_zobrist_hash()
+        # self.cached_boards = {}
 
     def generate_fen(self):
         
@@ -295,6 +295,7 @@ class Board:
 
                 # empy square are represented by a number
                 if self.is_empty(square):
+                    print('empty')
                     empty += 1
 
                 # piece
@@ -305,7 +306,7 @@ class Board:
                         empty = 0
                     
                     # add piece
-                    for piece in self.piece_bitboards: # iterate through all pieces to find which piece is on the square
+                    for piece in self.piece_bitboards: 
                         if self.piece_bitboards[piece] & (1 << square):
                             fen += piece_bin_to_char[piece]
                             break
@@ -898,4 +899,6 @@ def decode_move(move):
     return start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant
 
 if __name__ == "__main__":
-    pass
+    b = Board()
+    b.load_fen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
+    b.generate_fen()
