@@ -13,7 +13,7 @@ from tkinter import simpledialog
 # set directory to src/chess
 sys.path.append("src/chess")
 
-from board import Board, decode_move
+from board import Board, decode_move, piece_bin_to_char
 from engine import Engine
 
 # Constants
@@ -42,7 +42,7 @@ class ChessGame:
 
         self.engine_suggestion = None
 
-        # self.board.fen_to_board("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
+        # self.board.load_fen("2k5/Q7/2K5/8/8/8/8/8 w - - 0 1")
 
         self.load_images()
 
@@ -53,11 +53,11 @@ class ChessGame:
         return OFFSET_X <= x <= OFFSET_X + 8 * GRID_SIZE and OFFSET_Y <= y <= OFFSET_Y + 8 * GRID_SIZE
     
     def set_FEN(self):
-        current_fen = self.board.board_to_fen()
+        current_fen = self.board.generate_fen()
         # make a popup window that gets the user to set the FEN of the board
         fen = simpledialog.askstring("Input", "Please enter the FEN:", parent=self.root, initialvalue=current_fen)
         # the FEN is then set to the board
-        self.board.fen_to_board(fen)
+        self.board.load_fen(fen)
 
     def piece_selected(self):
         # return True if a piece is selected
@@ -118,7 +118,7 @@ class ChessGame:
         return rank * 16 + file
 
     def get_piece_type(self, file, rank):
-        bitboards = self.board.bitboards
+        bitboards = self.board.piece_bitboards
         square = 1 << (rank * 16 + file)
         for piece in bitboards:
             if bitboards[piece] & square:
@@ -171,7 +171,7 @@ class ChessGame:
         piece_type = self.get_piece_type(file, rank)
         if self.mb[0]:
             # draw the piece on the curser (self.mx, self.my)
-            self.screen.blit(self.piece_imgs[piece_type], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
+            self.screen.blit(self.piece_imgs[piece_bin_to_char[piece_type]], (self.mx - GRID_SIZE // 2, self.my - GRID_SIZE // 2))
         else:
             # draw the piece on the board
             self.draw_piece(piece_type, file, rank)
@@ -191,7 +191,7 @@ class ChessGame:
         
         x_pos = file * GRID_SIZE + OFFSET_X
         y_pos = (7 - rank) * GRID_SIZE + OFFSET_Y
-        self.screen.blit(self.piece_imgs[piece_type], (x_pos, y_pos))
+        self.screen.blit(self.piece_imgs[piece_bin_to_char[piece_type]], (x_pos, y_pos))
 
     def draw_pieces(self):
         for file in range(8):
@@ -228,7 +228,7 @@ class ChessGame:
 
     def check_checkmate(self):
         # checks checkmate and stores what it finds
-        fen = self.board.board_to_fen()
+        fen = self.board.generate_fen()
         if fen in self.cached_checkmate_checks:
             return self.cached_checkmate_checks[fen]
         else:
@@ -412,7 +412,7 @@ class ChessGame:
     def developer_display(self):
         # write the FEN of the board to the screen
         FEN_rect = pygame.Rect(0, 0, 800, 800)
-        write_centered_text(self.screen, self.board.board_to_fen(), FEN_rect, (0, 0, 0))
+        write_centered_text(self.screen, self.board.generate_fen(), FEN_rect, (0, 0, 0))
 
         # draw all legal moves
         moves = self.get_moves()
