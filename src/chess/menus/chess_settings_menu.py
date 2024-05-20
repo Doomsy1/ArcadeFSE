@@ -126,7 +126,7 @@ class ChessSettingsMenu:
                 'height': 50,
                 'min_value': 15,
                 'max_value': 300,
-                'initial_value': 60,
+                'initial_value': settings['time_per_side'],
                 'interval': 15
             },
             'time_increment': {
@@ -136,7 +136,7 @@ class ChessSettingsMenu:
                 'height': 50,
                 'min_value': 0,
                 'max_value': 15,
-                'initial_value': 0,
+                'initial_value': settings['time_increment'],
                 'interval': 1
             }
         }
@@ -159,7 +159,9 @@ class ChessSettingsMenu:
                 'r': self.sliders[5].get_value(),
                 'g': self.sliders[6].get_value(),
                 'b': self.sliders[7].get_value()
-            }
+            },
+            'time_per_side': self.sliders[8].get_value(),
+            'time_increment': self.sliders[9].get_value()
         }
 
         with open('src\chess\settings.json', 'w') as file:
@@ -203,7 +205,7 @@ class ChessSettingsMenu:
                 # if the player presses escape, return to the main menu
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        return 'exit'
+                        return 'chess main menu'
                 # if the player presses the left mouse button
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:

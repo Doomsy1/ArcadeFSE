@@ -3,7 +3,7 @@ import pygame
 
 from src.chess.menus.main_chess_menu import ChessMainMenu
 from src.chess.menus.chess_settings_menu import ChessSettingsMenu
-# from src.chess.player_vs_player import PlayerVsPlayer
+from src.chess.gamemodes.player_vs_player import PlayerVsPlayer
 # from src.chess.player_vs_computer import PlayerVsComputer
 
 FPS = 9999
@@ -45,7 +45,8 @@ class ChessGame:
         return chess_settings_menu.main_loop()
 
     def player_vs_player(self):
-        pass
+        player_vs_player = PlayerVsPlayer(self.screen)
+        return player_vs_player.main_loop()
 
     def player_vs_computer(self):
         pass

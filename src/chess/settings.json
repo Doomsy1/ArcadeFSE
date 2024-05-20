@@ -1,1 +1,1 @@
-{"difficulty": 4, "volume": 50, "dark_square_color": {"r": 0, "g": 65, "b": 65}, "light_square_color": {"r": 0, "g": 145, "b": 145}}
+{"difficulty": 4, "volume": 50, "dark_square_color": {"r": 0, "g": 45, "b": 70}, "light_square_color": {"r": 0, "g": 145, "b": 145}, "time_per_side": 120, "time_increment": 5}
