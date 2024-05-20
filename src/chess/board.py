@@ -388,16 +388,16 @@ class Board:
         # castling - move the rook (castling rights removed when the king moves)
         if castling != 0b0000:
             if castling & 0b1000: # white kingside
-                self.move_piece(7, 5, 0b1000)
+                self.move_piece(7, 5, 0b1100)
 
             elif castling & 0b0100: # white queenside
-                self.move_piece(0, 3, 0b0100)
+                self.move_piece(0, 3, 0b1100)
 
             elif castling & 0b0010: # black kingside
-                self.move_piece(119, 117, 0b0010)
+                self.move_piece(119, 117, 0b0100)
 
             elif castling & 0b0001: # black queenside
-                self.move_piece(112, 115, 0b0001)
+                self.move_piece(112, 115, 0b0100)
 
         # en passant
         if en_passant:
