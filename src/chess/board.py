@@ -158,6 +158,8 @@ class Board:
 
         self.undo_list = []
 
+        self.load_fen(fen)
+
     def hash_board(self):
         '''
         Hash the board using murmurhash3
@@ -176,43 +178,43 @@ class Board:
         hash1, hash2 = mmh3.hash128(concatenated_binary, seed=0)
 
         return f"{hash1:016x}{hash2:016x}"
-    
+
     # getters
     def is_piece(self, square):
         return (self.color_bitboards[0b1] | self.color_bitboards[0b0]) & (1 << square) != 0
-    
+
     def is_empty(self, square):
         return (self.color_bitboards[0b1] | self.color_bitboards[0b0]) & (1 << square) == 0
     
     def is_white(self, square):
         return self.color_bitboards[0b1] & (1 << square) != 0
-    
+
     def is_black(self, square):
         return self.color_bitboards[0b0] & (1 << square) != 0
-    
+
     def is_pawn(self, square):
         return (self.piece_bitboards[0b1001] | self.piece_bitboards[0b0001]) & (1 << square) != 0
-    
+
     def is_knight(self, square):
         return (self.piece_bitboards[0b1010] | self.piece_bitboards[0b0010]) & (1 << square) != 0
-    
+
     def is_bishop(self, square):
         return (self.piece_bitboards[0b1011] | self.piece_bitboards[0b0011]) & (1 << square) != 0
-    
+
     def is_rook(self, square):
         return (self.piece_bitboards[0b1100] | self.piece_bitboards[0b0100]) & (1 << square) != 0
-    
+
     def is_queen(self, square):
         return (self.piece_bitboards[0b1101] | self.piece_bitboards[0b0101]) & (1 << square) != 0
-    
+
     def is_king(self, square):
         return (self.piece_bitboards[0b1110] | self.piece_bitboards[0b0110]) & (1 << square) != 0
-    
+
     def get_piece(self, square):
         for piece in self.piece_bitboards:
             if self.piece_bitboards[piece] & (1 << square) != 0:
                 return piece
-            
+
 
     # setters
     def set_piece(self, square, piece):
@@ -225,7 +227,7 @@ class Board:
 
     def move_piece(self, start, end, piece):
         self.clear_piece(start, piece)
-        self.clear_piece(end, piece) # TOTEST: this might be redundant
+        # self.clear_piece(end, piece) # TOTEST: this might be redundant
         self.set_piece(end, piece)
 
 
@@ -373,10 +375,333 @@ class Board:
         start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant = decode_move(move)
 
         # save the state for undo
-        self.undo_list.append((self.piece_bitboards.copy(), self.color_bitboards.copy(), self.castling_rights, self.en_passant_target_square, self.halfmove_clock, self.fullmove_number, self.white_to_move))
+        self.undo_list.append((
+            self.piece_bitboards.copy(),
+            self.color_bitboards.copy(), 
+            self.castling_rights,
+            self.en_passant_target_square, 
+            self.halfmove_clock, 
+            self.fullmove_number, 
+            self.white_to_move))
 
 
-        # castling
+        # castling - move the rook (castling rights removed when the king moves)
         if castling != 0b0000:
-            if castling & 0b1000:
+            if castling & 0b1000: # white kingside
+                self.move_piece(7, 5, 0b1000)
+
+            elif castling & 0b0100: # white queenside
+                self.move_piece(0, 3, 0b0100)
+
+            elif castling & 0b0010: # black kingside
+                self.move_piece(119, 117, 0b0010)
+
+            elif castling & 0b0001: # black queenside
+                self.move_piece(112, 115, 0b0001)
+
+        # en passant
+        if en_passant:
+            # clear the captured pawn
+            if self.white_to_move:
+                self.clear_piece(end - 16, 0b0001)
+            else:
+                self.clear_piece(end + 16, 0b1001)
+
+        # promotion
+        if promotion_piece != 0b0000:
+            if capture:
+                self.clear_piece(end, captured_piece)
+            
+            self.clear_piece(start, start_piece)
+            self.set_piece(end, promotion_piece)
+
+        # normal move
+        else:
+            if capture:
+                self.clear_piece(end, captured_piece)
+            self.move_piece(start, end, start_piece)
+
+        # update castling rights
+        if start_piece == 0b1110:
+            self.castling_rights &= 0b0011
+        if start_piece == 0b0110:
+            self.castling_rights &= 0b1100
+            
+        # update castling rights if a rook is moved or captured
+        if start == 0 or end == 0: # white queenside rook
+            self.castling_rights &= 0b1011
+        if start == 7 or end == 7: # white kingside rook
+            self.castling_rights &= 0b0111
+        if start == 112 or end == 112: # black queenside rook
+            self.castling_rights &= 0b1101
+        if start == 119 or end == 119: # black kingside rook
+            self.castling_rights &= 0b1110 
+
+        # update en passant target square
+        if (start_piece & 0b0111 == 0b001) and abs(start - end) == 32:
+            self.en_passant_target_square = (start + end) // 2
+        else:
+            self.en_passant_target_square = 127
+
+        # update board state
+        if not self.white_to_move:
+            self.fullmove_number += 1
+        self.white_to_move = not self.white_to_move
+        self.halfmove_clock += 1
+        if capture or self.is_pawn(start):
+            self.halfmove_clock = 0
+
+    def undo_move(self):
+        '''
+        Undo the last move.
+        '''
+        # restore the state from the undo list
+        if self.undo_list:
+            self.piece_bitboards, self.color_bitboards, self.castling_rights, self.en_passant_target_square, self.halfmove_clock, self.fullmove_number, self.white_to_move = self.undo_list.pop()
+
+    def generate_moves(self, turn):
+        '''
+        Generate all moves for the current position. Does not check for legality.
+        '''
+        moves = []
+        for square in LEGAL_SQUARES:
+            if self.is_piece(square):
+                piece = self.get_piece(square)
+                piece_color = 0b1 if self.is_white(square) else 0b0
+                if piece_color == turn:
+                    if self.is_pawn(square):
+                        moves += self.generate_pawn_moves(square, piece)
+                    elif self.is_knight(square):
+                        moves += self.generate_knight_moves(square, piece)
+                    elif self.is_bishop(square):
+                        moves += self.generate_bishop_moves(square, piece)
+                    elif self.is_rook(square):
+                        moves += self.generate_rook_moves(square, piece)
+                    elif self.is_queen(square):
+                        moves += self.generate_queen_moves(square, piece)
+                    elif self.is_king(square):
+                        moves += self.generate_king_moves(square, piece)
+
+        return moves
+
+    def generate_single_moves(self, square, piece, directions):
+        '''
+        Generate all single moves for a given square.
+        '''
+        piece_color = 0b1 if self.is_white(square) else 0b0
+        moves = []
+        for direction in directions:
+            target_square = square + direction
+            if target_square & OUT_OF_BOUNDS_MASK == 0:
+                if self.is_empty(target_square):
+                    moves.append(encode_move(
+                        start=square, 
+                        end=target_square, 
+                        start_piece=piece, 
+                        capture=False
+                        ))
+                elif self.is_white(target_square) != piece_color:
+                    moves.append(encode_move(
+                        start=square, 
+                        end=target_square, 
+                        start_piece=piece, 
+                        captured_piece=self.get_piece(target_square), 
+                        capture=True
+                        ))
+                    
+        return moves
+
+    def generate_sliding_moves(self, square, piece, directions):
+        '''
+        Generate all sliding moves for a given square.
+        '''
+        piece_color = 0b1 if self.is_white(square) else 0b0
+        moves = []
+        for direction in directions:
+            target_square = square + direction
+
+            while target_square & OUT_OF_BOUNDS_MASK == 0:
+                if self.is_empty(target_square):
+                    moves.append(encode_move(
+                        start=square, 
+                        end=target_square, 
+                        start_piece=piece, 
+                        capture=False
+                        ))
+                    
+                elif self.is_white(target_square) != piece_color:
+                    moves.append(encode_move(
+                        start=square, 
+                        end=target_square, 
+                        start_piece=piece, 
+                        captured_piece=self.get_piece(target_square), 
+                        capture=True
+                        ))
+                    break
+
+                else:
+                    break
+
+                target_square += direction
+
+        return moves
+
+    def generate_pawn_moves(self, square, piece):
+        '''
+        Generate all pawn moves for a given square.
+        '''
+        moves = []
+        piece_color = 0b1 if self.is_white(square) else 0b0 # replace this with getting the color from the piece
+        direction = 16 if piece_color else -16
+        start_rank = 1 if piece_color else 6
+        promotion_rank = 7 if piece_color else 0
+
+        # single push
+        single_push = square + direction
+        if self.is_empty(single_push):
+            moves.append(encode_move(square, single_push, piece))
+
+            # double push
+            if (square >> 4) == start_rank:
+                if self.is_empty(square + 2 * direction):
+                    moves.append(encode_move(square, square + 2 * direction, piece))
+
+            # promotion
+            elif ((single_push) >> 4) == promotion_rank:
+                for promotion_piece in PROMOTION_PIECES:
+                    moves.append(encode_move(square, single_push, piece, promotion_piece))
+
+        # captures
+        capture_directions = [15, 17] if piece_color else [-15, -17]
+        for direction in capture_directions:
+            capture_square = square + direction
+            if self.is_piece(capture_square) and self.is_white(capture_square) != piece_color:
+
+                # promotion
+                if ((capture_square) >> 4) == promotion_rank:
+                    for promotion_piece in PROMOTION_PIECES:
+                        moves.append(encode_move(
+                            start=square, 
+                            end=capture_square, 
+                            start_piece=piece, 
+                            captured_piece=self.get_piece(capture_square), 
+                            promotion_piece=promotion_piece, 
+                            capture=True
+                            ))
+
+                # normal capture
+                else:
+                    moves.append(encode_move(
+                        start=square, 
+                        end=capture_square, 
+                        start_piece=piece, 
+                        captured_piece=self.get_piece(capture_square), 
+                        capture=True
+                        ))
+
+            # en passant
+            if capture_square == self.en_passant_target_square:
+                moves.append(encode_move(
+                    start=square, 
+                    end=capture_square, 
+                    start_piece=piece, 
+                    captured_piece=0b0001 if piece_color else 0b1001, # maybe remove this
+                    capture=True, 
+                    en_passant=True
+                    ))
                 
+        return moves
+
+    def generate_knight_moves(self, square, piece):
+        '''
+        Generate all knight moves for a given square.
+        '''
+        return self.generate_single_moves(square, piece, KNIGHT_DIRECTIONS)
+
+    def generate_bishop_moves(self, square, piece):
+        '''
+        Generate all bishop moves for a given square.
+        '''
+        return self.generate_sliding_moves(square, piece, BISHOP_DIRECTIONS)
+
+    def generate_rook_moves(self, square, piece):
+        '''
+        Generate all rook moves for a given square.
+        '''
+        return self.generate_sliding_moves(square, piece, ROOK_DIRECTIONS)
+
+    def generate_queen_moves(self, square, piece):
+        '''
+        Generate all queen moves for a given square.
+        '''
+        return self.generate_sliding_moves(square, piece, QUEEN_DIRECTIONS)
+
+    def generate_king_moves(self, square, piece):
+        '''
+        Generate all king moves for a given square.
+        '''
+        moves = []
+        piece_color = 0b1 if self.is_white(square) else 0b0
+        for direction in KING_DIRECTIONS:
+            target_square = square + direction
+            if target_square & OUT_OF_BOUNDS_MASK == 0:
+                if self.is_empty(target_square):
+                    moves.append(encode_move(
+                        start=square, 
+                        end=target_square, 
+                        start_piece=piece, 
+                        capture=False
+                        ))
+                elif self.is_white(target_square) != piece_color:
+                    moves.append(encode_move(
+                        start=square, 
+                        end=target_square, 
+                        start_piece=piece, 
+                        captured_piece=self.get_piece(target_square), 
+                        capture=True
+                        ))
+                    
+        return moves
+
+    def is_check(self, turn):
+        '''
+        Check if the current position is in check.
+        Turn is the color of the king to check.
+        '''
+        # find the ally king
+        ally_king = 0b1110 if turn else 0b0110
+        # ally_king_square = self.piece_bitboards[ally_king].bit_length() - 1
+
+        enemy_moves = self.generate_moves(not turn)
+        for move in enemy_moves:
+            _, _, _, captured_piece, _, _, _, _ = decode_move(move)
+            if captured_piece == ally_king:
+                return True
+            
+        return False
+    
+    def generate_legal_moves(self, turn):
+        '''
+        Generate all legal moves for the current position.
+        '''
+        moves = self.generate_moves(turn)
+        legal_moves = []
+        for move in moves:
+            self.make_move(move)
+            if not self.is_check(turn):
+                legal_moves.append(move)
+
+            self.undo_move()
+        return legal_moves
+    
+    def is_checkmate(self, turn):
+        '''
+        Check if the current position is in checkmate.
+        '''
+        return self.is_check(turn) and not self.generate_legal_moves(turn)
+    
+    def is_stalemate(self, turn):
+        '''
+        Check if the current position is in stalemate.
+        '''
+        return not self.is_check(turn) and not self.generate_legal_moves(turn)

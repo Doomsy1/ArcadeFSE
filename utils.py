@@ -120,9 +120,9 @@ def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, he
     # Cache the rendered arrow
     cache[key] = temp_surface.copy()
 
-def draw_transparent_circle(screen, center, radius, color, alpha, cache={}):
+def draw_transparent_circle(screen, center, radius, color, alpha, thickness=0, cache={}):
     # Check if the circle has already been rendered with the same parameters
-    key = (center, radius, color, alpha)
+    key = (center, radius, color, alpha, thickness)
     if key in cache:
         screen.blit(cache[key], (0, 0))
         return
@@ -132,7 +132,7 @@ def draw_transparent_circle(screen, center, radius, color, alpha, cache={}):
     rgba_color = color + (alpha,)  # Create RGBA color tuple
 
     # Draw the circle on the temporary surface
-    pygame.draw.circle(temp_surface, rgba_color, center, radius)
+    pygame.draw.circle(temp_surface, rgba_color, center, radius, thickness)
 
     # Blit the temporary surface onto the main screen surface
     screen.blit(temp_surface, (0, 0))
