@@ -4,6 +4,66 @@ import pygame.font as pygame_font
 
 pygame_font.init()
 
+class Slider:
+    def __init__(self, screen, label, x, y, width, height, min_value, max_value, initial_value, interval):
+        self.screen = screen
+        self.label = label.replace('_', ' ').title()
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.min_value = min_value
+        self.max_value = max_value
+        self.value = initial_value
+
+        self.interval = interval
+
+        self.thumb_width = 10
+        self.thumb_height = self.height + 10
+
+    def draw(self):
+        # background of the slider
+        pygame.draw.rect(self.screen, (255, 255, 255), pygame.Rect(self.x, self.y, self.width, self.height))
+
+        # outline of the slider
+        pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(self.x, self.y, self.width, self.height), 2)
+
+        # slider track
+        track_width = (self.value - self.min_value) * self.width / (self.max_value - self.min_value)
+        pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(self.x, self.y, track_width, self.height))
+
+        # slider thumb
+        thumb_x = self.x + track_width - self.thumb_width // 2
+        thumb_y = self.y - 5
+        pygame.draw.rect(self.screen, (64, 64, 64), pygame.Rect(thumb_x, thumb_y, self.thumb_width, self.thumb_height))
+
+        write_centered_text(self.screen, self.label, pygame.Rect(self.x+5, self.y+5, self.width-10, self.height-10), (255, 160, 0))
+
+    def update(self, mx, my, lmx, lmy):
+        if pygame.mouse.get_pressed()[0]:
+            if pygame.Rect(self.x, self.y, self.width, self.height).collidepoint((lmx, lmy)):
+                # update the value of the slider based on the mouse position
+                self.value = (mx - self.x) * (self.max_value - self.min_value) / self.width + self.min_value
+                self.value = max(self.min_value, min(self.max_value, self.value))
+                self.value = round(self.value / self.interval) * self.interval
+
+                # display the value of the slider with a label
+                value_label_width, value_label_height = 50, 50
+                value_label_x = self.x + self.width // 2 - value_label_width // 2
+                value_label_y = self.y - value_label_height
+
+                # draw the background of the value label
+                pygame.draw.rect(self.screen, (255, 255, 255), pygame.Rect(value_label_x, value_label_y, value_label_width, value_label_height))
+
+                # draw the outline of the value label
+                pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(value_label_x, value_label_y, value_label_width, value_label_height), 2)
+
+                # write the value of the slider
+                write_centered_text(self.screen, str(int(self.value)), pygame.Rect(value_label_x, value_label_y, value_label_width, value_label_height), (0, 0, 0))
+
+    def get_value(self):
+        return self.value
+
 def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, head_height, color, alpha, cache={}):
     # Check if the arrow has already been rendered with the same parameters
     key = (start, end, tail_start_offset, tail_width, head_width, head_height, color, alpha)

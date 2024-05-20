@@ -58,6 +58,7 @@ class Engine:
         - piece development | TODO 2
         - piece activity | TODO 3
         '''
+
         if self.board.is_checkmate(True):
             return NEGATIVE_INFINITY
         if self.board.is_checkmate(False):
@@ -69,11 +70,11 @@ class Engine:
         evaluation = 0
 
         evaluation += self.evaluate_piece_values()
-        evaluation += self.evaluate_piece_mobility()
-        evaluation += self.evaluate_check()
-        evaluation += self.evaluate_pawn_structure()
+        # evaluation += self.evaluate_piece_mobility()
+        # evaluation += self.evaluate_check()
+        # evaluation += self.evaluate_pawn_structure()
         evaluation += self.evaluate_center_control()
-        evaluation += self.evaluate_defending_ally_pieces()
+        # evaluation += self.evaluate_defending_ally_pieces()
         evaluation += self.evaluate_attacking_enemy_pieces()
 
         return evaluation
@@ -84,7 +85,7 @@ class Engine:
         '''
         evaluation = 0
 
-        occupied_squares = self.board.white_pieces | self.board.black_pieces
+        occupied_squares = self.board.colour_bitboards[0b1] | self.board.colour_bitboards[0b0]
         for square in LEGAL_SQUARES:
             if occupied_squares & (1 << square):
                 piece = self.board.get_piece(square)
@@ -111,9 +112,9 @@ class Engine:
         '''
         evaluation = 0
 
-        if self.board.is_check(True):
+        if self.get_is_check(True):
             return -CHECK_SCORE
-        if self.board.is_check(False):
+        if self.get_is_check(False):
             return CHECK_SCORE
         
         return evaluation
@@ -130,7 +131,7 @@ class Engine:
         # evaluation += self.evaluate_passed_pawns()
 
         return evaluation
-    
+
     def evaluate_double_pawns(self):
         '''
         Evaluate the board based on double pawns
@@ -227,14 +228,14 @@ class Engine:
 
         for square in LEGAL_SQUARES:
             if white_pieces & (1 << square):
-                for move in self.board.generate_moves(square):
+                for move in self.board.generate_legal_moves(square):
                     decode_move(move)
                     _, _, _, _, _, _, capture, _ = decode_move(move)
                     if capture:
                         evaluation += ATTACKING_ENEMY_PIECES_ADVANTAGE
 
             elif black_pieces & (1 << square):
-                for move in self.board.generate_moves(square):
+                for move in self.board.generate_legal_moves(square):
                     decode_move(move)
                     _, _, _, _, _, _, capture, _ = decode_move(move)
                     if capture:
@@ -242,6 +243,7 @@ class Engine:
 
         return evaluation
     
+
     def negamax(self, depth, alpha, beta, color):
         '''
         Negamax algorithm with alpha-beta pruning
@@ -265,7 +267,10 @@ class Engine:
         return best_score
     
     def find_best_move(self, depth):
-        best_move = None
+        '''
+        Find the best move using negamax
+        '''
+        best_move = 0
         best_score = NEGATIVE_INFINITY
         alpha = NEGATIVE_INFINITY
         beta = POSITIVE_INFINITY
@@ -291,3 +296,8 @@ class Engine:
         print(f"Time taken: {end_time - start_time} seconds")
 
         return best_move
+    
+if __name__ == "__main__":
+    board = Board()
+    engine = Engine(board, 3, 5)
+    print(engine.get_best_move())
