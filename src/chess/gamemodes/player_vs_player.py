@@ -416,13 +416,16 @@ class PlayerVsPlayer:
                         self.left_mouse_up = True
                     if event.button == 3:
                         self.right_mouse_up = True
-                # if u is pressed, undo the last move and play the move sound effect
                 if event.type == pygame.KEYDOWN:
+                    # if u is pressed, undo the last move and play the move sound effect
                     if event.key == pygame.K_u:
                         self.sfx['move'].play()
                         self.board.undo_move()
                         self.turn = not self.turn
                         self.selected_square = 127
+                    # if e is pressed, request a move from the engine
+                    if event.key == pygame.K_e:
+                        pass # implement this
                 
                     
             self.mx, self.my = pygame.mouse.get_pos()
@@ -440,13 +443,10 @@ class PlayerVsPlayer:
             if self.mb[0]:
                 self.draw_selected_piece()
 
-
-
             pygame.display.flip()
 
 
 def file_rank_to_square(file, rank):
-
     return 16*rank + file
 
 def square_to_file_rank(square):

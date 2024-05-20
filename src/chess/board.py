@@ -641,25 +641,49 @@ class Board:
         Generate all king moves for a given square.
         '''
         moves = []
+        moves += self.generate_single_moves(square, piece, KING_DIRECTIONS)
+
+        # castling
         piece_color = 0b1 if self.is_white(square) else 0b0
-        for direction in KING_DIRECTIONS:
-            target_square = square + direction
-            if target_square & OUT_OF_BOUNDS_MASK == 0:
-                if self.is_empty(target_square):
+
+        if piece_color:
+            if self.castling_rights & 0b1000: # white kingside
+                if self.is_empty(5) and self.is_empty(6):
+                        moves.append(encode_move(
+                            start=square, 
+                            end=6, 
+                            start_piece=piece, 
+                            castling=0b1000
+                            ))
+                        
+            if self.castling_rights & 0b0100: # white queenside
+                if self.is_empty(3) and self.is_empty(2) and self.is_empty(1):
                     moves.append(encode_move(
                         start=square, 
-                        end=target_square, 
+                        end=2, 
                         start_piece=piece, 
-                        capture=False
+                        castling=0b0100
                         ))
-                elif self.is_white(target_square) != piece_color:
+                    
+        else:
+            if self.castling_rights & 0b0010: # black kingside
+                if self.is_empty(117) and self.is_empty(116):
                     moves.append(encode_move(
                         start=square, 
-                        end=target_square, 
+                        end=116, 
                         start_piece=piece, 
-                        captured_piece=self.get_piece(target_square), 
-                        capture=True
+                        castling=0b0010
                         ))
+                    
+            if self.castling_rights & 0b0001: # black queenside
+                if self.is_empty(115) and self.is_empty(114) and self.is_empty(113):
+                    moves.append(encode_move(
+                        start=square, 
+                        end=114, 
+                        start_piece=piece, 
+                        castling=0b0001
+                        ))
+
                     
         return moves
 
