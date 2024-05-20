@@ -729,3 +729,9 @@ class Board:
         Check if the current position is in stalemate.
         '''
         return not self.is_check(turn) and not self.generate_legal_moves(turn)
+    
+    def is_game_over(self): # TODO: add more game over conditions
+        '''
+        Check if the game is over.
+        '''
+        return self.is_checkmate(0) or self.is_checkmate(1) or self.is_stalemate(0) or self.is_stalemate(1)

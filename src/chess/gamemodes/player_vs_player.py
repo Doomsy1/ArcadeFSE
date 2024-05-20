@@ -3,6 +3,7 @@ import pygame
 from constants import *
 from src.chess.board import Board, decode_move, LEGAL_SQUARES, encode_move
 from utils import *
+from src.chess.engine import Engine
 
 
 
@@ -21,6 +22,10 @@ class PlayerVsPlayer:
         self.arrows = [] # (start_square, end_square)
         self.preview_annotation_start = 127
         self.preview_annotation_end = 127
+
+        self.engine_suggestion = 0
+        self.engine_suggestion_arrow_start = 127
+        self.engine_suggestion_arrow_end = 127
 
         self.turn = True # True for white, False for black
 
@@ -257,6 +262,18 @@ class PlayerVsPlayer:
 
             pygame.display.flip()
 
+    def get_engine_suggestion(self):
+        # write "Thinking..." to the board
+        thinking_rect = pygame.Rect(0, 0, 800, 800)
+        thinking_color = (128, 128, 128)
+        write_centered_text(self.screen, "Thinking...", thinking_rect, thinking_color)
+
+        pygame.display.flip()
+
+        engine = Engine(self.board)
+        move, score = engine.find_best_move()
+        self.engine_suggestion = move
+    
     def handle_move(self):
         '''
         Handle the move of a piece
@@ -299,6 +316,9 @@ class PlayerVsPlayer:
         if self.left_mouse_down:
             self.circles = []
             self.arrows = []
+            self.engine_suggestion = 0
+            self.engine_suggestion_arrow_start = 127
+            self.engine_suggestion_arrow_end = 127
 
         if self.mb[2]:
             if pixel_on_board(self.rmx, self.rmy):
@@ -330,6 +350,11 @@ class PlayerVsPlayer:
                 
             self.preview_annotation_start = 127
             self.preview_annotation_end = 127
+
+        if self.engine_suggestion != 0:
+            start, end, _, _, _, _, _, _ = decode_move(self.engine_suggestion)
+            self.engine_suggestion_arrow_start = start
+            self.engine_suggestion_arrow_end = end
             
     def draw_arrow(self, start, end, color, alpha):
         start_x, start_y = square_to_pixel(start)
@@ -372,7 +397,10 @@ class PlayerVsPlayer:
             self.draw_circle(square, CIRCLE_COLOR, CIRCLE_ALPHA)
 
         for start, end in self.arrows:
-            self.draw_arrow(start, end, ARROW_COLOR, ARROW_ALPHA)        
+            self.draw_arrow(start, end, ARROW_COLOR, ARROW_ALPHA)  
+
+        if self.engine_suggestion_arrow_start != 127:
+            self.draw_arrow(self.engine_suggestion_arrow_start, self.engine_suggestion_arrow_end, ENGINE_SUGGESTION_COLOR, ENGINE_SUGGESTION_ALPHA)
 
     def draw_game(self):
         '''
@@ -425,9 +453,8 @@ class PlayerVsPlayer:
                         self.selected_square = 127
                     # if e is pressed, request a move from the engine
                     if event.key == pygame.K_e:
-                        pass # implement this
+                        self.get_engine_suggestion()
                 
-                    
             self.mx, self.my = pygame.mouse.get_pos()
             self.mb = pygame.mouse.get_pressed()
 
