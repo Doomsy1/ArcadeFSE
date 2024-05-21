@@ -1,6 +1,6 @@
-# from src.chess.board import Board, decode_move
+from src.chess.board import Board, decode_move
 import time
-from board import Board, decode_move, encode_move
+# from board import Board, decode_move, encode_move
 
 # a positive evaluation of a position means white is winning
 # a negative evaluation of a position means black is winning
