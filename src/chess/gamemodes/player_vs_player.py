@@ -270,10 +270,46 @@ class PlayerVsPlayer:
 
         pygame.display.flip()
 
-        engine = Engine(self.board)
+        engine = Engine(self.board, depth=1)
         move, score = engine.find_best_move()
         self.engine_suggestion = move
     
+    def draw_game_over(self):
+        '''
+        Draw the game over screen
+        '''
+        full_game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2, CHESS_GRID_SIZE*3, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE*2)
+
+        game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2, CHESS_GRID_SIZE*3, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
+        game_over_rect_color = (255, 255, 255)
+        pygame.draw.rect(self.screen, game_over_rect_color, game_over_rect)
+
+        game_over_text_color = (255, 128, 128)
+        write_centered_text(self.screen, "Game Over", game_over_rect, game_over_text_color)
+
+        description_rect = pygame.Rect(CHESS_GRID_SIZE*2, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
+        description_rect_color = (255, 255, 255)
+        pygame.draw.rect(self.screen, description_rect_color, description_rect)
+
+        description_color = (128, 128, 128)
+        if self.board.is_checkmate(True):
+            write_centered_text(self.screen, "Checkmate! Black wins\nClick to return to the main menu", description_rect, description_color)
+        elif self.board.is_checkmate(False):
+            write_centered_text(self.screen, "Checkmate! White wins\nClick to return to the main menu", description_rect, description_color)
+
+        pygame.display.flip()
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return 'chess main menu'
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return 'chess main menu'
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    return 'chess main menu'
+
+
     def handle_move(self):
         '''
         Handle the move of a piece
@@ -465,6 +501,10 @@ class PlayerVsPlayer:
             self.handle_piece_selection()
 
             self.draw_game()
+
+            if self.board.is_game_over():
+                self.sfx['game_over'].play()
+                return self.draw_game_over()
             
 
             if self.mb[0]:

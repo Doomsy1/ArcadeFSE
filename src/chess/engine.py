@@ -1,5 +1,6 @@
 from src.chess.board import Board, decode_move
 import time
+# from board import Board, decode_move, encode_move
 
 # a positive evaluation of a position means white is winning
 # a negative evaluation of a position means black is winning
@@ -27,7 +28,7 @@ DOUBLE_PAWNS_DISADVANTAGE = -0.75
 ISOLATED_PAWNS_DISADVANTAGE = -0.75
 BACKWARD_PAWNS_DISADVANTAGE = -0.5
 PASSED_PAWNS_ADVANTAGE = 1.2
-CENTER_CONTROL_ADVANTAGE = 0.4
+# CENTER_CONTROL_ADVANTAGE = 0.4
 # DEFENDING_ALLY_PIECES_ADVANTAGE = 0.5 | my generate move function doesn't create moves that defend pieces TODO: implement this
 ATTACKING_ENEMY_PIECES_ADVANTAGE = 0.5
 
@@ -58,62 +59,109 @@ class Engine:
         return mobility_evaluation
     
     def evaluate_board(self):
+        if self.board.is_checkmate(True):
+            return NEGATIVE_INFINITY
+        if self.board.is_checkmate(False):
+            return POSITIVE_INFINITY
+        
         evaluation = 0
         evaluation += self.evaluate_piece_values()
         evaluation += self.evaluate_mobility()
-        return evaluation
+        return evaluation 
     
 
-    def minimax(self, depth, alpha, beta, maximizing_player):
-        '''
-        Minimax algorithm with alpha-beta pruning
-        '''
+    def minimax(self, depth):
         if depth == 0 or self.board.is_game_over():
             return self.evaluate_board()
         
-        if maximizing_player:
-            max_eval = NEGATIVE_INFINITY
+        if self.board.white_to_move:
+            best_eval = NEGATIVE_INFINITY
             for move in self.board.generate_legal_moves(True):
                 self.board.make_move(move)
-                eval = self.minimax(depth - 1, alpha, beta, False)
+                eval = self.minimax(depth - 1)
                 self.board.undo_move()
-                max_eval = max(max_eval, eval)
-                alpha = max(alpha, eval)
-                if beta <= alpha:
-                    break
-            return max_eval
-        
+                best_eval = max(best_eval, eval)
+
         else:
-            min_eval = POSITIVE_INFINITY
+            best_eval = POSITIVE_INFINITY
             for move in self.board.generate_legal_moves(False):
                 self.board.make_move(move)
-                eval = self.minimax(depth - 1, alpha, beta, True)
+                eval = self.minimax(depth - 1)
                 self.board.undo_move()
-                min_eval = min(min_eval, eval)
-                beta = min(beta, eval)
-                if beta <= alpha:
-                    break
-            return min_eval
-        
+                best_eval = min(best_eval, eval)
+
+
     def find_best_move(self):
-        '''
-        Find the best move using minimax
-        '''
-        best_move = 0
-        best_score = NEGATIVE_INFINITY
-        alpha = NEGATIVE_INFINITY
-        beta = POSITIVE_INFINITY
-        
-        for move in self.board.generate_legal_moves(True):
-            self.board.make_move(move)
-            score = self.minimax(self.depth - 1, -beta, -alpha, False)
-            self.board.undo_move()
-            
-            if score > best_score:
-                best_score = score
-                best_move = move
-            
-            alpha = max(alpha, score)
-        
-        return best_move, best_score
-    
+        start_time = time.time()
+        starting_player = self.board.white_to_move
+        best_move = None
+
+        if starting_player: # white 
+            best_eval = NEGATIVE_INFINITY
+            for move in self.board.generate_legal_moves(True):
+                self.board.make_move(move)
+                eval = self.minimax(self.depth - 1)
+                self.board.undo_move()
+                if eval > best_eval:
+                    best_eval = eval
+                    best_move = move
+        else: # black
+            best_eval = POSITIVE_INFINITY
+            for move in self.board.generate_legal_moves(False):
+                self.board.make_move(move)
+                eval = self.minimax(self.depth - 1)
+                self.board.undo_move()
+                if eval < best_eval:
+                    best_eval = eval
+                    best_move = move
+
+        print(f"Best move: {decode_move(best_move)}")
+        print(f"Time taken: {time.time() - start_time} seconds")
+        return best_move, best_eval
+
+
+if __name__ == '__main__':
+    import cProfile
+    import pstats
+    import csv
+
+    board = Board()
+    board.load_fen('rnbqkbnr/ppppp2p/5p2/6p1/4PP2/8/PPPP2PP/RNBQKBNR w - - 0 1')
+    # board.make_move(encode_move(3, 71, 0b1101))
+    # board.load_fen('rnbqkbnr/ppppp2p/5p2/6pQ/4PP2/8/PPPP2PP/RNB1KBNR b - - 0 1')
+    engine = Engine(board, depth=3)
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+    engine.find_best_move()
+    # print(engine.evaluate_board())
+    # print(board.is_game_over())
+    profiler.disable()
+
+    stats = pstats.Stats(profiler)
+
+    stats.sort_stats(pstats.SortKey.CUMULATIVE)
+
+    profiling_data = []
+    stats_data = stats.stats
+    for func, (cc, nc, tt, ct, callers) in stats_data.items():
+        filename, lineno, funcname = func
+        profiling_data.append({
+            'filename': filename,
+            'line_number': lineno,
+            'function_name': funcname,
+            'call_count': cc,
+            'recursive_call_count': nc,
+            'total_time': tt,
+            'cumulative_time': ct
+        })
+
+    csv_filename = 'profiling_results.csv'
+
+    with open(csv_filename, mode='w', newline='') as csv_file:
+        fieldnames = ['filename', 'line_number', 'function_name', 'call_count', 'recursive_call_count', 'total_time', 'cumulative_time']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for data in profiling_data:
+            writer.writerow(data)

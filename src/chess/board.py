@@ -158,6 +158,8 @@ class Board:
 
         self.undo_list = []
 
+        self.generated_moves = {}
+
         self.load_fen(fen)
 
     def hash_board(self):
@@ -173,11 +175,13 @@ class Board:
 
         castling_rights_binary = self.castling_rights.to_bytes(1, 'big')
 
-        concatenated_binary = bitboards_binary + en_passant_binary + castling_rights_binary
+        turn_binary = int(self.white_to_move).to_bytes(1, 'big')
 
-        hash1, hash2 = mmh3.hash128(concatenated_binary, seed=0)
+        concatenated_binary = bitboards_binary + en_passant_binary + castling_rights_binary + turn_binary
 
-        return f"{hash1:016x}{hash2:016x}"
+        hash1 = mmh3.hash128(concatenated_binary, seed=0)
+
+        return f"{hash1:016x}"
 
     # getters
     def is_piece(self, square):
@@ -188,9 +192,9 @@ class Board:
     
     def is_white(self, square):
         return self.color_bitboards[0b1] & (1 << square) != 0
-
-    def is_black(self, square):
-        return self.color_bitboards[0b0] & (1 << square) != 0
+    
+    def is_white_piece(self, piece):
+        return (piece & 0b1000) != 0
 
     def is_pawn(self, square):
         return (self.piece_bitboards[0b1001] | self.piece_bitboards[0b0001]) & (1 << square) != 0
@@ -463,11 +467,13 @@ class Board:
         '''
         Generate all moves for the current position. Does not check for legality.
         '''
+
+
         moves = []
         for square in LEGAL_SQUARES:
             if self.is_piece(square):
-                piece = self.get_piece(square)
-                piece_color = 0b1 if self.is_white(square) else 0b0
+                piece = self.get_piece(square) # TODO: dont use get_piece
+                piece_color = self.is_white_piece(piece)
                 if piece_color == turn:
                     if self.is_pawn(square):
                         moves += self.generate_pawn_moves(square, piece)
@@ -488,7 +494,7 @@ class Board:
         '''
         Generate all single moves for a given square.
         '''
-        piece_color = 0b1 if self.is_white(square) else 0b0
+        piece_color = self.is_white_piece(piece)
         moves = []
         for direction in directions:
             target_square = square + direction
@@ -500,12 +506,12 @@ class Board:
                         start_piece=piece, 
                         capture=False
                         ))
-                elif self.is_white(target_square) != piece_color:
+                elif self.is_white(target_square) != piece_color: # TODO: dont use is_white
                     moves.append(encode_move(
                         start=square, 
                         end=target_square, 
                         start_piece=piece, 
-                        captured_piece=self.get_piece(target_square), 
+                        captured_piece=self.get_piece(target_square), # TODO: dont use get_piece
                         capture=True
                         ))
                     
@@ -515,7 +521,7 @@ class Board:
         '''
         Generate all sliding moves for a given square.
         '''
-        piece_color = 0b1 if self.is_white(square) else 0b0
+        piece_color = self.is_white_piece(piece)
         moves = []
         for direction in directions:
             target_square = square + direction
@@ -529,12 +535,12 @@ class Board:
                         capture=False
                         ))
                     
-                elif self.is_white(target_square) != piece_color:
+                elif self.is_white(target_square) != piece_color: # TODO: dont use is_white
                     moves.append(encode_move(
                         start=square, 
                         end=target_square, 
                         start_piece=piece, 
-                        captured_piece=self.get_piece(target_square), 
+                        captured_piece=self.get_piece(target_square), # TODO: dont use get_piece
                         capture=True
                         ))
                     break
@@ -551,7 +557,7 @@ class Board:
         Generate all pawn moves for a given square.
         '''
         moves = []
-        piece_color = 0b1 if self.is_white(square) else 0b0 # replace this with getting the color from the piece
+        piece_color = self.is_white_piece(piece)
         direction = 16 if piece_color else -16
         start_rank = 1 if piece_color else 6
         promotion_rank = 7 if piece_color else 0
@@ -575,7 +581,7 @@ class Board:
         capture_directions = [15, 17] if piece_color else [-15, -17]
         for direction in capture_directions:
             capture_square = square + direction
-            if self.is_piece(capture_square) and self.is_white(capture_square) != piece_color:
+            if self.is_piece(capture_square) and self.is_white(capture_square) != piece_color: # TODO: dont use is_white
 
                 # promotion
                 if ((capture_square) >> 4) == promotion_rank:
@@ -584,7 +590,7 @@ class Board:
                             start=square, 
                             end=capture_square, 
                             start_piece=piece, 
-                            captured_piece=self.get_piece(capture_square), 
+                            captured_piece=self.get_piece(capture_square), # TODO: dont use get_piece
                             promotion_piece=promotion_piece, 
                             capture=True
                             ))
@@ -595,7 +601,7 @@ class Board:
                         start=square, 
                         end=capture_square, 
                         start_piece=piece, 
-                        captured_piece=self.get_piece(capture_square), 
+                        captured_piece=self.get_piece(capture_square), # TODO: dont use get_piece
                         capture=True
                         ))
 
@@ -644,7 +650,7 @@ class Board:
         moves += self.generate_single_moves(square, piece, KING_DIRECTIONS)
 
         # castling
-        piece_color = 0b1 if self.is_white(square) else 0b0
+        piece_color = self.is_white_piece(piece)
 
         if piece_color:
             if self.castling_rights & 0b1000: # white kingside
