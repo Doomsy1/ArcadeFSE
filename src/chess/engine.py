@@ -90,6 +90,8 @@ class Engine:
                 self.board.undo_move()
                 best_eval = min(best_eval, eval)
 
+        return best_eval
+
 
     def find_best_move(self):
         start_time = time.time()

@@ -270,7 +270,7 @@ class PlayerVsPlayer:
 
         pygame.display.flip()
 
-        engine = Engine(self.board, depth=1)
+        engine = Engine(self.board, depth=2)
         move, score = engine.find_best_move()
         self.engine_suggestion = move
     
@@ -308,7 +308,6 @@ class PlayerVsPlayer:
                         return 'chess main menu'
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     return 'chess main menu'
-
 
     def handle_move(self):
         '''
