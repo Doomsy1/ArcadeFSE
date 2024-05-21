@@ -81,9 +81,6 @@ class PlayerVsPlayer:
         with open('src/chess/settings.json', 'r') as file:
             settings = json.load(file)
 
-        # set the volume of the sound effects
-        pygame.mixer.music.set_volume(settings['volume'])
-
         file_path = 'src/chess/assets/sfx/'
         sfx = {
             'move': pygame.mixer.Sound(f'{file_path}move.mp3'),
@@ -94,6 +91,10 @@ class PlayerVsPlayer:
             'game_start': pygame.mixer.Sound(f'{file_path}game_start.mp3'),
             'promotion': pygame.mixer.Sound(f'{file_path}promotion.mp3')
         }
+
+        volume = settings['volume']/100
+        for sound in sfx:
+            sfx[sound].set_volume(volume)
 
         return sfx
 
