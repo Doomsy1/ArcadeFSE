@@ -1,6 +1,6 @@
-from src.chess.board import Board, decode_move
+# from src.chess.board import Board, decode_move
 import time
-# from board import Board, decode_move, encode_move
+from board import Board, decode_move, encode_move
 
 # a positive evaluation of a position means white is winning
 # a negative evaluation of a position means black is winning
@@ -28,9 +28,12 @@ DOUBLE_PAWNS_DISADVANTAGE = -0.75
 ISOLATED_PAWNS_DISADVANTAGE = -0.75
 BACKWARD_PAWNS_DISADVANTAGE = -0.5
 PASSED_PAWNS_ADVANTAGE = 1.2
-# CENTER_CONTROL_ADVANTAGE = 0.4
+CENTER_CONTROL_ADVANTAGE = 0.4
 # DEFENDING_ALLY_PIECES_ADVANTAGE = 0.5 | my generate move function doesn't create moves that defend pieces TODO: implement this
 ATTACKING_ENEMY_PIECES_ADVANTAGE = 0.5
+KING_SAFETY_ADVANTAGE = 0.5
+DEVELOPMENT_ADVANTAGE = 0.5
+
 
 LEGAL_SQUARES = [i for i in range(127) if not i & 0x88]
 
@@ -58,6 +61,39 @@ class Engine:
 
         return mobility_evaluation
     
+    def evaluate_double_pawns(self): # pawns on the same file
+        pass
+
+    def evaluate_isolated_pawns(self): # pawns with no pawns on adjacent files
+        pass
+
+    def evaluate_backward_pawns(self): # pawns that are behind all pawns on adjacent files
+        pass
+
+    def evaluate_passed_pawns(self): # pawns that have no enemy pawns on adjacent files and are not blocked by enemy pawns
+        pass
+
+    def evaluate_center_control(self): # control of the center of the board (pieces on the center squares + pieces that attack the center squares)
+        pass
+
+    def evaluate_check(self): # checking the opponent
+        pass
+
+    def evaluate_attack(self): # attacking the opponent's pieces
+        pass
+
+    def evaluate_defense(self): # defending own pieces
+        pass #
+
+    def evaluate_king_safety(self): # how safe the king is
+        pass #
+
+    def evaluate_piece_square_tables(self): # piece square tables for each piece
+        pass
+
+    def evaluate_development(self): # how developed the pieces are (pieces on their starting squares are not developed) (more important in the opening)
+        pass
+    
     def evaluate_board(self):
         if self.board.is_checkmate(True):
             return NEGATIVE_INFINITY
@@ -70,7 +106,7 @@ class Engine:
         return evaluation 
     
 
-    def minimax(self, depth):
+    def minimax(self, depth, alpha, beta):
         if depth == 0 or self.board.is_game_over():
             return self.evaluate_board()
         
@@ -78,17 +114,23 @@ class Engine:
             best_eval = NEGATIVE_INFINITY
             for move in self.board.generate_legal_moves(True):
                 self.board.make_move(move)
-                eval = self.minimax(depth - 1)
+                eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
                 best_eval = max(best_eval, eval)
+                alpha = max(alpha, best_eval)
+                if beta <= alpha:
+                    break
 
         else:
             best_eval = POSITIVE_INFINITY
             for move in self.board.generate_legal_moves(False):
                 self.board.make_move(move)
-                eval = self.minimax(depth - 1)
+                eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
                 best_eval = min(best_eval, eval)
+                beta = min(beta, best_eval)
+                if beta <= alpha:
+                    break
 
         return best_eval
 
@@ -100,22 +142,28 @@ class Engine:
 
         if starting_player: # white 
             best_eval = NEGATIVE_INFINITY
+            alpha = NEGATIVE_INFINITY
+            beta = POSITIVE_INFINITY
             for move in self.board.generate_legal_moves(True):
                 self.board.make_move(move)
-                eval = self.minimax(self.depth - 1)
+                eval = self.minimax(self.depth - 1, alpha, beta)
                 self.board.undo_move()
                 if eval > best_eval:
                     best_eval = eval
                     best_move = move
+                alpha = max(alpha, best_eval)
         else: # black
             best_eval = POSITIVE_INFINITY
+            alpha = NEGATIVE_INFINITY
+            beta = POSITIVE_INFINITY
             for move in self.board.generate_legal_moves(False):
                 self.board.make_move(move)
-                eval = self.minimax(self.depth - 1)
+                eval = self.minimax(self.depth - 1, alpha, beta)
                 self.board.undo_move()
                 if eval < best_eval:
                     best_eval = eval
                     best_move = move
+                beta = min(beta, best_eval)
 
         print(f"Best move: {decode_move(best_move)}")
         print(f"Time taken: {time.time() - start_time} seconds")

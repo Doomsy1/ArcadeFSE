@@ -1,5 +1,4 @@
 from random import getrandbits
-import mmh3 # this needs to be installed with pip | pip install mmh3
 
 
 STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -125,6 +124,31 @@ def decode_move(move):
 
     return start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant
 
+def board_state_to_str(piece_bitboards, color_bitboards, castling_rights, en_passant_target_square, white_to_move, turn):
+    '''
+    Convert the board state to a string.
+    '''
+    # concatonate the binary
+    bitboards_binary = b''.join(
+        bitboard.to_bytes(16, 'big') for bitboard in piece_bitboards.values()
+    )
+
+    color_bitboards_binary = b''.join(
+        bitboard.to_bytes(16, 'big') for bitboard in color_bitboards.values()
+    )
+
+    en_passant_binary = en_passant_target_square.to_bytes(1, 'big')
+
+    castling_rights_binary = castling_rights.to_bytes(1, 'big')
+
+    moving_turn_binary = white_to_move.to_bytes(1, 'big')
+
+    turn_binary = turn.to_bytes(1, 'big')
+
+    concatenated_binary = bitboards_binary + color_bitboards_binary + en_passant_binary + castling_rights_binary + moving_turn_binary + turn_binary
+
+    return concatenated_binary.hex()
+
 class Board:
     def __init__(self, fen=STARTING_FEN):
         
@@ -162,26 +186,18 @@ class Board:
 
         self.load_fen(fen)
 
-    def hash_board(self):
+    def hash_board(self, turn): # TODO: use a better hashing function
         '''
-        Hash the board using murmurhash3
-        '''
-
-        bitboards_binary = b''.join(
-            bitboard.to_bytes(16, 'big') for bitboard in self.piece_bitboards.values()
+        Hash the board state. (temporarily using a string) 
+        ''' 
+        return board_state_to_str(
+            piece_bitboards=self.piece_bitboards,
+            color_bitboards=self.color_bitboards,
+            castling_rights=self.castling_rights,
+            en_passant_target_square=self.en_passant_target_square,
+            white_to_move=self.white_to_move,
+            turn=turn
         )
-
-        en_passant_binary = self.en_passant_target_square.to_bytes(1, 'big')
-
-        castling_rights_binary = self.castling_rights.to_bytes(1, 'big')
-
-        turn_binary = int(self.white_to_move).to_bytes(1, 'big')
-
-        concatenated_binary = bitboards_binary + en_passant_binary + castling_rights_binary + turn_binary
-
-        hash1 = mmh3.hash128(concatenated_binary, seed=0)
-
-        return f"{hash1:016x}"
 
     # getters
     def is_piece(self, square):
@@ -467,6 +483,9 @@ class Board:
         '''
         Generate all moves for the current position. Does not check for legality.
         '''
+        key = self.hash_board(turn)
+        if key in self.generated_moves:
+            return self.generated_moves[key]
 
 
         moves = []
@@ -488,6 +507,7 @@ class Board:
                     elif self.is_king(square):
                         moves += self.generate_king_moves(square, piece)
 
+        self.generated_moves[key] = moves
         return moves
 
     def generate_single_moves(self, square, piece, directions):

@@ -23,6 +23,7 @@ class PlayerVsPlayer:
         self.preview_annotation_start = 127
         self.preview_annotation_end = 127
 
+        self.engine_depth = self.load_engine_depth()
         self.engine_suggestion = 0
         self.engine_suggestion_arrow_start = 127
         self.engine_suggestion_arrow_end = 127
@@ -60,6 +61,15 @@ class PlayerVsPlayer:
 
         return piece_images
     
+    def load_engine_depth(self):
+        '''
+        Load the engine depth
+        '''
+        with open('src/chess/settings.json', 'r') as file:
+            settings = json.load(file)
+        
+        return settings['difficulty']
+
     def load_sfx(self):
         '''
         Load the sound effects
@@ -270,7 +280,7 @@ class PlayerVsPlayer:
 
         pygame.display.flip()
 
-        engine = Engine(self.board, depth=2)
+        engine = Engine(self.board, depth=self.engine_depth)
         move, score = engine.find_best_move()
         self.engine_suggestion = move
     
