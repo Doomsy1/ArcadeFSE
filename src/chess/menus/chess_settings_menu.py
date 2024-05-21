@@ -188,9 +188,14 @@ class ChessSettingsMenu:
             self.sliders[6].get_value(), 
             self.sliders[7].get_value()
             )
-        
+
+        # draw the dark and light square preview
         pygame.draw.rect(self.screen, dark_square_color, dark_square_preview_rect)
         pygame.draw.rect(self.screen, light_square_color, light_square_preview_rect)
+        
+        # draw a border around the dark and light square preview
+        pygame.draw.rect(self.screen, (0, 0, 0), dark_square_preview_rect, 5)
+        pygame.draw.rect(self.screen, (0, 0, 0), light_square_preview_rect, 5)
         
 
     def main_loop(self):

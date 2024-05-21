@@ -23,14 +23,17 @@ class PlayerVsPlayer:
         self.preview_annotation_start = 127
         self.preview_annotation_end = 127
 
+        self.board = Board()
+
         self.engine_depth = self.load_engine_depth()
+        self.engine = Engine(self.board, self.engine_depth, time_limit_ms=5000)
         self.engine_suggestion = 0
         self.engine_suggestion_arrow_start = 127
         self.engine_suggestion_arrow_end = 127
 
-        self.turn = True # True for white, False for black
+        self.move_list = []
 
-        self.board = Board()
+        self.turn = True # True for white, False for black
 
         self.clock = pygame.time.Clock()
 
@@ -283,8 +286,7 @@ class PlayerVsPlayer:
 
         pygame.display.flip()
 
-        engine = Engine(self.board, depth=self.engine_depth)
-        move, score = engine.find_best_move()
+        move, score = self.engine.find_best_move()
         self.engine_suggestion = move
     
     def draw_game_over(self):
@@ -335,6 +337,8 @@ class PlayerVsPlayer:
                     if end == square:
                         if promotion_piece == 0b0000:
                             self.board.make_move(move)
+                            self.engine.update_board(self.board)
+                            self.move_list.append(move)
 
                             if castling != 0b0000:
                                 self.sfx['castle'].play()
@@ -350,6 +354,8 @@ class PlayerVsPlayer:
                             chosen_promotion_piece = self.promotion_popup()
                             move = encode_move(start, end, start_piece, captured_piece, chosen_promotion_piece, castling, capture, en_passant)
                             self.board.make_move(move)
+                            self.engine.update_board(self.board)
+                            self.move_list.append(move)
                             
                             self.sfx['promotion'].play()
 
@@ -453,11 +459,30 @@ class PlayerVsPlayer:
         if self.engine_suggestion_arrow_start != 127:
             self.draw_arrow(self.engine_suggestion_arrow_start, self.engine_suggestion_arrow_end, ENGINE_SUGGESTION_COLOR, ENGINE_SUGGESTION_ALPHA)
 
+    def draw_previous_move(self):
+        '''
+        Draw the previous move of the game
+        '''
+        if len(self.move_list) == 0:
+            return
+        move = self.move_list[-1]
+        start, end, _, _, _, _, _, _ = decode_move(move)
+        # draw a transparent square on the end square
+        x, y = square_to_pixel(end)
+        draw_transparent_rect(self.screen, (x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE), PREVIOUS_MOVE_COLOR, PREVIOUS_MOVE_ALPHA)
+
+        # draw a transparent rect on the start square
+        x, y = square_to_pixel(start)
+        draw_transparent_rect(self.screen, (x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE), PREVIOUS_MOVE_COLOR, PREVIOUS_MOVE_ALPHA)
+        
+
     def draw_game(self):
         '''
         Draw the chess game
         '''
         self.draw_board()
+
+        self.draw_previous_move()
 
         self.draw_selected_square()
 
@@ -500,11 +525,25 @@ class PlayerVsPlayer:
                     if event.key == pygame.K_u:
                         self.sfx['move'].play()
                         self.board.undo_move()
+                        self.engine.update_board(self.board)
+                        self.move_list.pop()
                         self.turn = not self.turn
                         self.selected_square = 127
                     # if e is pressed, request a move from the engine
                     if event.key == pygame.K_e:
                         self.get_engine_suggestion()
+                    # if the m key is pressed, make a move from the engine
+                    if event.key == pygame.K_m:
+                        if self.engine_suggestion != 0:
+                            self.board.make_move(self.engine_suggestion)
+                            self.engine.update_board(self.board)
+                            self.move_list.append(self.engine_suggestion)
+                            self.sfx['move'].play()
+                            self.turn = not self.turn
+                            self.engine_suggestion = 0
+                            self.engine_suggestion_arrow_start = 127
+                            self.engine_suggestion_arrow_end = 127
+
                 
             self.mx, self.my = pygame.mouse.get_pos()
             self.mb = pygame.mouse.get_pressed()

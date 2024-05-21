@@ -3,7 +3,7 @@ import src.chess.PSQT as PSQT
 
 import time
 
-# from src.chess.PSQT import *
+# import PSQT
 # from board import Board, decode_move, encode_move
 
 # a positive evaluation of a position means white is winning
@@ -69,11 +69,14 @@ piece_map = {
 
 class Engine:
     def __init__(self, board: Board, depth: int = 2, time_limit_ms: int = 1000):
-        self.board = board
+        self.board = board.__copy__()
         self.depth = depth
         self.time_limit_ms = time_limit_ms
 
         self.evaluated_boards = {}
+
+    def update_board(self, board: Board):
+        self.board = board.__copy__()
 
     def evaluate_piece_values(self):
         piece_value_evaluation = 0
@@ -310,6 +313,8 @@ if __name__ == '__main__':
     # board.make_move(encode_move(3, 71, 0b1101))
     # board.load_fen('rnbqkbnr/ppppp2p/5p2/6pQ/4PP2/8/PPPP2PP/RNB1KBNR b - - 0 1')
     engine = Engine(board, depth=3)
+
+    engine.find_best_move()
 
     profiler = cProfile.Profile()
     profiler.enable()

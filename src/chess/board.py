@@ -124,30 +124,11 @@ def decode_move(move):
 
     return start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant
 
-def board_state_to_str(piece_bitboards, color_bitboards, castling_rights, en_passant_target_square, white_to_move, turn):
+def decode_captured_piece(move):
     '''
-    Convert the board state to a string.
+    Decode the captured piece from a move.
     '''
-    # concatonate the binary
-    bitboards_binary = b''.join(
-        bitboard.to_bytes(16, 'big') for bitboard in piece_bitboards.values()
-    )
-
-    color_bitboards_binary = b''.join(
-        bitboard.to_bytes(16, 'big') for bitboard in color_bitboards.values()
-    )
-
-    en_passant_binary = en_passant_target_square.to_bytes(1, 'big')
-
-    castling_rights_binary = castling_rights.to_bytes(1, 'big')
-
-    moving_turn_binary = white_to_move.to_bytes(1, 'big')
-
-    turn_binary = turn.to_bytes(1, 'big')
-
-    concatenated_binary = bitboards_binary + color_bitboards_binary + en_passant_binary + castling_rights_binary + moving_turn_binary + turn_binary
-
-    return concatenated_binary.hex()
+    return (move >> 18) & 0xF
 
 class Board:
     def __init__(self, fen=STARTING_FEN):
@@ -183,22 +164,93 @@ class Board:
         self.undo_list = []
 
         self.generated_moves = {}
+        self.is_check_cache = {}
 
         self.load_fen(fen)
 
-    def hash_board(self, turn): # TODO: use a better hashing function
+    def __copy__(self):
         '''
-        Hash the board state. (temporarily using a string) 
+        Create a copy of the board with the same states and history.
+        '''
+        new_board = Board()
+        new_board.piece_bitboards = self.piece_bitboards.copy()
+        new_board.color_bitboards = self.color_bitboards.copy()
+        new_board.castling_rights = self.castling_rights
+        new_board.en_passant_target_square = self.en_passant_target_square
+        new_board.halfmove_clock = self.halfmove_clock
+        new_board.fullmove_number = self.fullmove_number
+        new_board.white_to_move = self.white_to_move
+
+        new_board.undo_list = self.undo_list.copy()
+        new_board.generated_moves = self.generated_moves.copy()
+        new_board.is_check_cache = self.is_check_cache.copy()
+
+        return new_board
+
+    def hash_board(self, turn):
+        '''
+        Hash the board state.
         ''' 
-        return board_state_to_str(
-            piece_bitboards=self.piece_bitboards,
-            color_bitboards=self.color_bitboards,
-            castling_rights=self.castling_rights,
-            en_passant_target_square=self.en_passant_target_square,
-            white_to_move=self.white_to_move,
-            turn=turn
+        # self.piece_bitboards,
+        # color_bitboards,
+        # castling_rights,
+        # en_passant_target_square,
+        # self.white_to_move,
+        # turn
+
+        # # create an int from all these values
+        # full_binary = 0
+        # for bitboard in self.piece_bitboards:
+        #     # shift the binary number to the left by 128 bits
+        #     full_binary <<= 128
+
+        #     # or the piece bitboards with the full binary number
+        #     full_binary |= self.piece_bitboards[bitboard]
+
+        # for bitboard in self.color_bitboards:
+        #     # shift the binary number to the left by 128 bits
+        #     full_binary <<= 128
+
+        #     # or the color bitboards with the full binary number
+        #     full_binary |= self.color_bitboards[bitboard]
+
+        # # shift the binary number to the left by 4 bits for the castling rights
+        # full_binary <<= 4
+        # full_binary |= self.castling_rights
+
+        # # shift the binary number to the left by 7 bits for the en passant target square
+        # full_binary <<= 7
+        # full_binary |= self.en_passant_target_square
+
+        # # shift the binary number to the left by 1 bit for the white to move
+        # full_binary <<= 1
+        # full_binary |= self.white_to_move
+
+        # # shift the binary number to the left by 1 bit for the turn
+        # full_binary <<= 1
+        # full_binary |= turn
+
+        # return full_binary -------------------------
+
+
+
+        # Convert bitboards to tuples of integers for hashing
+        piece_bitboards_tuple = tuple(self.piece_bitboards.values())
+        color_bitboards_tuple = tuple(self.color_bitboards.values())
+
+        # Combine all attributes into a single tuple
+        board_state = (
+            piece_bitboards_tuple,
+            color_bitboards_tuple,
+            self.castling_rights,
+            self.en_passant_target_square,
+            self.white_to_move,
+            turn
         )
 
+        # Generate a unique hash for the board state
+        return hash(board_state)
+        
     # getters
     def is_piece(self, square):
         return (self.color_bitboards[0b1] | self.color_bitboards[0b0]) & (1 << square) != 0
@@ -718,16 +770,20 @@ class Board:
         Check if the current position is in check.
         Turn is the color of the king to check.
         '''
-        # find the ally king
+        key = self.hash_board(turn)
+        if key in self.is_check_cache:
+            return self.is_check_cache[key]
+
         ally_king = 0b1110 if turn else 0b0110
-        # ally_king_square = self.piece_bitboards[ally_king].bit_length() - 1
 
         enemy_moves = self.generate_moves(not turn)
         for move in enemy_moves:
-            _, _, _, captured_piece, _, _, _, _ = decode_move(move)
+            captured_piece = decode_captured_piece(move)
             if captured_piece == ally_king:
+                self.is_check_cache[key] = True
                 return True
-            
+
+        self.is_check_cache[key] = False
         return False
     
     def generate_legal_moves(self, turn):
