@@ -29,12 +29,12 @@ PIECE_VALUES = {
 MOBILITY_FACTOR = 0.2
 CHECK_SCORE = 0.75
 DOUBLE_PAWNS_DISADVANTAGE = -0.75
-ISOLATED_PAWNS_DISADVANTAGE = -0.75
+ISOLATED_PAWNS_DISADVANTAGE = -0.6 # down from -0.75
 BACKWARD_PAWNS_DISADVANTAGE = -0.5
 PASSED_PAWNS_ADVANTAGE = 1.2
-CENTER_CONTROL_ADVANTAGE = 0.4
+CENTER_CONTROL_ADVANTAGE = 0.3 # | down from 0.4
 # DEFENDING_ALLY_PIECES_ADVANTAGE = 0.5 | my generate move function doesn't create moves that defend pieces TODO: implement this
-ATTACKING_ENEMY_PIECES_ADVANTAGE = 0.5
+ATTACKING_ENEMY_PIECES_ADVANTAGE = 0.35 # | down from 0.5
 KING_SAFETY_ADVANTAGE = 0.5
 DEVELOPMENT_ADVANTAGE = 0.5
 
@@ -295,7 +295,7 @@ class Engine:
                     best_move = move
                 beta = min(beta, best_eval)
 
-        print(f"Best move: {decode_move(best_move)}")
+        print(f"Best move: {decode_move(best_move)} with evaluation: {best_eval}")
         print(f"Time taken: {time.time() - start_time} seconds")
         return best_move, best_eval
 

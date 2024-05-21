@@ -584,7 +584,7 @@ class Board:
 
         # single push
         single_push = square + direction
-        if self.is_empty(single_push): # ValueError: negative shift count | FIX
+        if self.is_empty(single_push) and ((single_push) >> 4) != promotion_rank: # ValueError: negative shift count | FIX
             moves.append(encode_move(square, single_push, piece))
 
             # double push
@@ -592,10 +592,10 @@ class Board:
                 if self.is_empty(square + 2 * direction):
                     moves.append(encode_move(square, square + 2 * direction, piece))
 
-            # promotion
-            elif ((single_push) >> 4) == promotion_rank:
-                for promotion_piece in PROMOTION_PIECES:
-                    moves.append(encode_move(square, single_push, piece, promotion_piece))
+        # promotion (single push)
+        elif ((single_push) >> 4) == promotion_rank:
+            for promotion_piece in PROMOTION_PIECES:
+                moves.append(encode_move(square, single_push, piece, promotion_piece))
 
         # captures
         capture_directions = [15, 17] if piece_color else [-15, -17]
@@ -760,4 +760,4 @@ class Board:
         '''
         Check if the game is over.
         '''
-        return self.is_checkmate(0) or self.is_checkmate(1) or self.is_stalemate(0) or self.is_stalemate(1)
+        return self.is_checkmate(False) or self.is_checkmate(True) or self.is_stalemate(False) or self.is_stalemate(True)
