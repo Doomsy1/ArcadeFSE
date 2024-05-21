@@ -475,6 +475,13 @@ class PlayerVsPlayer:
         x, y = square_to_pixel(start)
         draw_transparent_rect(self.screen, (x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE), PREVIOUS_MOVE_COLOR, PREVIOUS_MOVE_ALPHA)
         
+    def export_move_list(self):
+        '''
+        Export the move list to a json file
+        '''
+        file_name = f'src/chess/debug_data/move_lists/{len(self.move_list)}_ID{self.board.hash_board(self.turn)}.json'
+        with open(file_name, 'w') as file:
+            json.dump(self.move_list, file)
 
     def draw_game(self):
         '''
@@ -526,7 +533,8 @@ class PlayerVsPlayer:
                         self.sfx['move'].play()
                         self.board.undo_move()
                         self.engine.update_board(self.board)
-                        self.move_list.pop()
+                        if len(self.move_list) > 0:
+                            self.move_list.pop()
                         self.turn = not self.turn
                         self.selected_square = 127
                     # if e is pressed, request a move from the engine
@@ -543,6 +551,9 @@ class PlayerVsPlayer:
                             self.engine_suggestion = 0
                             self.engine_suggestion_arrow_start = 127
                             self.engine_suggestion_arrow_end = 127
+                    # if the s key is pressed, export the move list to a json file
+                    if event.key == pygame.K_s:
+                        self.export_move_list()
 
                 
             self.mx, self.my = pygame.mouse.get_pos()

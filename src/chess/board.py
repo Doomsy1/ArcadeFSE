@@ -89,19 +89,15 @@ def encode_move(start, end, start_piece, captured_piece=0b0000, promotion_piece=
     # 28-31: castling           (4 bits)
     # 26: capture               (1 bit)
     # 27: en passant            (1 bit)
-    
-    move = 0
 
-    move |= start
-    move |= end << 7
-    move |= start_piece << 14
-    move |= captured_piece << 18
-    move |= promotion_piece << 22
-    move |= castling << 28
-    move |= capture << 26
-    move |= en_passant << 27
-
-    return move
+    return (start |
+            (end << 7) |
+            (start_piece << 14) |
+            (captured_piece << 18) |
+            (promotion_piece << 22) |
+            (castling << 28) |
+            (capture << 26) |
+            (en_passant << 27))
 
 def decode_move(move):
     '''
@@ -166,6 +162,8 @@ class Board:
         self.generated_moves = {}
         self.is_check_cache = {}
 
+        self.get_piece_lookup_table = [0 for _ in range(128)]
+
         self.load_fen(fen)
 
     def __copy__(self):
@@ -184,6 +182,7 @@ class Board:
         new_board.undo_list = self.undo_list.copy()
         new_board.generated_moves = self.generated_moves.copy()
         new_board.is_check_cache = self.is_check_cache.copy()
+        new_board.get_piece_lookup_table = self.get_piece_lookup_table.copy()
 
         return new_board
 
@@ -253,49 +252,83 @@ class Board:
         
     # getters
     def is_piece(self, square):
-        return (self.color_bitboards[0b1] | self.color_bitboards[0b0]) & (1 << square) != 0
+        if self.color_bitboards[0b1] & (1 << square):
+            return True
+        if self.color_bitboards[0b0] & (1 << square):
+            return True
+        return False
 
     def is_empty(self, square):
-        return (self.color_bitboards[0b1] | self.color_bitboards[0b0]) & (1 << square) == 0
+        if self.color_bitboards[0b1] & (1 << square):
+            return False
+        if self.color_bitboards[0b0] & (1 << square):
+            return False
+        return True
     
     def is_white(self, square):
-        return self.color_bitboards[0b1] & (1 << square) != 0
+        if self.color_bitboards[0b1] & (1 << square):
+            return True
+        return False
     
     def is_white_piece(self, piece):
         return (piece & 0b1000) != 0
 
     def is_pawn(self, square):
-        return (self.piece_bitboards[0b1001] | self.piece_bitboards[0b0001]) & (1 << square) != 0
+        if self.piece_bitboards[0b1001] & (1 << square):
+            return True
+        if self.piece_bitboards[0b0001] & (1 << square):
+            return True
+        return False
 
     def is_knight(self, square):
-        return (self.piece_bitboards[0b1010] | self.piece_bitboards[0b0010]) & (1 << square) != 0
+        if self.piece_bitboards[0b1010] & (1 << square):
+            return True
+        if self.piece_bitboards[0b0010] & (1 << square):
+            return True
+        return False
 
     def is_bishop(self, square):
-        return (self.piece_bitboards[0b1011] | self.piece_bitboards[0b0011]) & (1 << square) != 0
+        if self.piece_bitboards[0b1011] & (1 << square):
+            return True
+        if self.piece_bitboards[0b0011] & (1 << square):
+            return True
+        return False
 
     def is_rook(self, square):
-        return (self.piece_bitboards[0b1100] | self.piece_bitboards[0b0100]) & (1 << square) != 0
+        if self.piece_bitboards[0b1100] & (1 << square):
+            return True
+        if self.piece_bitboards[0b0100] & (1 << square):
+            return True
+        return False
 
     def is_queen(self, square):
-        return (self.piece_bitboards[0b1101] | self.piece_bitboards[0b0101]) & (1 << square) != 0
+        if self.piece_bitboards[0b1101] & (1 << square):
+            return True
+        if self.piece_bitboards[0b0101] & (1 << square):
+            return True
+        return False
 
     def is_king(self, square):
-        return (self.piece_bitboards[0b1110] | self.piece_bitboards[0b0110]) & (1 << square) != 0
+        if self.piece_bitboards[0b1110] & (1 << square):
+            return True
+        if self.piece_bitboards[0b0110] & (1 << square):
+            return True
+        return False
 
     def get_piece(self, square):
-        for piece in self.piece_bitboards:
-            if self.piece_bitboards[piece] & (1 << square) != 0:
-                return piece
+        return self.get_piece_lookup_table[square]
 
 
     # setters
     def set_piece(self, square, piece):
         self.piece_bitboards[piece] |= 1 << square
         self.color_bitboards[piece >> 3] |= 1 << square
+        self.get_piece_lookup_table[square] = piece
 
     def clear_piece(self, square, piece):
         self.piece_bitboards[piece] &= ~(1 << square)
         self.color_bitboards[piece >> 3] &= ~(1 << square)
+        self.get_piece_lookup_table[square] = 0
 
     def move_piece(self, start, end, piece):
         self.clear_piece(start, piece)
@@ -314,6 +347,7 @@ class Board:
             self.piece_bitboards[piece] = 0
         for color in self.color_bitboards:
             self.color_bitboards[color] = 0
+        self.get_piece_lookup_table = [0 for _ in range(128)]
 
         fen_data = fen.split(' ')
         piece_placement = fen_data[0]
@@ -450,6 +484,7 @@ class Board:
         self.undo_list.append((
             self.piece_bitboards.copy(),
             self.color_bitboards.copy(), 
+            self.get_piece_lookup_table.copy(),
             self.castling_rights,
             self.en_passant_target_square, 
             self.halfmove_clock, 
@@ -529,7 +564,7 @@ class Board:
         '''
         # restore the state from the undo list
         if self.undo_list:
-            self.piece_bitboards, self.color_bitboards, self.castling_rights, self.en_passant_target_square, self.halfmove_clock, self.fullmove_number, self.white_to_move = self.undo_list.pop()
+            self.piece_bitboards, self.color_bitboards, self.get_piece_lookup_table, self.castling_rights, self.en_passant_target_square, self.halfmove_clock, self.fullmove_number, self.white_to_move = self.undo_list.pop()
 
     def generate_moves(self, turn):
         '''
@@ -650,7 +685,7 @@ class Board:
                 moves.append(encode_move(square, single_push, piece, promotion_piece))
 
         # captures
-        capture_directions = [15, 17] if piece_color else [-15, -17]
+        capture_directions = [direction - 1, direction + 1]
         for direction in capture_directions:
             capture_square = square + direction
             if self.is_piece(capture_square) and self.is_white(capture_square) != piece_color: # TODO: dont use is_white

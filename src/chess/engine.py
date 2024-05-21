@@ -309,12 +309,12 @@ if __name__ == '__main__':
     import csv
 
     board = Board()
-    board.load_fen('rnbqkbnr/ppppp2p/5p2/6p1/4PP2/8/PPPP2PP/RNBQKBNR w - - 0 1')
+    # board.load_fen('rnbqkbnr/ppppp2p/5p2/6p1/4PP2/8/PPPP2PP/RNBQKBNR w - - 0 1')
     # board.make_move(encode_move(3, 71, 0b1101))
     # board.load_fen('rnbqkbnr/ppppp2p/5p2/6pQ/4PP2/8/PPPP2PP/RNB1KBNR b - - 0 1')
     engine = Engine(board, depth=3)
 
-    engine.find_best_move()
+    # engine.find_best_move()
 
     profiler = cProfile.Profile()
     profiler.enable()

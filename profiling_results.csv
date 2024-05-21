@@ -1,29 +1,60 @@
 filename,line_number,function_name,call_count,recursive_call_count,total_time,cumulative_time
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,815,is_game_over,154,154,0.0005208000000000001,0.23631970000000002
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,267,is_pawn,14905,14905,0.0136819,0.0136819
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,300,move_piece,15665,15665,0.026151,0.07170370000000001
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,803,is_checkmate,307,307,0.00032910000000000003,0.0028443
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,809,is_stalemate,306,306,0.0006732,0.2329546
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,106,decode_move,15666,15666,0.0234852,0.0234852
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,789,generate_legal_moves,461,461,0.0350533,0.36029690000000003
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,768,is_check,13761,13761,0.0221616,0.09168770000000001
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,292,set_piece,15665,15665,0.0199721,0.0199721
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,296,clear_piece,16473,16473,0.027025300000000002,0.027025300000000002
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,190,hash_board,16586,16586,0.0535196,0.0834801
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,526,undo_move,15665,15665,0.024981100000000003,0.0332271
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,271,find_best_move,1,1,0.00019910000000000001,0.4431853
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,214,evaluate_board,2364,2364,0.0044939,0.0162747
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,242,minimax,31,2517,0.0117728,0.44068880000000005
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,440,make_move,15665,15665,0.0944213,0.23962740000000002
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,534,generate_moves,461,461,0.0009902,0.0031634000000000002
-~,0,<built-in method time.time>,2,2,3.9e-06,3.9e-06
-~,0,<method 'values' of 'dict' objects>,33172,33172,0.0173531,0.0173531
-~,0,<method 'copy' of 'dict' objects>,31330,31330,0.0224729,0.0224729
-~,0,<method 'append' of 'list' objects>,28777,28777,0.0148619,0.0148619
-~,0,<method 'pop' of 'list' objects>,15665,15665,0.008246,0.008246
-~,0,<built-in method builtins.abs>,7428,7428,0.0041602,0.0041602
-~,0,<built-in method builtins.hash>,16586,16586,0.012607400000000001,0.012607400000000001
-~,0,<built-in method builtins.max>,4757,4757,0.0031303000000000004,0.0031303000000000004
-~,0,<built-in method builtins.min>,246,246,0.00016,0.00016
-~,0,<built-in method builtins.print>,2,2,0.0007581,0.0007581
-~,0,<method 'disable' of '_lsprof.Profiler' objects>,1,1,3.85e-05,3.85e-05
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,242,minimax,20,2976,0.0081743,3.0037384
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,328,clear_piece,18957,18957,0.0141933,0.0141933
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,850,is_game_over,226,226,0.0003576,1.9385938
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,268,is_white,249507,249507,0.0529934,0.0529934
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,728,generate_knight_moves,24307,24307,0.009031,0.2187298
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,734,generate_bishop_moves,24312,24312,0.0091187,0.1091299
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,740,generate_rook_moves,24312,24312,0.0090521,0.08998750000000001
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,746,generate_queen_moves,12156,12156,0.0050223,0.0986867
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,67,encode_move,281565,281565,0.163186,0.163186
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,254,is_piece,1059464,1059464,0.3220605,0.3220605
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,261,is_empty,540198,540198,0.1656203,0.1656203
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,276,is_pawn,234355,234355,0.07432910000000001,0.07432910000000001
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,283,is_knight,97243,97243,0.0294518,0.0294518
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,290,is_bishop,72936,72936,0.0214284,0.0214284
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,297,is_rook,48624,48624,0.0137242,0.0137242
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,304,is_queen,24312,24312,0.0074752,0.0074752
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,311,is_king,12156,12156,0.0033368,0.0033368
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,333,move_piece,18548,18548,0.0116938,0.035495200000000005
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,838,is_checkmate,5288,5288,0.0022369,0.5406045
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,844,is_stalemate,452,452,0.00047500000000000005,1.8935338000000002
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,149,evaluate_check,2418,2418,0.0018894,0.014579900000000002
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,102,decode_move,18549,18549,0.011139900000000001,0.011139900000000001
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,323,set_piece,18548,18548,0.0099278,0.0099278
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,134,evaluate_center_control,2418,2418,0.003565,0.0073172
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,561,undo_move,18548,18548,0.0158953,0.0200138
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,824,generate_legal_moves,685,685,0.016877700000000002,1.9843905000000002
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,200,evaluate_development,2418,2418,0.021408200000000002,0.0526403
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,803,is_check,26148,26148,0.0840934,2.3564726
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,189,hash_board,41738,41738,0.050763300000000004,0.0775567
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,81,evaluate_piece_values,2418,2418,0.0146449,0.030626100000000003
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,123,decode_captured_piece,281180,281180,0.039121500000000003,0.039121500000000003
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,318,get_piece,391553,391553,0.050506100000000005,0.050506100000000005
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,273,is_white_piece,595393,595393,0.0823782,0.0823782
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,214,evaluate_board,2750,2750,0.011213200000000001,0.9740926000000001
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,110,evaluate_isolated_pawns,2418,2418,0.026171700000000003,0.0399626
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,662,generate_pawn_moves,97216,97216,0.24965440000000003,0.5285589
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,474,make_move,18548,18548,0.053357400000000006,0.1310608
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,569,generate_moves,12840,12840,0.5504364,2.1855686000000003
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,600,generate_single_moves,36463,36463,0.1745816,0.2841998
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,627,generate_sliding_moves,60780,60780,0.1472765,0.274611
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py,752,generate_king_moves,12156,12156,0.016353700000000002,0.09857800000000001
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,182,evaluate_piece_square_tables,2418,2418,0.2798607,0.28134780000000004
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,271,find_best_move,1,1,0.00010700000000000001,3.0081939
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\engine.py,96,evaluate_double_pawns,2418,2418,0.018643100000000003,0.0347799
+~,0,<built-in method time.time>,2,2,3.5000000000000004e-06,3.5000000000000004e-06
+~,0,<method 'items' of 'dict' objects>,9672,9672,0.0020298,0.0020298
+~,0,<method 'values' of 'dict' objects>,83476,83476,0.0152946,0.0152946
+~,0,<method 'copy' of 'dict' objects>,37096,37096,0.0114596,0.0114596
+~,0,<method 'copy' of 'list' objects>,18548,18548,0.0061747,0.0061747
+~,0,<method 'append' of 'list' objects>,315556,315556,0.054667900000000005,0.054667900000000005
+~,0,<method 'pop' of 'list' objects>,18548,18548,0.004118500000000001,0.004118500000000001
+~,0,<method 'count' of 'str' objects>,106392,106392,0.0263835,0.0263835
+~,0,<built-in method builtins.abs>,12159,12159,0.0025208,0.0025208
+~,0,<built-in method builtins.bin>,106392,106392,0.0189827,0.0189827
+~,0,<built-in method builtins.hash>,41738,41738,0.0114988,0.0114988
+~,0,<built-in method builtins.max>,5520,5520,0.0018712000000000002,0.0018712000000000002
+~,0,<built-in method builtins.min>,412,412,0.00011420000000000001,0.00011420000000000001
+~,0,<built-in method builtins.print>,2,2,0.00024700000000000004,0.00024700000000000004
+~,0,<method 'disable' of '_lsprof.Profiler' objects>,1,1,3.1100000000000004e-05,3.1100000000000004e-05
