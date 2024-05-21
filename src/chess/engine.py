@@ -36,15 +36,21 @@ DEVELOPMENT_ADVANTAGE = 0.5
 
 
 LEGAL_SQUARES = [i for i in range(127) if not i & 0x88]
+CENTRAL_LEGAL_SQUARES = [i for i in LEGAL_SQUARES if 3 <= i // 16 <= 6]
+CENTER_SQUARES = [51, 52, 67, 68]
 
 POSITIVE_INFINITY = float('inf')
 NEGATIVE_INFINITY = float('-inf')
+
+FILE_MASKS = [0x0101010101010101 << i for i in range(8)]
 
 class Engine:
     def __init__(self, board: Board, depth: int = 2, time_limit_ms: int = 1000):
         self.board = board
         self.depth = depth
         self.time_limit_ms = time_limit_ms
+
+        self.evaluated_boards = {}
 
     def evaluate_piece_values(self):
         piece_value_evaluation = 0
@@ -62,10 +68,36 @@ class Engine:
         return mobility_evaluation
     
     def evaluate_double_pawns(self): # pawns on the same file
-        pass
+        '''If the player has double pawns, the position is worse'''
+        evaluation = 0
+        white_pawns = self.board.piece_bitboards[0b1001]
+        black_pawns = self.board.piece_bitboards[0b0001]
+
+        for i in range(8):
+            if bin(white_pawns & FILE_MASKS[i]).count("1") > 1:
+                evaluation += DOUBLE_PAWNS_DISADVANTAGE
+            if bin(black_pawns & FILE_MASKS[i]).count("1") > 1:
+                evaluation -= DOUBLE_PAWNS_DISADVANTAGE
+
+        return evaluation
 
     def evaluate_isolated_pawns(self): # pawns with no pawns on adjacent files
-        pass
+        '''If the player has isolated pawns, the position is worse'''
+        evaluation = 0
+        white_pawns = self.board.piece_bitboards[0b1001]
+        black_pawns = self.board.piece_bitboards[0b0001]
+
+        for i in range(8):
+            left_mask = FILE_MASKS[i-1] if i > 0 else 0
+            right_mask = FILE_MASKS[i+1] if i < 7 else 0
+
+            if bin(white_pawns & FILE_MASKS[i] & (left_mask | right_mask)).count("1") == 0:
+                evaluation += ISOLATED_PAWNS_DISADVANTAGE
+
+            if bin(black_pawns & FILE_MASKS[i] & (left_mask | right_mask)).count("1") == 0:
+                evaluation -= ISOLATED_PAWNS_DISADVANTAGE
+
+        return evaluation
 
     def evaluate_backward_pawns(self): # pawns that are behind all pawns on adjacent files
         pass
@@ -74,13 +106,46 @@ class Engine:
         pass
 
     def evaluate_center_control(self): # control of the center of the board (pieces on the center squares + pieces that attack the center squares)
-        pass
+        '''If the player controls the center, the position is better'''
+        white_center_control = 0
+        black_center_control = 0
+
+        for square in CENTER_SQUARES:
+            if self.board.is_piece(square):
+                if self.board.is_white(square):
+                    white_center_control += 1
+                else:
+                    black_center_control += 1
+
+
+        return (white_center_control - black_center_control) * CENTER_CONTROL_ADVANTAGE
 
     def evaluate_check(self): # checking the opponent
-        pass
+        '''If the opponent is in check, the position is better'''
+        if self.board.is_check(True):
+            return CHECK_SCORE
+        if self.board.is_check(False):
+            return -CHECK_SCORE
+        return 0
 
     def evaluate_attack(self): # attacking the opponent's pieces
-        pass
+        '''If the player is attacking the opponent's pieces, the position is better'''
+        white_moves = self.board.generate_legal_moves(True)
+        black_moves = self.board.generate_legal_moves(False)
+
+        white_attacks = 0
+        for move in white_moves:
+            _, _, _, attacked_piece, _, _, _, _ = decode_move(move)
+            if attacked_piece:
+                white_attacks += 1
+
+        black_attacks = 0
+        for move in black_moves:
+            _, _, _, attacked_piece, _, _, _, _ = decode_move(move)
+            if attacked_piece:
+                black_attacks += 1
+
+        return (white_attacks - black_attacks) * ATTACKING_ENEMY_PIECES_ADVANTAGE
 
     def evaluate_defense(self): # defending own pieces
         pass #
@@ -92,17 +157,43 @@ class Engine:
         pass
 
     def evaluate_development(self): # how developed the pieces are (pieces on their starting squares are not developed) (more important in the opening)
-        pass
+        '''If the player has developed more pieces, the position is better''' # TODO: make this more accurate by checking if the pieces are on their starting squares and making it less important in the endgame
+        white_developed = 0
+        black_developed = 0
+
+        for square in CENTRAL_LEGAL_SQUARES:
+            if self.board.is_piece(square) and not self.board.is_pawn(square):
+                if self.board.is_white(square):
+                    white_developed += 1
+                else:
+                    black_developed += 1
+
+        return (white_developed - black_developed) * DEVELOPMENT_ADVANTAGE
     
     def evaluate_board(self):
+        key = self.board.hash_board(self.board.white_to_move)
+        if key in self.evaluated_boards:
+            return self.evaluated_boards[key]
+
         if self.board.is_checkmate(True):
+            self.evaluated_boards[key] = NEGATIVE_INFINITY
             return NEGATIVE_INFINITY
+        
         if self.board.is_checkmate(False):
+            self.evaluated_boards[key] = POSITIVE_INFINITY
             return POSITIVE_INFINITY
         
         evaluation = 0
         evaluation += self.evaluate_piece_values()
-        evaluation += self.evaluate_mobility()
+        evaluation += self.evaluate_double_pawns()
+        evaluation += self.evaluate_isolated_pawns()
+        # evaluation += self.evaluate_mobility() | VERY SLOW
+        evaluation += self.evaluate_check()
+        evaluation += self.evaluate_center_control()
+        # evaluation += self.evaluate_attack() | VERY SLOW
+        evaluation += self.evaluate_development()
+
+        self.evaluated_boards[key] = evaluation
         return evaluation 
     
 

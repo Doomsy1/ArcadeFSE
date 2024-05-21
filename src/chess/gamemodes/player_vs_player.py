@@ -6,7 +6,7 @@ from utils import *
 from src.chess.engine import Engine
 
 
-
+FPS = 9999
 
 
 class PlayerVsPlayer:
@@ -31,6 +31,8 @@ class PlayerVsPlayer:
         self.turn = True # True for white, False for black
 
         self.board = Board()
+
+        self.clock = pygame.time.Clock()
 
         # play the game start sound effect
         self.sfx['game_start'].play()
@@ -432,6 +434,14 @@ class PlayerVsPlayer:
         '''
         Draw the annotations of the game (circles, arrows)
         '''
+        # draw the circles
+        for square in self.circles:
+            self.draw_circle(square, CIRCLE_COLOR, CIRCLE_ALPHA)
+
+        # draw the arrows
+        for start, end in self.arrows:
+            self.draw_arrow(start, end, ARROW_COLOR, ARROW_ALPHA)  
+
         # draw the preview annotation
         if self.preview_annotation_start != 127:
             if self.preview_annotation_start == self.preview_annotation_end:
@@ -439,12 +449,7 @@ class PlayerVsPlayer:
             else:
                 self.draw_arrow(self.preview_annotation_start, self.preview_annotation_end, ARROW_COLOR, ARROW_ALPHA)
 
-        for square in self.circles:
-            self.draw_circle(square, CIRCLE_COLOR, CIRCLE_ALPHA)
-
-        for start, end in self.arrows:
-            self.draw_arrow(start, end, ARROW_COLOR, ARROW_ALPHA)  
-
+        # draw the engine suggestion arrow
         if self.engine_suggestion_arrow_start != 127:
             self.draw_arrow(self.engine_suggestion_arrow_start, self.engine_suggestion_arrow_end, ENGINE_SUGGESTION_COLOR, ENGINE_SUGGESTION_ALPHA)
 
@@ -520,6 +525,10 @@ class PlayerVsPlayer:
             if self.mb[0]:
                 self.draw_selected_piece()
 
+            # set the title of the window to the fps
+            pygame.display.set_caption(f'Chess | FPS: {int(self.clock.get_fps())}')
+            self.clock.tick(FPS)
+            
             pygame.display.flip()
 
 
