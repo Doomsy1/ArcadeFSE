@@ -1,5 +1,9 @@
 from src.chess.board import Board, decode_move
+import src.chess.PSQT as PSQT
+
 import time
+
+# from src.chess.PSQT import *
 # from board import Board, decode_move, encode_move
 
 # a positive evaluation of a position means white is winning
@@ -43,6 +47,25 @@ POSITIVE_INFINITY = float('inf')
 NEGATIVE_INFINITY = float('-inf')
 
 FILE_MASKS = [0x0101010101010101 << i for i in range(8)]
+
+piece_map = {
+    'white': {
+        'pawn': (0b1001, PSQT.white_pawn),
+        'knight': (0b1010, PSQT.white_knight),
+        'bishop': (0b1011, PSQT.white_bishop),
+        'rook': (0b1100, PSQT.white_rook),
+        'queen': (0b1101, PSQT.white_queen),
+        'king': (0b1110, PSQT.white_king),
+    },
+    'black': {
+        'pawn': (0b0001, PSQT.black_pawn),
+        'knight': (0b0010, PSQT.black_knight),
+        'bishop': (0b0011, PSQT.black_bishop),
+        'rook': (0b0100, PSQT.black_rook),
+        'queen': (0b0101, PSQT.black_queen),
+        'king': (0b0110, PSQT.black_king),
+    }
+}
 
 class Engine:
     def __init__(self, board: Board, depth: int = 2, time_limit_ms: int = 1000):
@@ -153,8 +176,23 @@ class Engine:
     def evaluate_king_safety(self): # how safe the king is
         pass #
 
-    def evaluate_piece_square_tables(self): # piece square tables for each piece
-        pass
+    def evaluate_piece_square_tables(self):
+        '''If the player's pieces are on good squares, the position is better'''
+        evaluation = 0
+
+        for color, pieces in piece_map.items():
+            for piece, (bitboard_index, psqt) in pieces.items():
+                bitboard = self.board.piece_bitboards[bitboard_index]
+                for file in range(8):
+                    for rank in range(8):
+                        if bitboard & (1 << (file + rank * 16)):
+                            if color == 'white':
+                                evaluation += psqt[7 - rank][file]
+                            else:
+                                evaluation -= psqt[7 - rank][file]
+
+        return evaluation / 100 # divide by 100 to make the evaluation less significant
+
 
     def evaluate_development(self): # how developed the pieces are (pieces on their starting squares are not developed) (more important in the opening)
         '''If the player has developed more pieces, the position is better''' # TODO: make this more accurate by checking if the pieces are on their starting squares and making it less important in the endgame
@@ -191,6 +229,7 @@ class Engine:
         evaluation += self.evaluate_check()
         evaluation += self.evaluate_center_control()
         # evaluation += self.evaluate_attack() | VERY SLOW
+        evaluation += self.evaluate_piece_square_tables()
         evaluation += self.evaluate_development()
 
         self.evaluated_boards[key] = evaluation

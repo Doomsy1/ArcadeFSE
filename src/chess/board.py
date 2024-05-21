@@ -584,7 +584,7 @@ class Board:
 
         # single push
         single_push = square + direction
-        if self.is_empty(single_push):
+        if self.is_empty(single_push): # ValueError: negative shift count | FIX
             moves.append(encode_move(square, single_push, piece))
 
             # double push
