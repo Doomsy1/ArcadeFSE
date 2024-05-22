@@ -82,6 +82,7 @@ class Engine:
         self.board.white_to_move = board.white_to_move
 
         self.board.undo_list = board.undo_list.copy()
+        self.board.get_piece_lookup_table = board.get_piece_lookup_table.copy()
 
     def evaluate_piece_values(self):
         piece_value_evaluation = 0
