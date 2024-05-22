@@ -1,10 +1,10 @@
-# from src.chess.board import Board
-# import src.chess.PSQT as PSQT
+from src.chess.board import Board
+import src.chess.PSQT as PSQT
 
 import time
 
-import PSQT
-from board import Board
+# import PSQT
+# from board import Board
 
 # a positive evaluation of a position means white is winning
 # a negative evaluation of a position means black is winning
