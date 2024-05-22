@@ -1,10 +1,10 @@
-from src.chess.board import Board, decode_move
-import src.chess.PSQT as PSQT
+# from src.chess.board import Board
+# import src.chess.PSQT as PSQT
 
 import time
 
-# import PSQT
-# from board import Board, decode_move, encode_move
+import PSQT
+from board import Board
 
 # a positive evaluation of a position means white is winning
 # a negative evaluation of a position means black is winning
@@ -49,22 +49,19 @@ NEGATIVE_INFINITY = float('-inf')
 FILE_MASKS = [0x0101010101010101 << i for i in range(8)]
 
 piece_map = {
-    'white': {
-        'pawn': (0b1001, PSQT.white_pawn),
-        'knight': (0b1010, PSQT.white_knight),
-        'bishop': (0b1011, PSQT.white_bishop),
-        'rook': (0b1100, PSQT.white_rook),
-        'queen': (0b1101, PSQT.white_queen),
-        'king': (0b1110, PSQT.white_king),
-    },
-    'black': {
-        'pawn': (0b0001, PSQT.black_pawn),
-        'knight': (0b0010, PSQT.black_knight),
-        'bishop': (0b0011, PSQT.black_bishop),
-        'rook': (0b0100, PSQT.black_rook),
-        'queen': (0b0101, PSQT.black_queen),
-        'king': (0b0110, PSQT.black_king),
-    }
+    0b1001: PSQT.white_pawn,
+    0b1010: PSQT.white_knight,
+    0b1011: PSQT.white_bishop,
+    0b1100: PSQT.white_rook,
+    0b1101: PSQT.white_queen,
+    0b1110: PSQT.white_king,
+
+    0b0001: PSQT.black_pawn,
+    0b0010: PSQT.black_knight,
+    0b0011: PSQT.black_bishop,
+    0b0100: PSQT.black_rook,
+    0b0101: PSQT.black_queen,
+    0b0110: PSQT.black_king
 }
 
 class Engine:
@@ -76,7 +73,15 @@ class Engine:
         self.evaluated_boards = {}
 
     def update_board(self, board: Board):
-        self.board = board.__copy__()
+        self.board.piece_bitboards = board.piece_bitboards.copy()
+        self.board.color_bitboards = board.color_bitboards.copy()
+        self.board.castling_rights = board.castling_rights
+        self.board.en_passant_target_square = board.en_passant_target_square
+        self.board.halfmove_clock = board.halfmove_clock
+        self.board.fullmove_number = board.fullmove_number
+        self.board.white_to_move = board.white_to_move
+
+        self.board.undo_list = board.undo_list.copy()
 
     def evaluate_piece_values(self):
         piece_value_evaluation = 0
@@ -161,13 +166,13 @@ class Engine:
 
         white_attacks = 0
         for move in white_moves:
-            _, _, _, attacked_piece, _, _, _, _ = decode_move(move)
+            attacked_piece = move[3]
             if attacked_piece:
                 white_attacks += 1
 
         black_attacks = 0
         for move in black_moves:
-            _, _, _, attacked_piece, _, _, _, _ = decode_move(move)
+            attacked_piece = move[3]
             if attacked_piece:
                 black_attacks += 1
 
@@ -183,16 +188,13 @@ class Engine:
         '''If the player's pieces are on good squares, the position is better'''
         evaluation = 0
 
-        for color, pieces in piece_map.items():
-            for piece, (bitboard_index, psqt) in pieces.items():
-                bitboard = self.board.piece_bitboards[bitboard_index]
-                for file in range(8):
-                    for rank in range(8):
-                        if bitboard & (1 << (file + rank * 16)):
-                            if color == 'white':
-                                evaluation += psqt[7 - rank][file]
-                            else:
-                                evaluation -= psqt[7 - rank][file]
+        for square, piece in enumerate(self.board.get_piece_lookup_table):
+            if piece == 0:
+                continue
+            if self.board.is_white_piece(piece):
+                evaluation += piece_map[piece][square // 16][square % 16]
+            else:
+                evaluation -= piece_map[piece][square // 16][square % 16]
 
         return evaluation / 100 # divide by 100 to make the evaluation less significant
 
@@ -228,10 +230,10 @@ class Engine:
         evaluation += self.evaluate_piece_values()
         evaluation += self.evaluate_double_pawns()
         evaluation += self.evaluate_isolated_pawns()
-        # evaluation += self.evaluate_mobility() | VERY SLOW
+        # evaluation += self.evaluate_mobility() # | VERY SLOW
         evaluation += self.evaluate_check()
         evaluation += self.evaluate_center_control()
-        # evaluation += self.evaluate_attack() | VERY SLOW
+        # evaluation += self.evaluate_attack() # | VERY SLOW
         evaluation += self.evaluate_piece_square_tables()
         evaluation += self.evaluate_development()
 
@@ -298,7 +300,7 @@ class Engine:
                     best_move = move
                 beta = min(beta, best_eval)
 
-        print(f"Best move: {decode_move(best_move)} with evaluation: {best_eval}")
+        print(f"Best move: {best_move} with evaluation: {best_eval}")
         print(f"Time taken: {time.time() - start_time} seconds")
         return best_move, best_eval
 

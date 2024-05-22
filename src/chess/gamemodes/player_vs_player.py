@@ -1,7 +1,9 @@
 import json
+from tkinter import simpledialog
+import tkinter as tk
 import pygame
 from constants import *
-from src.chess.board import Board, decode_move, LEGAL_SQUARES, encode_move
+from src.chess.board import Board, LEGAL_SQUARES, encode_move
 from utils import *
 from src.chess.engine import Engine
 
@@ -12,6 +14,10 @@ FPS = 9999
 class PlayerVsPlayer:
     def __init__(self, screen):
         self.screen = screen
+
+        self.root = tk.Tk()
+        self.root.withdraw()
+
         self.selected_square = 127
 
         self.board_image = self.create_board_image()
@@ -163,7 +169,7 @@ class PlayerVsPlayer:
         moves = self.board.generate_legal_moves(self.turn)
         piece_moves = []
         for move in moves:
-            start, _, _, _, _, _, _, _ = decode_move(move)
+            start = move[0]
             if start == square:
                 piece_moves.append(move)
 
@@ -176,7 +182,8 @@ class PlayerVsPlayer:
         if self.selected_square != 127:
             moves = self.get_square_legal_moves(self.selected_square)
             for move in moves:
-                _, end, _, _, _, _, capture, _ = decode_move(move)
+                end = move[1]
+                capture = move[6]
                 if capture:
                     color = CAPTURE_SQUARE_COLOR
                     alpha = CAPTURE_SQUARE_ALPHA
@@ -333,7 +340,7 @@ class PlayerVsPlayer:
             if self.selected_square != 127:
                 moves = self.get_square_legal_moves(self.selected_square)
                 for move in moves:
-                    start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant = decode_move(move)
+                    start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant = move
                     if end == square:
                         if promotion_piece == 0b0000:
                             self.board.make_move(move)
@@ -406,7 +413,8 @@ class PlayerVsPlayer:
             self.preview_annotation_end = 127
 
         if self.engine_suggestion != 0:
-            start, end, _, _, _, _, _, _ = decode_move(self.engine_suggestion)
+            start = self.engine_suggestion[0]
+            end = self.engine_suggestion[1]
             self.engine_suggestion_arrow_start = start
             self.engine_suggestion_arrow_end = end
             
@@ -466,7 +474,8 @@ class PlayerVsPlayer:
         if len(self.move_list) == 0:
             return
         move = self.move_list[-1]
-        start, end, _, _, _, _, _, _ = decode_move(move)
+        start = move[0]
+        end = move[1]
         # draw a transparent square on the end square
         x, y = square_to_pixel(end)
         draw_transparent_rect(self.screen, (x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE), PREVIOUS_MOVE_COLOR, PREVIOUS_MOVE_ALPHA)
@@ -498,6 +507,26 @@ class PlayerVsPlayer:
         self.draw_pieces()
 
         self.draw_annotations()
+
+    def edit_fen(self):
+        '''
+        Edit the fen string of the board
+        '''
+        current_fen = self.board.create_fen()
+        # make a popup window that gets the user to set the FEN of the board
+        fen = simpledialog.askstring("Input", "Please enter the FEN:", parent=self.root, initialvalue=current_fen)
+
+        if fen is None:
+            return
+        
+        try:
+            # the FEN is then set to the board
+            self.board.load_fen(fen)
+            self.engine.update_board(self.board)
+        except:
+            pass
+
+
 
     def main_loop(self):
         running = True
@@ -554,6 +583,9 @@ class PlayerVsPlayer:
                     # if the s key is pressed, export the move list to a json file
                     if event.key == pygame.K_s:
                         self.export_move_list()
+                    # if the f key is pressed, create a popup to edit the fen string
+                    if event.key == pygame.K_f:
+                        self.edit_fen()
 
                 
             self.mx, self.my = pygame.mouse.get_pos()
