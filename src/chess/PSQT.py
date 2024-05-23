@@ -65,9 +65,9 @@ white_king = [
 ]
 
 # Reverse the tables for black
-black_pawn = [row[::-1] for row in white_pawn[::-1]]
-black_knight = [row[::-1] for row in white_knight[::-1]]
-black_bishop = [row[::-1] for row in white_bishop[::-1]]
-black_rook = [row[::-1] for row in white_rook[::-1]]
-black_queen = [row[::-1] for row in white_queen[::-1]]
-black_king = [row[::-1] for row in white_king[::-1]]
+black_pawn = [row[::-1] for row in white_pawn]
+black_knight = [row[::-1] for row in white_knight]
+black_bishop = [row[::-1] for row in white_bishop]
+black_rook = [row[::-1] for row in white_rook]
+black_queen = [row[::-1] for row in white_queen]
+black_king = [row[::-1] for row in white_king]

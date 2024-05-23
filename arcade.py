@@ -27,7 +27,7 @@ class Arcade:
 
 # Run the game
 if __name__ == "__main__":
-
+    
     menu = "main menu"
 
     arcade = Arcade(menu)

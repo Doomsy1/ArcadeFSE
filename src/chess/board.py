@@ -129,6 +129,7 @@ class Board:
         self.undo_list = []
 
         self.generated_moves = {}
+        self.generated_defensive_moves = {}
         self.is_check_cache = {}
 
         self.get_piece_lookup_table = [0 for _ in range(128)]
@@ -150,6 +151,7 @@ class Board:
 
         new_board.undo_list = self.undo_list.copy()
         new_board.generated_moves = self.generated_moves.copy()
+        new_board.generated_defensive_moves = self.generated_defensive_moves.copy()
         new_board.is_check_cache = self.is_check_cache.copy()
         new_board.get_piece_lookup_table = self.get_piece_lookup_table.copy()
 
@@ -204,14 +206,13 @@ class Board:
 
 
 
-        # Convert bitboards to tuples of integers for hashing
-        piece_bitboards_tuple = tuple(self.piece_bitboards.values())
-        color_bitboards_tuple = tuple(self.color_bitboards.values())
+        # convert the lookup table to a tuple of ints
+        lookup_table = tuple(self.get_piece_lookup_table)
+        
 
         # Combine all attributes into a single tuple
         board_state = (
-            piece_bitboards_tuple,
-            color_bitboards_tuple,
+            lookup_table,
             self.castling_rights,
             self.en_passant_target_square,
             self.white_to_move,
@@ -535,6 +536,68 @@ class Board:
         if self.undo_list:
             self.piece_bitboards, self.color_bitboards, self.get_piece_lookup_table, self.castling_rights, self.en_passant_target_square, self.halfmove_clock, self.fullmove_number, self.white_to_move = self.undo_list.pop()
 
+    def generate_defensive_moves(self, turn):
+        '''
+        Generate moves that are defending ally pieces
+        '''
+        key = self.hash_board(turn)
+        if key in self.generated_defensive_moves:
+            return self.generated_defensive_moves[key]
+        
+        moves = []
+
+        for square, piece in enumerate(self.get_piece_lookup_table):
+            if not piece:
+                continue
+
+            if self.is_white_piece(piece) != turn:
+                continue
+
+            match piece & 0b0111:
+                case 0b001:
+                    moves += self.generate_defensive_pawn_moves(square, piece)
+                case 0b010:
+                    pass
+
+    def generate_defensive_single_moves(self, square, piece, directions):
+        pass
+
+    def generate_defensive_sliding_moves(self, square, piece, directions):
+        pass
+
+    def generate_defensive_pawn_moves(self, square, piece):
+        pass
+
+    def generate_defensive_knight_moves(self, square, piece):
+        return self.generate_defensive_single_moves(square, piece, KNIGHT_DIRECTIONS)
+
+    def generate_defensive_bishop_moves(self, square, piece):
+        return self.generate_defensive_sliding_moves(square, piece, BISHOP_DIRECTIONS)
+
+    def generate_defensive_rook_moves(self, square, piece):
+        return self.generate_defensive_sliding_moves(square, piece, ROOK_DIRECTIONS)
+
+    def generate_defensive_queen_moves(self, square, piece):
+        return self.generate_defensive_sliding_moves(square, piece, QUEEN_DIRECTIONS)
+
+    def generate_defensive_king_moves(self, square, piece):
+        moves = []
+        moves += self.generate_defensive_single_moves(square, piece, KING_DIRECTIONS)
+
+        return moves
+
+
+
+
+
+
+
+
+
+
+
+
+
     def generate_moves(self, turn):
         '''
         Generate all moves for the current position. Does not check for legality.
@@ -545,15 +608,13 @@ class Board:
 
         moves = []
         for square, piece in enumerate(self.get_piece_lookup_table):
-            if piece == 0:
+            if not piece:
                 continue
 
-            piece_color = self.is_white_piece(piece)
-            if piece_color != turn:
+            if self.is_white_piece(piece) != turn:
                 continue
 
-            piece_type = piece & 0b0111
-            match piece_type:
+            match piece % 8:
                 case 0b001: # pawn
                     moves += self.generate_pawn_moves(square, piece)
                 case 0b010: # knight
@@ -566,7 +627,6 @@ class Board:
                     moves += self.generate_queen_moves(square, piece)
                 case 0b110: # king
                     moves += self.generate_king_moves(square, piece)
-
 
         self.generated_moves[key] = moves
         return moves

@@ -197,7 +197,7 @@ class Engine:
             else:
                 evaluation -= piece_map[piece][square // 16][square % 16]
 
-        return evaluation / 100 # divide by 100 to make the evaluation less significant
+        return evaluation / 70 # divide by 70 to make the evaluation less significant
 
 
     def evaluate_development(self): # how developed the pieces are (pieces on their starting squares are not developed) (more important in the opening)
@@ -315,7 +315,7 @@ if __name__ == '__main__':
     # board.load_fen('rnbqkbnr/ppppp2p/5p2/6p1/4PP2/8/PPPP2PP/RNBQKBNR w - - 0 1')
     # board.make_move(encode_move(3, 71, 0b1101))
     # board.load_fen('rnbqkbnr/ppppp2p/5p2/6pQ/4PP2/8/PPPP2PP/RNB1KBNR b - - 0 1')
-    engine = Engine(board, depth=3)
+    engine = Engine(board, depth=4)
 
     # engine.find_best_move()
 

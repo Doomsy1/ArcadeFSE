@@ -288,7 +288,7 @@ class PlayerVsPlayer:
     def get_engine_suggestion(self):
         # write "Thinking..." to the board
         thinking_rect = pygame.Rect(0, 0, 800, 800)
-        thinking_color = (128, 128, 128)
+        thinking_color = (128, 196, 128)
         write_centered_text(self.screen, "Thinking...", thinking_rect, thinking_color)
 
         pygame.display.flip()
@@ -526,7 +526,66 @@ class PlayerVsPlayer:
         except:
             pass
 
+    def handle_events(self):
+        self.left_mouse_down = False
+        self.left_mouse_up = False
+        self.right_mouse_down = False
+        self.right_mouse_up = False
+    
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return 'chess main menu'
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return 'chess main menu'
+                
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1: # left click
+                    self.lmx, self.lmy = pygame.mouse.get_pos()
+                    self.left_mouse_down = True
+                if event.button == 3: # right click
+                    self.rmx, self.rmy = pygame.mouse.get_pos()
+                    self.right_mouse_down = True
 
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1: # left up
+                    self.left_mouse_up = True
+                if event.button == 3: #right up
+                    self.right_mouse_up = True
+
+            if event.type == pygame.KEYDOWN:
+                # if u is pressed, undo the last move and play the move sound effect
+                if event.key == pygame.K_u:
+                    self.sfx['move'].play()
+                    self.board.undo_move()
+                    self.engine.update_board(self.board)
+                    if len(self.move_list) > 0:
+                        self.move_list.pop()
+                    self.turn = not self.turn
+                    self.selected_square = 127
+
+                # if e is pressed, request a move from the engine
+                if event.key == pygame.K_e:
+                    self.get_engine_suggestion()
+
+                # if the m key is pressed, make a move from the engine
+                if event.key == pygame.K_m:
+                    if self.engine_suggestion != 0:
+                        self.board.make_move(self.engine_suggestion)
+                        self.engine.update_board(self.board)
+                        self.move_list.append(self.engine_suggestion)
+                        self.sfx['move'].play()
+                        self.turn = not self.turn
+                        self.engine_suggestion = 0
+                        self.engine_suggestion_arrow_start = 127
+                        self.engine_suggestion_arrow_end = 127
+                # if the s key is pressed, export the move list to a json file
+                if event.key == pygame.K_s:
+                    self.export_move_list()
+                # if the f key is pressed, create a popup to edit the fen string
+                if event.key == pygame.K_f:
+                    self.edit_fen()
+        return False
 
     def main_loop(self):
         running = True
@@ -534,59 +593,11 @@ class PlayerVsPlayer:
         self.lmx, self.lmy = pygame.mouse.get_pos()
         self.rmx, self.rmy = pygame.mouse.get_pos()
         while running:
-            self.left_mouse_down = False
-            self.left_mouse_up = False
-            self.right_mouse_down = False
-            self.right_mouse_up = False
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return 'chess main menu'
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        return 'chess main menu'
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        self.lmx, self.lmy = pygame.mouse.get_pos()
-                        self.left_mouse_down = True
-                    if event.button == 3:
-                        self.rmx, self.rmy = pygame.mouse.get_pos()
-                        self.right_mouse_down = True
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1:
-                        self.left_mouse_up = True
-                    if event.button == 3:
-                        self.right_mouse_up = True
-                if event.type == pygame.KEYDOWN:
-                    # if u is pressed, undo the last move and play the move sound effect
-                    if event.key == pygame.K_u:
-                        self.sfx['move'].play()
-                        self.board.undo_move()
-                        self.engine.update_board(self.board)
-                        if len(self.move_list) > 0:
-                            self.move_list.pop()
-                        self.turn = not self.turn
-                        self.selected_square = 127
-                    # if e is pressed, request a move from the engine
-                    if event.key == pygame.K_e:
-                        self.get_engine_suggestion()
-                    # if the m key is pressed, make a move from the engine
-                    if event.key == pygame.K_m:
-                        if self.engine_suggestion != 0:
-                            self.board.make_move(self.engine_suggestion)
-                            self.engine.update_board(self.board)
-                            self.move_list.append(self.engine_suggestion)
-                            self.sfx['move'].play()
-                            self.turn = not self.turn
-                            self.engine_suggestion = 0
-                            self.engine_suggestion_arrow_start = 127
-                            self.engine_suggestion_arrow_end = 127
-                    # if the s key is pressed, export the move list to a json file
-                    if event.key == pygame.K_s:
-                        self.export_move_list()
-                    # if the f key is pressed, create a popup to edit the fen string
-                    if event.key == pygame.K_f:
-                        self.edit_fen()
-
+            
+           
+            menu_change = self.handle_events()
+            if menu_change:
+                return menu_change
                 
             self.mx, self.my = pygame.mouse.get_pos()
             self.mb = pygame.mouse.get_pressed()
