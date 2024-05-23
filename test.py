@@ -1,33 +1,35 @@
-import numpy as np
 import timeit
 
-a = 10
-b = 5
-# Bit operations in Python
-def python_bit_operations():
-    result = a & b  # Bitwise AND
-    result = a | b  # Bitwise OR
-    result = a ^ b  # Bitwise XOR
-    result = ~a     # Bitwise NOT
-    result = a << 2 # Bitwise left shift
-    result = a >> 2 # Bitwise right shift
 
-# Bit operations in NumPy
-c = np.array([10])
-d = np.array([5])
-def numpy_bit_operations():
-    result = np.bitwise_and(c, d)  # Bitwise AND
-    result = np.bitwise_or(c, d)   # Bitwise OR
-    result = np.bitwise_xor(c, d)  # Bitwise XOR
-    result = np.bitwise_not(c)     # Bitwise NOT
-    result = np.left_shift(c, 2)   # Bitwise left shift
-    result = np.right_shift(c, 2)  # Bitwise right shift
+class Move:
+    def __init__(self, start, end, start_piece, captured_piece=0, promotion=0, castling=0, capture=0, en_passant=0):
+        self.start = start
+        self.end = end
+        self.start_piece = start_piece
+        self.captured_piece = captured_piece
+        self.promotion = promotion
+        self.castling = castling
+        self.capture = capture
+        self.en_passant = en_passant
 
-# Measure the execution time of Python bit operations
-python_time = timeit.timeit(python_bit_operations, number=100000)
+def move_class():
+    move1 = Move(0, 1, 1, 0, 0, 0, 0, 0)
+    move2 = Move(6, 4, 5, 0, 3, 0, 2, 4)
+    move3 = Move(1, 7, 1, 6, 4, 3, 1, 4)
+    move4 = Move(3, 2, 2, 0, 0, 0, 0, 0)
+    
 
-# Measure the execution time of NumPy bit operations
-numpy_time = timeit.timeit(numpy_bit_operations, number=100000)
 
-print(f"Python bit operations: {python_time} seconds")
-print(f"NumPy bit operations: {numpy_time} seconds")
+def move_tuple():
+    move1 = (0, 1, 1, 0, 0, 0, 0, 0)
+    move2 = (6, 4, 5, 0, 3, 0, 2, 4)
+    move3 = (1, 7, 1, 6, 4, 3, 1, 4)
+    move4 = (3, 2, 2, 0, 0, 0, 0, 0)
+    
+
+move_class_time = timeit.timeit(move_class, number=100000)
+
+tuple_time = timeit.timeit(move_tuple, number=100000)
+
+print(f"Move class: {move_class_time} seconds")
+print(f"Tuple: {tuple_time} seconds")
