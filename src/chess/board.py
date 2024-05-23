@@ -1,3 +1,5 @@
+# this board structure is inspired by Sebastian Lague's video entitled "Coding Adventure: Chess"
+# Link: https://www.youtube.com/watch?v=U4ogK0MIzqk
 
 
 STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -76,8 +78,6 @@ class Piece:
     @staticmethod
     def get_char_from_piece(piece):
         return Piece.char_to_piece_map[piece]
-    
-
 
 directions = [8, 1, -8, -1, 9, 7, -7, -9]
 distance_to_edge = []
