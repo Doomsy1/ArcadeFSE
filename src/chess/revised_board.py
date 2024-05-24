@@ -712,7 +712,7 @@ class Board:
         elif start_piece == Piece.black | Piece.king:
             self.castling_rights &= 0b1100
 
-        # rook move #TODO not like this
+        # rook move
         if start_piece == Piece.white | Piece.rook:
             if start_square == 0:
                 self.castling_rights &= 0b1011
@@ -723,3 +723,114 @@ class Board:
                 self.castling_rights &= 0b1101
             elif start_piece == 55:
                 self.castling_rights &= 0b1110
+
+        # rook capture
+        if captured_piece == Piece.white | Piece.rook:
+            if end_square == 0:
+                self.castling_rights &= 0b1011
+            elif end_square == 7:
+                self.castling_rights &= 0b0111
+        elif captured_piece == Piece.black | Piece.rook:
+            if end_square == 63:
+                self.castling_rights &= 0b1101
+            elif end_square == 55:
+                self.castling_rights &= 0b1110
+
+        # update en passant target square
+        if en_passant:
+            if self.white_to_move:
+                self.en_passant_target_square = end_square - 8
+            else:
+                self.en_passant_target_square = end_square + 8
+        else:
+            self.en_passant_target_square = 0
+
+        # update halfmove clock (reset if pawn move or capture)
+        if Piece.get_type(start_piece) == Piece.pawn or captured_piece:
+            self.halfmove_clock = 0
+        else:
+            self.halfmove_clock += 1
+
+        # update fullmove number
+        if not self.white_to_move:
+            self.fullmove_number += 1
+
+        # update turn
+        self.white_to_move = not self.white_to_move
+
+    def undo_move(self):
+        '''Undoes the last move made on the board'''
+        # TODO: implement undoing the move manually (for now this works)
+        # restore board state
+        board, castling_rights, en_passant_target_square, halfmove_clock = self.undo_list.pop()
+
+        self.board = board
+        self.castling_rights = castling_rights
+        self.en_passant_target_square = en_passant_target_square
+        self.halfmove_clock = halfmove_clock
+        self.white_to_move = not self.white_to_move
+
+    def is_check(self, turn):
+        '''Returns True if the given turn is in check, False otherwise'''
+        king_square = self.white_king_square if turn else self.black_king_square
+
+        # TODO: optimize by checking only the pieces that can attack the king
+        # TODO: check for pins
+        # TODO: check for discovered checks
+        # TODO: check for en passant checks
+        # generate moves for the enemy pieces to see if they can capture the king
+        moves = self.generate_moves(not turn)
+        for move in moves:
+            if move[1] == king_square:
+                return True
+            
+        return False
+    
+    def generate_legal_moves(self, turn):
+        '''Generates all legal moves for the given turn'''
+        moves = self.generate_moves(turn)
+        legal_moves = []
+
+        for move in moves:
+            self.make_move(move)
+            if not self.is_check(turn):
+                legal_moves.append(move)
+            self.undo_move()
+
+        return legal_moves
+    
+    def is_checkmate(self, turn):
+        '''Returns True if the given turn is in checkmate, False otherwise'''
+        return self.is_check(turn) and not self.generate_legal_moves(turn)
+    
+    def is_stalemate(self, turn):
+        '''Returns True if the given turn is in stalemate, False otherwise'''
+        return not self.is_check(turn) and not self.generate_legal_moves(turn)
+    
+    def is_threefold_repetition(self):
+        '''Returns True if the current board state has occurred three times, False otherwise'''
+        # count the number of occurrences of the current board state in the undo list
+        # TODO: optimize?
+        count = 0
+        for board, _, _, _ in self.undo_list:
+            if board == self.board:
+                count += 1
+                if count == 3:
+                    return True
+        return False
+    
+    def is_fifty_move_rule(self):
+        '''Returns True if the halfmove clock is greater than or equal to 100, False otherwise'''
+        return self.halfmove_clock >= 100
+    
+    def is_insufficient_material(self):
+        '''Returns True if there is insufficient material for checkmate, False otherwise'''
+        return False # TODO: implement
+
+    def is_draw(self):
+        '''Returns True if the game is a draw, False otherwise'''
+        return self.is_threefold_repetition() or self.is_fifty_move_rule() or self.is_insufficient_material()
+    
+    def is_game_over(self):
+        '''Returns True if the game is over, False otherwise'''
+        return self.is_checkmate(True) or self.is_checkmate(False) or self.is_stalemate(True) or self.is_stalemate(False) or self.is_draw()
