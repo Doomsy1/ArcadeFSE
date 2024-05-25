@@ -65,7 +65,7 @@ piece_map = {
 }
 
 class Engine:
-    def __init__(self, board: Board, depth: int = 20, time_limit_ms: int = 2500):
+    def __init__(self, board: Board, depth: int = 20, time_limit_ms: int = 5000):
         self.board = board.__copy__()
         self.depth = depth
         self.time_limit_ms = time_limit_ms

@@ -7,6 +7,7 @@ from src.chess.board import Board, Piece
 from utils import *
 from src.chess.engine import Engine
 import threading
+from time import time
 
 
 
@@ -33,6 +34,59 @@ def pixel_on_board(x, y):
     rank_on_board = BOARD_OFFSET_Y <= y <= BOARD_OFFSET_Y + 8*CHESS_GRID_SIZE
     return file_on_board and rank_on_board
 
+# white on bottom, black on top
+chess_clock_white_rect = pygame.Rect(BOARD_OFFSET_X - CHESS_GRID_SIZE, BOARD_OFFSET_Y + 4*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
+chess_clock_black_rect = pygame.Rect(BOARD_OFFSET_X - CHESS_GRID_SIZE, BOARD_OFFSET_Y + 3*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
+
+class ChessClock:
+    def __init__(self, start_time_per_side, increment):
+        self.white_time = start_time_per_side
+        self.black_time = start_time_per_side
+        self.increment = increment
+
+        self.white_turn = True
+
+        self.start_time = time()
+
+    def update(self):
+        current_time = time()
+        elapsed_time = current_time - self.start_time
+
+        if self.white_turn:
+            self.white_time -= elapsed_time
+        else:
+            self.black_time -= elapsed_time
+
+        self.start_time = current_time
+
+    def switch_turn(self):
+        if self.white_turn:
+            self.white_time += self.increment
+        else:
+            self.black_time += self.increment
+        self.white_turn = not self.white_turn
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, (255, 255, 255), chess_clock_white_rect)
+        pygame.draw.rect(screen, (0, 0, 0), chess_clock_black_rect)
+
+        if self.white_time <= 0:
+            white_time_text = '0:00'
+        else:
+            white_time_text = f'{int(self.white_time//60)}:{int(self.white_time%60):02}'
+
+        if self.black_time <= 0:
+            black_time_text = '0:00'
+        else:
+            black_time_text = f'{int(self.black_time//60)}:{int(self.black_time%60):02}'
+
+        white_time_color = (0, 0, 0) if self.white_turn else (128, 128, 128)
+        black_time_color = (255, 255, 255) if not self.white_turn else (128, 128, 128)
+
+        write_centered_text(screen, white_time_text, chess_clock_white_rect, white_time_color)
+        write_centered_text(screen, black_time_text, chess_clock_black_rect, black_time_color)
+
+
 
 class PlayerVsComputer:
     def __init__(self, screen):
@@ -47,13 +101,17 @@ class PlayerVsComputer:
         self.engine_depth = self.load_engine_depth()
         self.sfx = self.load_sfx()
         self.human_player = self.load_human_player()
+        self.start_time_per_side = self.load_start_time_per_side()
+        self.increment = self.load_increment()
+
+        self.chess_clock = ChessClock(self.start_time_per_side, self.increment)
 
         self.annotation_circles = [] # list of squares to draw a circle on
         self.annotation_arrows = [] # list of tuples of squares to draw an arrow from
         self.preview_annotation_start_square = None
         self.preview_annotation_end_square = None
 
-        self.engine = Engine(self.board)
+        self.engine = Engine(self.board, self.engine_depth)
         self.engine_move_container = []
         self.engine_status = 'idle'
         
@@ -64,6 +122,20 @@ class PlayerVsComputer:
         self.clock = pygame.time.Clock()
 
         self.sfx['game_start'].play()
+
+    def load_start_time_per_side(self):
+        '''Load the start time per side'''
+        with open('src/chess/settings.json', 'r') as file:
+            settings = json.load(file)
+        
+        return settings['time_per_side']
+    
+    def load_increment(self):
+        '''Load the increment'''
+        with open('src/chess/settings.json', 'r') as file:
+            settings = json.load(file)
+        
+        return settings['time_increment']
 
     def load_human_player(self):
         '''Load the human player'''
@@ -247,16 +319,16 @@ class PlayerVsComputer:
 
     def draw_game_over(self):
         '''Draw the game over screen'''
-        full_game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2, CHESS_GRID_SIZE*3, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE*2)
+        full_game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2+BOARD_OFFSET_X, CHESS_GRID_SIZE*3+BOARD_OFFSET_Y, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE*2)
 
-        game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2, CHESS_GRID_SIZE*3, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
+        game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2+BOARD_OFFSET_X, CHESS_GRID_SIZE*3+BOARD_OFFSET_Y, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
         game_over_rect_color = (255, 255, 255)
         pygame.draw.rect(self.screen, game_over_rect_color, game_over_rect)
 
         game_over_text_color = (255, 128, 128)
         write_centered_text(self.screen, "Game Over", game_over_rect, game_over_text_color)
 
-        description_rect = pygame.Rect(CHESS_GRID_SIZE*2, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
+        description_rect = pygame.Rect(CHESS_GRID_SIZE*2+BOARD_OFFSET_X, CHESS_GRID_SIZE*4+BOARD_OFFSET_Y, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
         description_rect_color = (255, 255, 255)
         pygame.draw.rect(self.screen, description_rect_color, description_rect)
 
@@ -265,6 +337,10 @@ class PlayerVsComputer:
             write_centered_text(self.screen, "Checkmate! Black wins\nClick to return to the main menu", description_rect, description_color)
         elif self.board.is_checkmate(False):
             write_centered_text(self.screen, "Checkmate! White wins\nClick to return to the main menu", description_rect, description_color)
+        elif self.chess_clock.white_time <= 0:
+            write_centered_text(self.screen, "Time's up! Black wins\nClick to return to the main menu", description_rect, description_color)
+        elif self.chess_clock.black_time <= 0:
+            write_centered_text(self.screen, "Time's up! White wins\nClick to return to the main menu", description_rect, description_color)
 
         # draw a border around the full game over rect
         border_color = (0, 0, 0)
@@ -300,10 +376,6 @@ class PlayerVsComputer:
                     continue
 
                 if promotion_piece == 0b0000:
-                    self.board.make_move(move)
-                    self.engine.update_board(self.board)
-                    self.move_list.append(move)
-
                     if castling != 0b0000:
                         self.sfx['castle'].play()
                     elif captured_piece:
@@ -311,21 +383,19 @@ class PlayerVsComputer:
                     else:
                         self.sfx['move'].play()
 
-                    self.selected_square = None
-                    self.turn = not self.turn
-                    return
                 else:
                     chosen_promotion_piece = self.promotion_popup()
                     move = (start, end, start_piece, captured_piece, chosen_promotion_piece, castling, en_passant)
-                    self.board.make_move(move)
-                    self.engine.update_board(self.board)
-                    self.move_list.append(move)
-                    
                     self.sfx['promotion'].play()
 
-                    self.selected_square = None
-                    self.turn = not self.turn
-                    return
+                self.board.make_move(move)
+                self.engine.update_board(self.board)
+                self.move_list.append(move)
+
+                self.selected_square = None
+                self.turn = not self.turn
+                self.chess_clock.switch_turn()
+                return
                 
     def handle_annotations(self):
         '''Handle the annotations of the game (circles, arrows)'''
@@ -336,16 +406,16 @@ class PlayerVsComputer:
         if self.mb[2]:
             if pixel_on_board(self.rmx, self.rmy):
                 start_square = pixel_to_square(self.rmx, self.rmy)
-                self.preview_annotation_start = start_square
+                self.preview_annotation_start_square = start_square
 
             if pixel_on_board(self.mx, self.my):
                 end_square = pixel_to_square(self.mx, self.my)
-                self.preview_annotation_end = end_square
+                self.preview_annotation_end_square = end_square
 
         if self.right_mouse_up:
             if pixel_on_board(self.rmx, self.rmy) and pixel_on_board(self.mx, self.my):
-                start_square = self.preview_annotation_start
-                end_square = self.preview_annotation_end
+                start_square = self.preview_annotation_start_square
+                end_square = self.preview_annotation_end_square
 
                 if start_square == end_square:
                     circle = start_square
@@ -361,8 +431,8 @@ class PlayerVsComputer:
                     else:
                         self.annotation_arrows.append((start_square, end_square))
                 
-            self.preview_annotation_start = None
-            self.preview_annotation_end = None
+            self.preview_annotation_start_square = None
+            self.preview_annotation_end_square = None
 
     def draw_arrow(self, start, end, color, alpha):
         start_x, start_y = square_to_pixel(start)
@@ -434,9 +504,8 @@ class PlayerVsComputer:
     def request_engine_move(self):
         '''Request a move from the engine'''
 
-        self.engine_move_container.clear()
+        self.engine_move_container = []
         threading.Thread(target=self.engine.find_best_move, args=(self.engine_move_container,)).start()
-        self.engine_status = 'thinking'
 
     def draw_latest_engine_move(self):
         '''Draw the latest move of the engine'''
@@ -474,6 +543,8 @@ class PlayerVsComputer:
         self.draw_annotations()
 
         self.draw_latest_engine_move()
+
+        self.chess_clock.draw(self.screen)
 
     def edit_fen(self):
         '''Edit the fen string of the board'''
@@ -548,7 +619,8 @@ class PlayerVsComputer:
                 self.request_engine_move()
 
         elif self.engine_status == 'thinking':
-            if len(self.engine_move_container) > 0:
+            if len(self.engine_move_container) > self.previous_depth:
+                self.previous_depth = len(self.engine_move_container)
                 move_confirmation = self.engine_move_container[-1][2]
                 if move_confirmation:
                     print(f'Depth: {len(self.engine_move_container)}')
@@ -558,14 +630,23 @@ class PlayerVsComputer:
                     self.move_list.append(move)
                     self.sfx['move'].play()
                     self.turn = not self.turn
+                    self.chess_clock.switch_turn()
                     self.engine_status = 'idle'
+                    self.previous_depth = 0
 
+    def is_game_over(self):
+        '''Check if the game is over from the board or the chess clock'''
+        if self.board.is_game_over():
+            return True
+        if self.chess_clock.white_time <= 0 or self.chess_clock.black_time <= 0:
+            return True
 
     def main_loop(self):
         running = True
 
         self.lmx, self.lmy = pygame.mouse.get_pos()
         self.rmx, self.rmy = pygame.mouse.get_pos()
+        self.previous_depth = 0 # the depth of the engine in the previous frame
         while running:
             menu_change = self.handle_events()
             if menu_change:
@@ -574,7 +655,9 @@ class PlayerVsComputer:
             self.mx, self.my = pygame.mouse.get_pos()
             self.mb = pygame.mouse.get_pressed()
 
-            self.screen.fill((0, 0, 0))
+            self.screen.fill((32, 32, 32))
+
+            self.chess_clock.update()
 
             self.handle_annotations()
             self.handle_move()
@@ -586,7 +669,7 @@ class PlayerVsComputer:
 
             self.draw_game()
 
-            if self.board.is_game_over():
+            if self.is_game_over():
                 self.sfx['game_over'].play()
                 return self.draw_game_over()
 

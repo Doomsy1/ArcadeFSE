@@ -45,7 +45,7 @@ class ChessSettingsMenu:
                 'width': 200,
                 'height': 50,
                 'min_value': 1,
-                'max_value': 5,
+                'max_value': 10,
                 'initial_value': settings['difficulty'],
                 'interval': 1
             },
@@ -161,7 +161,8 @@ class ChessSettingsMenu:
                 'b': self.sliders[7].get_value()
             },
             'time_per_side': self.sliders[8].get_value(),
-            'time_increment': self.sliders[9].get_value()
+            'time_increment': self.sliders[9].get_value(),
+            'human_player': True # TODO: add a setting for this
         }
 
         with open('src\chess\settings.json', 'w') as file:
