@@ -3,7 +3,7 @@ from tkinter import simpledialog
 import tkinter as tk
 import pygame
 from constants import *
-from src.chess.board import Board, LEGAL_SQUARES, encode_move
+from src.chess.board import Board, Piece
 from utils import *
 from src.chess.engine import Engine
 
@@ -18,7 +18,7 @@ class PlayerVsPlayer:
         self.root = tk.Tk()
         self.root.withdraw()
 
-        self.selected_square = 127
+        self.selected_square = None
 
         self.board_image = self.create_board_image()
         self.piece_images = self.load_piece_images()
@@ -26,16 +26,16 @@ class PlayerVsPlayer:
 
         self.circles = [] # (square)
         self.arrows = [] # (start_square, end_square)
-        self.preview_annotation_start = 127
-        self.preview_annotation_end = 127
+        self.preview_annotation_start = None
+        self.preview_annotation_end = None
 
         self.board = Board()
 
         self.engine_depth = self.load_engine_depth()
         self.engine = Engine(self.board, self.engine_depth, time_limit_ms=5000)
         self.engine_suggestion = 0
-        self.engine_suggestion_arrow_start = 127
-        self.engine_suggestion_arrow_end = 127
+        self.engine_suggestion_arrow_start = None
+        self.engine_suggestion_arrow_end = None
 
         self.move_list = []
 
@@ -52,19 +52,19 @@ class PlayerVsPlayer:
         '''
         file_path = 'src/chess/assets/pieces/'
         piece_images = {
-            0b1001: pygame.image.load(f'{file_path}white_pawn.png'),
-            0b1010: pygame.image.load(f'{file_path}white_knight.png'),
-            0b1011: pygame.image.load(f'{file_path}white_bishop.png'),
-            0b1100: pygame.image.load(f'{file_path}white_rook.png'),
-            0b1101: pygame.image.load(f'{file_path}white_queen.png'),
-            0b1110: pygame.image.load(f'{file_path}white_king.png'),
+            Piece.white | Piece.pawn: pygame.image.load(f'{file_path}white_pawn.png'),
+            Piece.white | Piece.knight: pygame.image.load(f'{file_path}white_knight.png'),
+            Piece.white | Piece.bishop: pygame.image.load(f'{file_path}white_bishop.png'),
+            Piece.white | Piece.rook: pygame.image.load(f'{file_path}white_rook.png'),
+            Piece.white | Piece.queen: pygame.image.load(f'{file_path}white_queen.png'),
+            Piece.white | Piece.king: pygame.image.load(f'{file_path}white_king.png'),
 
-            0b0001: pygame.image.load(f'{file_path}black_pawn.png'),
-            0b0010: pygame.image.load(f'{file_path}black_knight.png'),
-            0b0011: pygame.image.load(f'{file_path}black_bishop.png'),
-            0b0100: pygame.image.load(f'{file_path}black_rook.png'),
-            0b0101: pygame.image.load(f'{file_path}black_queen.png'),
-            0b0110: pygame.image.load(f'{file_path}black_king.png')
+            Piece.black | Piece.pawn: pygame.image.load(f'{file_path}black_pawn.png'),
+            Piece.black | Piece.knight: pygame.image.load(f'{file_path}black_knight.png'),
+            Piece.black | Piece.bishop: pygame.image.load(f'{file_path}black_bishop.png'),
+            Piece.black | Piece.rook: pygame.image.load(f'{file_path}black_rook.png'),
+            Piece.black | Piece.queen: pygame.image.load(f'{file_path}black_queen.png'),
+            Piece.black | Piece.king: pygame.image.load(f'{file_path}black_king.png')
         }
 
         for piece in piece_images:
@@ -123,7 +123,7 @@ class PlayerVsPlayer:
         # create a chess board image
         board_image = pygame.Surface((CHESS_GRID_SIZE*8, CHESS_GRID_SIZE*8))
 
-        for square in LEGAL_SQUARES:
+        for square in range(64):
             rank, file = square_to_file_rank(square)
             color = dark_square_color if (rank + file) % 2 == 1 else light_square_color
             pygame.draw.rect(board_image, color, (rank*CHESS_GRID_SIZE, file*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE))
@@ -140,8 +140,7 @@ class PlayerVsPlayer:
         '''
         Draw the pieces on the board
         '''
-        # piece bitboard are 0x88 board representation
-        for square in LEGAL_SQUARES:
+        for square in self.board.board:
             if self.board.is_empty(square):
                 continue
             
@@ -156,7 +155,7 @@ class PlayerVsPlayer:
     def draw_selected_square(self):
         '''
         Draw the selected square'''
-        if self.selected_square != 127:
+        if self.selected_square != None:
             x, y = square_to_pixel(self.selected_square)
 
             # draw a transparent square on the selected square
@@ -179,11 +178,11 @@ class PlayerVsPlayer:
         '''
         Draw the squares where the selected piece can move to
         '''
-        if self.selected_square != 127:
+        if self.selected_square != None:
             moves = self.get_square_legal_moves(self.selected_square)
             for move in moves:
                 end = move[1]
-                capture = move[6]
+                capture = move[3] # TODO: check this
                 if capture:
                     color = CAPTURE_SQUARE_COLOR
                     alpha = CAPTURE_SQUARE_ALPHA
@@ -198,7 +197,7 @@ class PlayerVsPlayer:
         '''
         Handle the selection of a piece
         '''
-        if self.selected_square == 127:
+        if self.selected_square == None:
             if self.left_mouse_down and pixel_on_board(self.mx, self.my):
                 if not self.board.is_empty(pixel_to_square(self.mx, self.my)):
                     self.selected_square = pixel_to_square(self.mx, self.my)
@@ -207,7 +206,7 @@ class PlayerVsPlayer:
             if self.left_mouse_down and pixel_on_board(self.mx, self.my):
                 square = pixel_to_square(self.mx, self.my)
                 if self.board.is_empty(square):
-                    self.selected_square = 127
+                    self.selected_square = None
                 else:
                     self.selected_square = square
 
@@ -215,7 +214,7 @@ class PlayerVsPlayer:
         '''
         Draw the selected piece on the cursor
         '''
-        if self.selected_square != 127:
+        if self.selected_square != None:
             piece = self.board.get_piece(self.selected_square)
             piece_image = self.piece_images[piece]
             x, y = pygame.mouse.get_pos()
@@ -337,10 +336,10 @@ class PlayerVsPlayer:
         '''
         if (self.left_mouse_up or self.left_mouse_down) and pixel_on_board(self.mx, self.my):
             square = pixel_to_square(self.mx, self.my)
-            if self.selected_square != 127:
+            if self.selected_square != None:
                 moves = self.get_square_legal_moves(self.selected_square)
                 for move in moves:
-                    start, end, start_piece, captured_piece, promotion_piece, castling, capture, en_passant = move
+                    start, end, start_piece, captured_piece, promotion_piece, castling, en_passant = move
                     if end == square:
                         if promotion_piece == 0b0000:
                             self.board.make_move(move)
@@ -349,24 +348,24 @@ class PlayerVsPlayer:
 
                             if castling != 0b0000:
                                 self.sfx['castle'].play()
-                            elif capture:
+                            elif captured_piece:
                                 self.sfx['capture'].play()
                             else:
                                 self.sfx['move'].play()
 
-                            self.selected_square = 127
+                            self.selected_square = None
                             self.turn = not self.turn
                             return
                         else:
                             chosen_promotion_piece = self.promotion_popup()
-                            move = encode_move(start, end, start_piece, captured_piece, chosen_promotion_piece, castling, capture, en_passant)
+                            move = (start, end, start_piece, captured_piece, chosen_promotion_piece, castling, en_passant)
                             self.board.make_move(move)
                             self.engine.update_board(self.board)
                             self.move_list.append(move)
                             
                             self.sfx['promotion'].play()
 
-                            self.selected_square = 127
+                            self.selected_square = None
                             self.turn = not self.turn
                             return
           
@@ -378,8 +377,8 @@ class PlayerVsPlayer:
             self.circles = []
             self.arrows = []
             self.engine_suggestion = 0
-            self.engine_suggestion_arrow_start = 127
-            self.engine_suggestion_arrow_end = 127
+            self.engine_suggestion_arrow_start = None
+            self.engine_suggestion_arrow_end = None
 
         if self.mb[2]:
             if pixel_on_board(self.rmx, self.rmy):
@@ -409,8 +408,8 @@ class PlayerVsPlayer:
                     else:
                         self.arrows.append((start_square, end_square))
                 
-            self.preview_annotation_start = 127
-            self.preview_annotation_end = 127
+            self.preview_annotation_start = None
+            self.preview_annotation_end = None
 
         if self.engine_suggestion != 0:
             start = self.engine_suggestion[0]
@@ -457,14 +456,14 @@ class PlayerVsPlayer:
             self.draw_arrow(start, end, ARROW_COLOR, ARROW_ALPHA)  
 
         # draw the preview annotation
-        if self.preview_annotation_start != 127:
+        if self.preview_annotation_start != None:
             if self.preview_annotation_start == self.preview_annotation_end:
                 self.draw_circle(self.preview_annotation_start, CIRCLE_COLOR, CIRCLE_ALPHA)
             else:
                 self.draw_arrow(self.preview_annotation_start, self.preview_annotation_end, ARROW_COLOR, ARROW_ALPHA)
 
         # draw the engine suggestion arrow
-        if self.engine_suggestion_arrow_start != 127:
+        if self.engine_suggestion_arrow_start != None:
             self.draw_arrow(self.engine_suggestion_arrow_start, self.engine_suggestion_arrow_end, ENGINE_SUGGESTION_COLOR, ENGINE_SUGGESTION_ALPHA)
 
     def draw_previous_move(self):
@@ -562,7 +561,7 @@ class PlayerVsPlayer:
                     if len(self.move_list) > 0:
                         self.move_list.pop()
                     self.turn = not self.turn
-                    self.selected_square = 127
+                    self.selected_square = None
 
                 # if e is pressed, request a move from the engine
                 if event.key == pygame.K_e:
@@ -577,8 +576,8 @@ class PlayerVsPlayer:
                         self.sfx['move'].play()
                         self.turn = not self.turn
                         self.engine_suggestion = 0
-                        self.engine_suggestion_arrow_start = 127
-                        self.engine_suggestion_arrow_end = 127
+                        self.engine_suggestion_arrow_start = None
+                        self.engine_suggestion_arrow_end = None
                 # if the s key is pressed, export the move list to a json file
                 if event.key == pygame.K_s:
                     self.export_move_list()
@@ -610,6 +609,8 @@ class PlayerVsPlayer:
 
             self.draw_game()
 
+            # print(self.board.create_fen())
+
             if self.board.is_game_over():
                 self.sfx['game_over'].play()
                 return self.draw_game_over()
@@ -626,10 +627,10 @@ class PlayerVsPlayer:
 
 
 def file_rank_to_square(file, rank):
-    return 16*rank + file
+    return 8*rank + file
 
 def square_to_file_rank(square):
-    return square%16, square//16
+    return square%8, square//8
 
 def square_to_pixel(square):
     file, rank = square_to_file_rank(square)

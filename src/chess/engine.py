@@ -73,21 +73,29 @@ class Engine:
         self.evaluated_boards = {}
 
     def update_board(self, board: Board):
-        self.board.piece_bitboards = board.piece_bitboards.copy()
-        self.board.color_bitboards = board.color_bitboards.copy()
-        self.board.castling_rights = board.castling_rights
+        self.board.board = board.board.copy()
+
+        self.board.white_king_square = board.white_king_square
+        self.board.black_king_square = board.black_king_square
+
+        self.board.white_pieces = board.white_pieces.copy()
+        self.board.black_pieces = board.black_pieces.copy()
+
+        self.board.white_attacked_squares = board.white_attacked_squares.copy()
+        self.board.black_attacked_squares = board.black_attacked_squares.copy()
+
+        self.board.white_to_move = board.white_to_move
+        self.board.castling_rights =  board.castling_rights
         self.board.en_passant_target_square = board.en_passant_target_square
         self.board.halfmove_clock = board.halfmove_clock
         self.board.fullmove_number = board.fullmove_number
-        self.board.white_to_move = board.white_to_move
-
         self.board.undo_list = board.undo_list.copy()
-        self.board.get_piece_lookup_table = board.get_piece_lookup_table.copy()
 
     def evaluate_piece_values(self):
         piece_value_evaluation = 0
-        for piece, bitboard in self.board.piece_bitboards.items():
-            piece_value_evaluation += PIECE_VALUES[piece] * bin(bitboard).count("1")
+        for square in self.board.white_pieces + self.board.black_pieces:
+            piece_value_evaluation += PIECE_VALUES[self.board.get_piece(square)]
+
         return piece_value_evaluation
     
     def evaluate_mobility(self):
@@ -229,14 +237,14 @@ class Engine:
         
         evaluation = 0
         evaluation += self.evaluate_piece_values()
-        evaluation += self.evaluate_double_pawns()
-        evaluation += self.evaluate_isolated_pawns()
+        # evaluation += self.evaluate_double_pawns()
+        # evaluation += self.evaluate_isolated_pawns()
         # evaluation += self.evaluate_mobility() # | VERY SLOW
-        evaluation += self.evaluate_check()
-        evaluation += self.evaluate_center_control()
+        # evaluation += self.evaluate_check()
+        # evaluation += self.evaluate_center_control()
         # evaluation += self.evaluate_attack() # | VERY SLOW
-        evaluation += self.evaluate_piece_square_tables()
-        evaluation += self.evaluate_development()
+        # evaluation += self.evaluate_piece_square_tables()
+        # evaluation += self.evaluate_development()
 
         self.evaluated_boards[key] = evaluation
         return evaluation 

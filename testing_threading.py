@@ -13,11 +13,11 @@ window = pygame.display.set_mode((window_width, window_height))
 def random_color():
     return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
-def count_to_billion(result_container):
+def caount(result_container):
     start_time = time.time()
     
     counter = 0
-    while counter < 100000000:
+    while counter < 20000000:
         counter += 1
 
     end_time = time.time()
@@ -38,7 +38,7 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if not counting_result:
-                threading.Thread(target=count_to_billion, args=(counting_result,)).start()
+                threading.Thread(target=caount, args=(counting_result,)).start()
 
     window.fill(random_color())
 
