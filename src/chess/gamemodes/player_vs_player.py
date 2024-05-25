@@ -140,14 +140,13 @@ class PlayerVsPlayer:
         '''
         Draw the pieces on the board
         '''
-        for square in self.board.board:
-            if self.board.is_empty(square):
+        for square, piece in enumerate(self.board.board):
+            if piece == 0:
                 continue
             
             if square == self.selected_square and self.mb[0]:
                 continue
 
-            piece = self.board.get_piece(square)
             piece_image = self.piece_images[piece]
             x, y = square_to_pixel(square)
             self.screen.blit(piece_image, (x, y))
@@ -155,7 +154,7 @@ class PlayerVsPlayer:
     def draw_selected_square(self):
         '''
         Draw the selected square'''
-        if self.selected_square != None:
+        if self.selected_square is not None:
             x, y = square_to_pixel(self.selected_square)
 
             # draw a transparent square on the selected square

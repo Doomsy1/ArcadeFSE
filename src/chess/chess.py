@@ -1,6 +1,7 @@
 import sys
 import pygame
 
+from src.chess.gamemodes.player_vs_computer import PlayerVsComputer
 from src.chess.menus.main_chess_menu import ChessMainMenu
 from src.chess.menus.chess_settings_menu import ChessSettingsMenu
 from src.chess.gamemodes.player_vs_player import PlayerVsPlayer
@@ -49,7 +50,8 @@ class ChessGame:
         return player_vs_player.main_loop()
 
     def player_vs_computer(self):
-        pass
+        player_vs_computer = PlayerVsComputer(self.screen)
+        return player_vs_computer.main_loop()
 
 if __name__ == "__main__":
     WIDTH, HEIGHT = 800, 800

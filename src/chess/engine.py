@@ -1,28 +1,28 @@
-from src.chess.board import Board
+from src.chess.board import Board, Piece
 import src.chess.PSQT as PSQT
 
 import time
 
 # import PSQT
-# from board import Board
+# from board import Board, Piece
 
 # a positive evaluation of a position means white is winning
 # a negative evaluation of a position means black is winning
 
 PIECE_VALUES = {
-    0b1001: 1, # white pawn
-    0b1010: 3, # white knight
-    0b1011: 3, # white bishop
-    0b1100: 5, # white rook
-    0b1101: 9, # white queen
-    0b1110: 100, # white king
+    Piece.white | Piece.pawn: 1,
+    Piece.white | Piece.knight: 3,
+    Piece.white | Piece.bishop: 3,
+    Piece.white | Piece.rook: 5,
+    Piece.white | Piece.queen: 9,
+    Piece.white | Piece.king: 100,
 
-    0b0001: -1, # black pawn
-    0b0010: -3, # black knight
-    0b0011: -3, # black bishop
-    0b0100: -5, # black rook
-    0b0101: -9, # black queen
-    0b0110: -100, # black king
+    Piece.black | Piece.pawn: -1,
+    Piece.black | Piece.knight: -3,
+    Piece.black | Piece.bishop: -3,
+    Piece.black | Piece.rook: -5,
+    Piece.black | Piece.queen: -9,
+    Piece.black | Piece.king: -100
 }
 
 # Evaluation factors
@@ -65,12 +65,13 @@ piece_map = {
 }
 
 class Engine:
-    def __init__(self, board: Board, depth: int = 2, time_limit_ms: int = 1000):
+    def __init__(self, board: Board, depth: int = 20, time_limit_ms: int = 2500):
         self.board = board.__copy__()
         self.depth = depth
         self.time_limit_ms = time_limit_ms
 
         self.evaluated_boards = {}
+        self.start_time = 0
 
     def update_board(self, board: Board):
         self.board.board = board.board.copy()
@@ -97,131 +98,7 @@ class Engine:
             piece_value_evaluation += PIECE_VALUES[self.board.get_piece(square)]
 
         return piece_value_evaluation
-    
-    def evaluate_mobility(self):
-        mobility_evaluation = 0
-        white_moves = self.board.generate_legal_moves(True)
-        black_moves = self.board.generate_legal_moves(False)
-
-        mobility_evaluation += (len(white_moves) - len(black_moves)) * MOBILITY_FACTOR
-
-        return mobility_evaluation
-    
-    def evaluate_double_pawns(self): # pawns on the same file
-        '''If the player has double pawns, the position is worse'''
-        evaluation = 0
-        white_pawns = self.board.piece_bitboards[0b1001]
-        black_pawns = self.board.piece_bitboards[0b0001]
-
-        for i in range(8):
-            if bin(white_pawns & FILE_MASKS[i]).count("1") > 1:
-                evaluation += DOUBLE_PAWNS_DISADVANTAGE
-            if bin(black_pawns & FILE_MASKS[i]).count("1") > 1:
-                evaluation -= DOUBLE_PAWNS_DISADVANTAGE
-
-        return evaluation
-
-    def evaluate_isolated_pawns(self): # pawns with no pawns on adjacent files
-        '''If the player has isolated pawns, the position is worse'''
-        evaluation = 0
-        white_pawns = self.board.piece_bitboards[0b1001]
-        black_pawns = self.board.piece_bitboards[0b0001]
-
-        for i in range(8):
-            left_mask = FILE_MASKS[i-1] if i > 0 else 0
-            right_mask = FILE_MASKS[i+1] if i < 7 else 0
-
-            if bin(white_pawns & FILE_MASKS[i] & (left_mask | right_mask)).count("1") == 0:
-                evaluation += ISOLATED_PAWNS_DISADVANTAGE
-
-            if bin(black_pawns & FILE_MASKS[i] & (left_mask | right_mask)).count("1") == 0:
-                evaluation -= ISOLATED_PAWNS_DISADVANTAGE
-
-        return evaluation
-
-    def evaluate_backward_pawns(self): # pawns that are behind all pawns on adjacent files
-        pass
-
-    def evaluate_passed_pawns(self): # pawns that have no enemy pawns on adjacent files and are not blocked by enemy pawns
-        pass
-
-    def evaluate_center_control(self): # control of the center of the board (pieces on the center squares + pieces that attack the center squares)
-        '''If the player controls the center, the position is better'''
-        white_center_control = 0
-        black_center_control = 0
-
-        for square in CENTER_SQUARES:
-            if self.board.is_piece(square):
-                if self.board.is_white(square):
-                    white_center_control += 1
-                else:
-                    black_center_control += 1
-
-
-        return (white_center_control - black_center_control) * CENTER_CONTROL_ADVANTAGE
-
-    def evaluate_check(self): # checking the opponent
-        '''If the opponent is in check, the position is better'''
-        if self.board.is_check(True):
-            return CHECK_SCORE
-        if self.board.is_check(False):
-            return -CHECK_SCORE
-        return 0
-
-    def evaluate_attack(self): # attacking the opponent's pieces
-        '''If the player is attacking the opponent's pieces, the position is better'''
-        white_moves = self.board.generate_legal_moves(True)
-        black_moves = self.board.generate_legal_moves(False)
-
-        white_attacks = 0
-        for move in white_moves:
-            attacked_piece = move[3]
-            if attacked_piece:
-                white_attacks += 1
-
-        black_attacks = 0
-        for move in black_moves:
-            attacked_piece = move[3]
-            if attacked_piece:
-                black_attacks += 1
-
-        return (white_attacks - black_attacks) * ATTACKING_ENEMY_PIECES_ADVANTAGE
-
-    def evaluate_defense(self): # defending own pieces
-        pass #
-
-    def evaluate_king_safety(self): # how safe the king is
-        pass #
-
-    def evaluate_piece_square_tables(self):
-        '''If the player's pieces are on good squares, the position is better'''
-        evaluation = 0
-
-        for square, piece in enumerate(self.board.get_piece_lookup_table):
-            if piece == 0:
-                continue
-            if self.board.is_white_piece(piece):
-                evaluation += piece_map[piece][square // 16][square % 16]
-            else:
-                evaluation -= piece_map[piece][square // 16][square % 16]
-
-        return evaluation / 70 # divide by 70 to make the evaluation less significant
-
-
-    def evaluate_development(self): # how developed the pieces are (pieces on their starting squares are not developed) (more important in the opening)
-        '''If the player has developed more pieces, the position is better''' # TODO: make this more accurate by checking if the pieces are on their starting squares and making it less important in the endgame
-        white_developed = 0
-        black_developed = 0
-
-        for square in CENTRAL_LEGAL_SQUARES:
-            if self.board.is_piece(square) and not self.board.is_pawn(square):
-                if self.board.is_white(square):
-                    white_developed += 1
-                else:
-                    black_developed += 1
-
-        return (white_developed - black_developed) * DEVELOPMENT_ADVANTAGE
-    
+        
     def evaluate_board(self):
         key = self.board.hash_board(self.board.white_to_move)
         if key in self.evaluated_boards:
@@ -247,11 +124,13 @@ class Engine:
         # evaluation += self.evaluate_development()
 
         self.evaluated_boards[key] = evaluation
-        return evaluation 
-    
+        return evaluation
 
+    def time_exceeded(self):
+        return (time.time() - self.start_time) * 1000 >= self.time_limit_ms
+    
     def minimax(self, depth, alpha, beta):
-        if depth == 0 or self.board.is_game_over():
+        if depth == 0 or self.board.is_game_over() or self.time_exceeded():
             return self.evaluate_board()
         
         if self.board.white_to_move:
@@ -262,7 +141,7 @@ class Engine:
                 self.board.undo_move()
                 best_eval = max(best_eval, eval)
                 alpha = max(alpha, best_eval)
-                if beta <= alpha:
+                if beta <= alpha or self.time_exceeded():
                     break
 
         else:
@@ -273,45 +152,57 @@ class Engine:
                 self.board.undo_move()
                 best_eval = min(best_eval, eval)
                 beta = min(beta, best_eval)
-                if beta <= alpha:
+                if beta <= alpha or self.time_exceeded():
                     break
 
         return best_eval
 
+    def find_best_move(self, result_container):
+        try:
+            self.start_time = time.time()
+            starting_player = self.board.white_to_move
+            best_move = None
+            best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
 
-    def find_best_move(self):
-        start_time = time.time()
-        starting_player = self.board.white_to_move
-        best_move = None
-
-        if starting_player: # white 
-            best_eval = NEGATIVE_INFINITY
             alpha = NEGATIVE_INFINITY
             beta = POSITIVE_INFINITY
-            for move in self.board.generate_legal_moves(True):
-                self.board.make_move(move)
-                eval = self.minimax(self.depth - 1, alpha, beta)
-                self.board.undo_move()
-                if eval > best_eval:
-                    best_eval = eval
-                    best_move = move
-                alpha = max(alpha, best_eval)
-        else: # black
-            best_eval = POSITIVE_INFINITY
-            alpha = NEGATIVE_INFINITY
-            beta = POSITIVE_INFINITY
-            for move in self.board.generate_legal_moves(False):
-                self.board.make_move(move)
-                eval = self.minimax(self.depth - 1, alpha, beta)
-                self.board.undo_move()
-                if eval < best_eval:
-                    best_eval = eval
-                    best_move = move
-                beta = min(beta, best_eval)
 
-        print(f"Best move: {best_move} with evaluation: {best_eval}")
-        print(f"Time taken: {time.time() - start_time} seconds")
-        return best_move, best_eval
+            for current_depth in range(1, self.depth + 1):
+                if self.time_exceeded():
+                    break
+                
+                current_best_move = None
+                current_best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
+
+                if starting_player: # white 
+                    for move in self.board.generate_legal_moves(True):
+                        self.board.make_move(move)
+                        eval = self.minimax(current_depth - 1, alpha, beta)
+                        self.board.undo_move()
+                        if eval > current_best_eval:
+                            current_best_eval = eval
+                            current_best_move = move
+                        alpha = max(alpha, current_best_eval)
+
+                else: # black
+                    for move in self.board.generate_legal_moves(False):
+                        self.board.make_move(move)
+                        eval = self.minimax(current_depth - 1, alpha, beta)
+                        self.board.undo_move()
+                        if eval < current_best_eval:
+                            current_best_eval = eval
+                            current_best_move = move
+                        beta = min(beta, current_best_eval)
+                
+                if not self.time_exceeded():
+                    best_move = current_best_move
+                    best_eval = current_best_eval
+                    result_container.append((best_move, best_eval, False)) # false means the search was not completed and the move should not be made
+
+            result_container.append((best_move, best_eval, True)) # true means the search was completed and the move can be made
+        except Exception as e:
+            print(e)
+            print(self.board.create_fen())
 
 
 if __name__ == '__main__':
@@ -326,13 +217,15 @@ if __name__ == '__main__':
     engine = Engine(board, depth=4)
 
     # engine.find_best_move()
+    container = []
 
     profiler = cProfile.Profile()
     profiler.enable()
-    engine.find_best_move()
+    engine.find_best_move(container)
     # print(engine.evaluate_board())
     # print(board.is_game_over())
     profiler.disable()
+    print(container)
 
     stats = pstats.Stats(profiler)
 

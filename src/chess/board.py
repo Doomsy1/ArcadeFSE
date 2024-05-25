@@ -2,6 +2,9 @@
 # Link: https://www.youtube.com/watch?v=U4ogK0MIzqk
 
 
+import random
+
+
 STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 class Piece:
@@ -146,7 +149,15 @@ class Board:
 
         self.undo_list = []                 # list of previous board states
 
+        self.generated_moves = {}           # dictionary of generated moves for each board state
+
         self.load_fen(fen)
+
+    def hash_board(self, turn):
+        '''Returns a hash of the board state'''
+        # TODO: implement Zobrist hashing
+        # for now, use python's built-in hash function
+        return hash((tuple(self.board), self.white_to_move, turn, self.castling_rights, self.en_passant_target_square))
 
     def __copy__(self):
         new_board = Board()
@@ -343,6 +354,10 @@ class Board:
     
     def generate_moves(self, turn):
         '''Generates all possible moves for the given turn'''
+        key = self.hash_board(turn)
+        if key in self.generated_moves:
+            return self.generated_moves[key]
+
         moves = []
 
         for square in (self.white_pieces if turn else self.black_pieces):
@@ -363,6 +378,7 @@ class Board:
                 case Piece.king:
                     self.generate_king_moves(piece, square, moves)
 
+        self.generated_moves[key] = moves
         return moves
     
     def generate_sliding_moves(self, piece, square, moves, direction_indexes):
@@ -370,7 +386,7 @@ class Board:
         color = Piece.get_color(piece)
 
         for direction_index in direction_indexes:
-            for distance in range(1, distance_to_edge[square][direction_index]):
+            for distance in range(1, distance_to_edge[square][direction_index] + 1):
                 target_square = square + directions[direction_index] * distance
                 target_square_piece = self.board[target_square]
 
@@ -630,22 +646,22 @@ class Board:
                 
             # castling
             if color == Piece.white:
-                if self.castling_rights & 8:
-                    if self.is_empty(square+1) and self.is_empty(square+2):
+                if self.castling_rights & 8: # white kingside
+                    if self.is_empty(5) and self.is_empty(6):
                         moves.append((
                             square,         # start
-                            square+2,       # end
+                            6,              # end
                             piece,          # start_piece
                             0,              # captured_piece
                             0,              # promotion_piece
                             1,              # castling
                             0               # en_passant
                             ))
-                if self.castling_rights & 4:
-                    if self.is_empty(square-1) and self.is_empty(square-2) and self.is_empty(square-3):
+                if self.castling_rights & 4: # white queenside
+                    if self.is_empty(3) and self.is_empty(2) and self.is_empty(1):
                         moves.append((
                             square,         # start
-                            square-2,       # end
+                            2,              # end
                             piece,          # start_piece
                             0,              # captured_piece
                             0,              # promotion_piece
@@ -653,22 +669,22 @@ class Board:
                             0               # en_passant
                             ))
             else:
-                if self.castling_rights & 2:
-                    if self.is_empty(square+1) and self.is_empty(square+2):
+                if self.castling_rights & 2: # black kingside
+                    if self.is_empty(61) and self.is_empty(62):
                         moves.append((
                             square,         # start
-                            square+2,       # end
+                            62,             # end
                             piece,          # start_piece
                             0,              # captured_piece
                             0,              # promotion_piece
                             1,              # castling
                             0               # en_passant
                             ))
-                if self.castling_rights & 1:
-                    if self.is_empty(square-1) and self.is_empty(square-2) and self.is_empty(square-3):
+                if self.castling_rights & 1: # black queenside
+                    if self.is_empty(59) and self.is_empty(58) and self.is_empty(57):
                         moves.append((
                             square,         # start
-                            square-2,       # end
+                            58,             # end
                             piece,          # start_piece
                             0,              # captured_piece
                             0,              # promotion_piece
@@ -709,7 +725,7 @@ class Board:
             elif end_square == 62:
                 self.move_piece(63, 61, Piece.black | Piece.rook)
 
-            # white queenside
+            # black queenside
             elif end_square == 58:
                 self.move_piece(56, 59, Piece.black | Piece.rook)
 
@@ -749,7 +765,7 @@ class Board:
         elif start_piece == Piece.black | Piece.rook:
             if start_square == 63:
                 self.castling_rights &= 0b1101
-            elif start_piece == 55:
+            elif start_square == 56:
                 self.castling_rights &= 0b1110
 
         # rook capture
@@ -761,7 +777,7 @@ class Board:
         elif captured_piece == Piece.black | Piece.rook:
             if end_square == 63:
                 self.castling_rights &= 0b1101
-            elif end_square == 55:
+            elif end_square == 56:
                 self.castling_rights &= 0b1110
 
         # update en passant target square

@@ -13,7 +13,7 @@ window = pygame.display.set_mode((window_width, window_height))
 def random_color():
     return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
-def caount(result_container):
+def count_num(result_container):
     start_time = time.time()
     
     counter = 0
@@ -38,7 +38,7 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if not counting_result:
-                threading.Thread(target=caount, args=(counting_result,)).start()
+                threading.Thread(target=count_num, args=(counting_result,)).start()
 
     window.fill(random_color())
 
