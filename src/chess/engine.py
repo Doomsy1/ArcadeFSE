@@ -1,5 +1,6 @@
 from src.chess.board import Board, Piece
 import src.chess.PSQT as PSQT
+from random import uniform
 
 import time
 
@@ -123,15 +124,38 @@ class Engine:
         # evaluation += self.evaluate_piece_square_tables()
         # evaluation += self.evaluate_development()
 
+        # add some randomness to the evaluation
+        evaluation += uniform(-0.01, 0.01) 
+
         self.evaluated_boards[key] = evaluation
         return evaluation
 
     def time_exceeded(self):
         return (time.time() - self.start_time) * 1000 >= self.time_limit_ms
     
+    def quiescence_search(self, alpha, beta):
+        stand_pat = self.evaluate_board()
+        if stand_pat >= beta:
+            return beta
+        if alpha < stand_pat:
+            alpha = stand_pat
+
+        for move in self.board.generate_legal_moves(self.board.white_to_move):
+            if move[3]:
+                self.board.make_move(move)
+                score = -self.quiescence_search(-beta, -alpha)
+                self.board.undo_move()
+
+                if score >= beta:
+                    return beta
+                if score > alpha:
+                    alpha = score
+
+        return alpha
+
     def minimax(self, depth, alpha, beta):
         if depth == 0 or self.board.is_game_over() or self.time_exceeded():
-            return self.evaluate_board()
+            return self.quiescence_search(alpha, beta)
         
         if self.board.white_to_move:
             best_eval = NEGATIVE_INFINITY
@@ -197,8 +221,10 @@ class Engine:
                 if not self.time_exceeded():
                     best_move = current_best_move
                     best_eval = current_best_eval
+                    print(f'Best move at depth {current_depth}: {best_move} with evaluation {best_eval}')
                     result_container.append((best_move, best_eval, False)) # false means the search was not completed and the move should not be made
 
+            print(f'Best move: {best_move} with evaluation {best_eval}')
             result_container.append((best_move, best_eval, True)) # true means the search was completed and the move can be made
         except Exception as e:
             print(e)
