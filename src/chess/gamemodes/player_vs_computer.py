@@ -11,7 +11,7 @@ from time import time
 
 
 
-FPS = 9999
+FPS = 60
 
 
 def file_rank_to_square(file, rank):
@@ -35,12 +35,12 @@ def pixel_on_board(x, y):
     return file_on_board and rank_on_board
 
 # white on bottom, black on top
-chess_clock_white_rect = pygame.Rect(BOARD_OFFSET_X - CHESS_GRID_SIZE, BOARD_OFFSET_Y + 4*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
-chess_clock_black_rect = pygame.Rect(BOARD_OFFSET_X - CHESS_GRID_SIZE, BOARD_OFFSET_Y + 3*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
+chess_clock_white_rect = pygame.Rect(BOARD_OFFSET_X - CHESS_GRID_SIZE - 15, BOARD_OFFSET_Y + 4*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
+chess_clock_black_rect = pygame.Rect(BOARD_OFFSET_X - CHESS_GRID_SIZE - 15, BOARD_OFFSET_Y + 3*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
 
 class ChessClock:
     def __init__(self, start_time_per_side, increment):
-        self.white_time = start_time_per_side
+        self.white_time = start_time_per_side + 1
         self.black_time = start_time_per_side
         self.increment = increment
 
@@ -87,6 +87,30 @@ class ChessClock:
         write_centered_text(screen, black_time_text, chess_clock_black_rect, black_time_color)
 
 
+eval_bar_rect = pygame.Rect(BOARD_OFFSET_X + 8*CHESS_GRID_SIZE + 15, BOARD_OFFSET_Y, CHESS_GRID_SIZE//2, 8*CHESS_GRID_SIZE)
+
+class EvalBar:
+    def __init__(self):
+        self.eval = 0
+
+    def update_eval(self, eval):
+        self.eval = eval
+
+    def draw(self, screen):
+        # draw a white rectangle on the eval bar
+        pygame.draw.rect(screen, (255, 255, 255), eval_bar_rect)
+
+        # draw a black rectangle from the top depending on the eval
+        rect_height = int(4*CHESS_GRID_SIZE - 4*CHESS_GRID_SIZE*self.eval/10)
+        rect_height = max(0, rect_height)
+        rect_height = min(8*CHESS_GRID_SIZE, rect_height)
+
+        eval_rect = pygame.Rect(eval_bar_rect.x, eval_bar_rect.y, eval_bar_rect.width, rect_height)
+        pygame.draw.rect(screen, (32, 32, 32), eval_rect)
+
+        # draw a border around the eval bar
+        # pygame.draw.rect(screen, (64, 128, 64), eval_bar_rect, 5)
+
 
 class PlayerVsComputer:
     def __init__(self, screen):
@@ -111,15 +135,23 @@ class PlayerVsComputer:
         self.preview_annotation_start_square = None
         self.preview_annotation_end_square = None
 
-        self.engine = Engine(self.board, self.engine_depth)
+        self.engine = Engine(
+            self.board, 
+            self.engine_depth, 
+            time_limit_ms=self.start_time_per_side//30*1000 + self.increment*1000)
         self.engine_move_container = []
         self.engine_status = 'idle'
+
+        self.eval_bar = EvalBar()
         
         self.move_list = []
 
         self.turn = True
 
         self.clock = pygame.time.Clock()
+
+        self.root = tk.Tk()
+        self.root.withdraw()
 
         self.sfx['game_start'].play()
 
@@ -337,6 +369,8 @@ class PlayerVsComputer:
             write_centered_text(self.screen, "Checkmate! Black wins\nClick to return to the main menu", description_rect, description_color)
         elif self.board.is_checkmate(False):
             write_centered_text(self.screen, "Checkmate! White wins\nClick to return to the main menu", description_rect, description_color)
+        elif self.board.is_stalemate(self.turn):
+            write_centered_text(self.screen, "Stalemate! It's a draw\nClick to return to the main menu", description_rect, description_color)
         elif self.chess_clock.white_time <= 0:
             write_centered_text(self.screen, "Time's up! Black wins\nClick to return to the main menu", description_rect, description_color)
         elif self.chess_clock.black_time <= 0:
@@ -517,7 +551,7 @@ class PlayerVsComputer:
             return
         
         move = self.engine_move_container[-1][0]
-        if move == None:
+        if move is None:
             return
         
         start = move[0]
@@ -545,6 +579,8 @@ class PlayerVsComputer:
         self.draw_latest_engine_move()
 
         self.chess_clock.draw(self.screen)
+
+        self.eval_bar.draw(self.screen)
 
     def edit_fen(self):
         '''Edit the fen string of the board'''
@@ -623,7 +659,6 @@ class PlayerVsComputer:
                 self.previous_depth = len(self.engine_move_container)
                 move_confirmation = self.engine_move_container[-1][2]
                 if move_confirmation:
-                    print(f'Depth: {len(self.engine_move_container)}')
                     move = self.engine_move_container[-1][0]
                     self.board.make_move(move)
                     self.engine.update_board(self.board)
@@ -633,6 +668,21 @@ class PlayerVsComputer:
                     self.chess_clock.switch_turn()
                     self.engine_status = 'idle'
                     self.previous_depth = 0
+
+    def update_eval_bar(self):
+        '''Update the eval bar'''
+        # print(self.engine_move_container)
+        if self.turn == self.human_player:
+            return
+        
+        if len(self.engine_move_container) == 0:
+            return
+        
+        eval = self.engine_move_container[-1][1]
+        if eval is None:
+            return
+
+        self.eval_bar.update_eval(eval)
 
     def is_game_over(self):
         '''Check if the game is over from the board or the chess clock'''
@@ -655,7 +705,7 @@ class PlayerVsComputer:
             self.mx, self.my = pygame.mouse.get_pos()
             self.mb = pygame.mouse.get_pressed()
 
-            self.screen.fill((32, 32, 32))
+            self.screen.fill((96, 96, 96))
 
             self.chess_clock.update()
 
@@ -664,7 +714,7 @@ class PlayerVsComputer:
             self.handle_piece_selection()
 
 
-
+            self.update_eval_bar()
             self.handle_engine()
 
             self.draw_game()

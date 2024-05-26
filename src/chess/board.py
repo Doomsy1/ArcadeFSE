@@ -520,14 +520,14 @@ class Board:
         # distance_to_south_west  # 7
 
 
-        # -17, # (-8 x 2) - 1    | 2 down, 1 left
-        # -15, # (-8 x 2) + 1    | 2 down, 1 right
-        # -10, # (-8 + 2) - 2    | 1 down, 2 left
-        # -6, # (-8 + 2) + 2    | 1 down, 2 right
-        # 6,  # (8 - 2) - 2     | 1 up, 2 left
-        # 10,  # (8 + 2) + 2     | 1 up, 2 right
-        # 15,  # (8 x 2) + 1     | 2 up, 1 left
-        # 17   # (8 x 2) - 1     | 2 up, 1 right
+        # -17,  # (-8 x 2) - 1    | 2 down, 1 left
+        # -15,  # (-8 x 2) + 1    | 2 down, 1 right
+        # -10,  # (-8 x 2) - 2    | 1 down, 2 left
+        # -6,   # (-8 x 2) + 2    | 1 down, 2 right
+        # 6,    # ( 8 x 2) - 2    | 1 up,   2 left
+        # 10,   # ( 8 x 2) + 2    | 1 up,   2 right
+        # 15,   # ( 8 x 2) - 1    | 2 up,   1 left
+        # 17    # ( 8 x 2) + 1    | 2 up,   1 right
         distance_data = distance_to_edge[square]
 
         invalid_list = []
@@ -537,36 +537,36 @@ class Board:
             invalid_list.append(10)
             invalid_list.append(15)
             invalid_list.append(17)
-        elif distance_data[0] == 1:     # remove 1 up moves
+        elif distance_data[0] == 1:     # remove 2 up moves
             invalid_list.append(15)
             invalid_list.append(17)
 
         if distance_data[1] == 0:       # remove all right moves
-            invalid_list.append(17)
             invalid_list.append(-15)
             invalid_list.append(-6)
             invalid_list.append(10)
-        elif distance_data[1] == 1:     # remove 1 right moves
-            invalid_list.append(10)
             invalid_list.append(17)
+        elif distance_data[1] == 1:     # remove 2 right moves
+            invalid_list.append(-6)
+            invalid_list.append(10)
 
         if distance_data[2] == 0:       # remove all down moves
-            invalid_list.append(-6)
+            invalid_list.append(-17)
+            invalid_list.append(-15)
             invalid_list.append(-10)
-            invalid_list.append(-15)
+            invalid_list.append(-6)
+        elif distance_data[2] == 1:     # remove 2 down moves
             invalid_list.append(-17)
-        elif distance_data[2] == 1:     # remove 1 down moves
             invalid_list.append(-15)
-            invalid_list.append(-17)
 
         if distance_data[3] == 0:       # remove all left moves
             invalid_list.append(-17)
-            invalid_list.append(15)
+            invalid_list.append(-10)
             invalid_list.append(6)
+            invalid_list.append(15)
+        elif distance_data[3] == 1:     # remove 2 left moves
             invalid_list.append(-10)
-        elif distance_data[3] == 1:     # remove 1 left moves
-            invalid_list.append(-10)
-            invalid_list.append(-17)
+            invalid_list.append(6)
 
         for move in knight_directions:
             if move in invalid_list:
