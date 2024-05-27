@@ -60,8 +60,8 @@ def evaluate(board: Board):
 
 
 
-NEGATIVE_INFINITY = -float("inf")
-POSITIVE_INFINITY = float("inf")
+NEGATIVE_INFINITY = -9999999
+POSITIVE_INFINITY = 9999999
 
 class Engine:
     def __init__(self, board: Board, depth: int = 6, time_limit_ms: int = 2500):
@@ -140,15 +140,17 @@ class Engine:
         beta = POSITIVE_INFINITY
 
         for current_depth in range(1, self.depth + 1):
+            current_best_move = None
+            current_best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
 
             if starting_player:
                 for move in self.board.generate_legal_moves(True):
                     self.board.make_move(move)
                     value = self.minimax(current_depth - 1, alpha, beta)
                     self.board.undo_move()
-                    if value > best_eval:
-                        best_eval = value
-                        best_move = move
+                    if value > current_best_eval:
+                        current_best_eval = value
+                        current_best_move = move
                     alpha = max(alpha, value)
                     if beta <= alpha:
                         break
@@ -158,15 +160,18 @@ class Engine:
                     self.board.make_move(move)
                     value = self.minimax(current_depth - 1, alpha, beta)
                     self.board.undo_move()
-                    if value < best_eval:
-                        best_eval = value
-                        best_move = move
+                    if value < current_best_eval:
+                        current_best_eval = value
+                        current_best_move = move
                     beta = min(beta, value)
                     if beta <= alpha:
                         break
 
-            result_container.append((best_move, best_eval, False))
-            print(f"Depth: {current_depth}, Best move: {best_move}, Best eval: {best_eval}")
+            result_container.append((current_best_move, current_best_eval, False))
+            print(f"Depth: {current_depth}, Best move: {current_best_move}, Best eval: {current_best_eval}")
+
+            best_move = current_best_move
+            best_eval = current_best_eval
 
 
         result_container.append((best_move, best_eval, True))
