@@ -101,7 +101,7 @@ class EvalBar:
         pygame.draw.rect(screen, (255, 255, 255), eval_bar_rect)
 
         # draw a black rectangle from the top depending on the eval
-        rect_height = int(4*CHESS_GRID_SIZE - 4*CHESS_GRID_SIZE*self.eval/1000)
+        rect_height = int(4*CHESS_GRID_SIZE - 4*CHESS_GRID_SIZE*self.eval/5000)
         rect_height = max(0, rect_height)
         rect_height = min(8*CHESS_GRID_SIZE, rect_height)
 
