@@ -401,7 +401,10 @@ class Board:
 
         return fen
     
-    def generate_moves(self, turn):
+
+
+    # in generator
+    def generate_moves(self):
         '''Generates all possible moves for the given turn'''
         # key = self.hash_board(turn)
         # if key in self.generated_moves:
@@ -409,7 +412,7 @@ class Board:
 
         moves = []
 
-        for square in (self.white_pieces if turn else self.black_pieces):
+        for square in (self.white_pieces if self.white_to_move else self.black_pieces):
             piece = self.board[square]
             piece_type = Piece.get_type(piece)
 
@@ -462,7 +465,6 @@ class Board:
                     0,              # castling
                     0               # en_passant
                     ))
-
 
     def generate_pawn_moves(self, piece, square, moves):
         '''Generates all possible moves for the pawn on the given square'''
@@ -753,7 +755,9 @@ class Board:
                             1,              # castling
                             0               # en_passant
                             ))
-                        
+
+
+    # in board   
     def make_move(self, move):
         '''Makes the given move on the board'''
         start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
@@ -917,31 +921,53 @@ class Board:
 
 
 
-
-    def is_check(self, turn):
+    # game conditions?
+    def new_is_check(self, turn):
         king_square = self.white_king_square if turn == Piece.white else self.black_king_square
         attack_map = self.black_attacked_squares if turn == Piece.white else self.white_attacked_squares
         return attack_map[king_square] > 0
     
-    def generate_legal_moves(self, turn):
+    def is_check(self):
+        '''Returns True if the given turn is in check, False otherwise'''
+        king_square = self.white_king_square if self.white_to_move else self.black_king_square
+
+        # TODO: optimize by checking only the pieces that can attack the king
+        # TODO: check for pins
+        # TODO: check for discovered checks
+        # TODO: check for en passant checks
+        # generate moves for the enemy pieces to see if they can capture the king
+        moves = self.generate_moves()
+        for move in moves:
+            if move[1] == king_square:
+                return True
+            
+        return False
+    
+
+
+    # in generator
+    def generate_legal_moves(self):
         '''Generates all legal moves for the given turn'''
-        potential_moves = self.generate_moves(turn)
+        potential_moves = self.generate_moves()
         legal_moves = []
 
         for move in potential_moves:
             self.make_move(move)
-            if not self.is_check(turn):  # Check if the current player is not in check
+            if not self.is_check():  # Check if the current player is not in check
                 legal_moves.append(move)
             self.undo_move()
         return legal_moves
     
-    def is_checkmate(self, turn):
-        '''Returns True if the given turn is in checkmate, False otherwise'''
-        return self.is_check(turn) and not self.generate_legal_moves(turn)
+
     
-    def is_stalemate(self, turn):
+    # game conditions?
+    def is_checkmate(self):
+        '''Returns True if the given turn is in checkmate, False otherwise'''
+        return self.is_check() and not self.generate_legal_moves()
+    
+    def is_stalemate(self):
         '''Returns True if the given turn is in stalemate, False otherwise'''
-        return not self.is_check(turn) and not self.generate_legal_moves(turn)
+        return not self.is_check() and not self.generate_legal_moves()
     
     def is_threefold_repetition(self):
         '''Returns True if the current board state has occurred three times, False otherwise'''
@@ -969,7 +995,7 @@ class Board:
     
     def is_game_over(self):
         '''Returns True if the game is over, False otherwise'''
-        return self.is_checkmate(True) or self.is_checkmate(False) or self.is_stalemate(True) or self.is_stalemate(False) or self.is_draw()
+        return self.is_checkmate() or self.is_stalemate() or self.is_draw()
     
 
 if __name__ == "__main__":

@@ -164,7 +164,7 @@ class PlayerVsPlayer:
         '''
         Get the legal moves of a piece
         '''
-        moves = self.board.generate_legal_moves(self.turn)
+        moves = self.board.generate_legal_moves()
         piece_moves = []
         for move in moves:
             start = move[0]
@@ -291,8 +291,9 @@ class PlayerVsPlayer:
 
         pygame.display.flip()
 
-        move, score = self.engine.find_best_move()
-        self.engine_suggestion = move
+        result_container = []
+        self.engine.find_best_move(result_container)
+        self.engine_suggestion = result_container[-1][0]
     
     def draw_game_over(self):
         '''
@@ -312,10 +313,11 @@ class PlayerVsPlayer:
         pygame.draw.rect(self.screen, description_rect_color, description_rect)
 
         description_color = (128, 128, 128)
-        if self.board.is_checkmate(True):
-            write_centered_text(self.screen, "Checkmate! Black wins\nClick to return to the main menu", description_rect, description_color)
-        elif self.board.is_checkmate(False):
-            write_centered_text(self.screen, "Checkmate! White wins\nClick to return to the main menu", description_rect, description_color)
+        if self.board.is_checkmate():
+            if self.turn:
+                write_centered_text(self.screen, "Checkmate! Black wins\nClick to return to the main menu", description_rect, description_color)
+            else:
+                write_centered_text(self.screen, "Checkmate! White wins\nClick to return to the main menu", description_rect, description_color)
 
         pygame.display.flip()
 
@@ -593,6 +595,7 @@ class PlayerVsPlayer:
             color = (255, 0, 0)
             alpha = 10 + attacked_num * 50
             alpha = min(alpha, 255)
+            alpha = max(alpha, 0)
             x, y = square_to_pixel(square)
             draw_transparent_rect(self.screen, (x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE), color, alpha)
 
@@ -601,7 +604,8 @@ class PlayerVsPlayer:
             text_rect = pygame.Rect(x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
             write_centered_text(self.screen, str(attacked_num), text_rect, text_color)
 
-        print(self.board.white_attacked_squares)
+        # print(self.board.white_attacked_squares) 
+        # TODO: fix attacked squares
 
     def main_loop(self):
         running = True
@@ -626,7 +630,7 @@ class PlayerVsPlayer:
 
             self.draw_game()
 
-            self.draw_white_attacked_squares()
+            # self.draw_white_attacked_squares()
 
             # print(self.board.create_fen())
 

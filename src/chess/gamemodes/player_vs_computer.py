@@ -1,18 +1,17 @@
-import json
-from tkinter import simpledialog
-import tkinter as tk
-import pygame
-from constants import *
 from src.chess.board import Board, Piece
-from utils import *
 from src.chess.engine import Engine
-import threading
+from tkinter import simpledialog
+from constants import *
 from time import time
+import tkinter as tk
+from utils import *
+import threading
+import pygame
+import json
 
 
 
 FPS = 60
-
 
 def file_rank_to_square(file, rank):
     return 8*rank + file
@@ -118,7 +117,7 @@ class PlayerVsComputer:
 
         self.board = Board()
         
-        # self.board.load_fen('8/p4p2/Q7/3P4/1p1kB3/1K4N1/5R2/8 w - - 0 1')
+        self.board.load_fen('2b3N1/8/1r2pN1b/1p2kp2/1P1R4/8/4K3/6Q1 w - - 0 1')
 
         self.selected_square = None
 
@@ -368,12 +367,15 @@ class PlayerVsComputer:
         pygame.draw.rect(self.screen, description_rect_color, description_rect)
 
         description_color = (128, 128, 128)
-        if self.board.is_checkmate(True):
-            write_centered_text(self.screen, "Checkmate! Black wins\nClick to return to the main menu", description_rect, description_color)
-        elif self.board.is_checkmate(False):
-            write_centered_text(self.screen, "Checkmate! White wins\nClick to return to the main menu", description_rect, description_color)
-        elif self.board.is_stalemate(self.turn):
+        if self.board.is_checkmate():
+            if self.turn:
+                write_centered_text(self.screen, "Checkmate! Black wins", description_rect, description_color)
+            else:
+                write_centered_text(self.screen, "Checkmate! White wins", description_rect, description_color)
+        
+        elif self.board.is_stalemate():
             write_centered_text(self.screen, "Stalemate! It's a draw\nClick to return to the main menu", description_rect, description_color)
+        
         elif self.chess_clock.white_time <= 0:
             write_centered_text(self.screen, "Time's up! Black wins\nClick to return to the main menu", description_rect, description_color)
         elif self.chess_clock.black_time <= 0:

@@ -120,6 +120,10 @@ class Engine:
         return (time.time() - self.start_time) * 1000 >= self.time_limit_ms
     
     def quiescence_search(self):
+        if self.board.is_checkmate():
+            return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
+        if self.board.is_stalemate():        
+            return 0
         # TODO: implement quiescence search
         return evaluate(self.board)
 
@@ -130,7 +134,7 @@ class Engine:
 
         if self.board.white_to_move:
             best_eval = NEGATIVE_INFINITY
-            for move in order_moves(self.board.generate_legal_moves(True)):
+            for move in order_moves(self.board.generate_legal_moves()):
                 self.board.make_move(move)
                 value = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -141,7 +145,7 @@ class Engine:
 
         else:
             best_eval = POSITIVE_INFINITY
-            for move in order_moves(self.board.generate_legal_moves(False)):
+            for move in order_moves(self.board.generate_legal_moves()):
                 self.board.make_move(move)
                 value = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -160,7 +164,7 @@ class Engine:
         best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
 
         for current_depth in range(1, self.depth + 1):
-            ordered_moves = order_moves(self.board.generate_legal_moves(starting_player))
+            ordered_moves = order_moves(self.board.generate_legal_moves())
             alpha = NEGATIVE_INFINITY
             beta = POSITIVE_INFINITY
             current_best_move = random.choice(ordered_moves)
@@ -185,7 +189,13 @@ class Engine:
                 if beta <= alpha:
                     break
 
-            if self.time_exceeded() or current_best_move is None:
+            # if the move will result in a checkmate, don't continue searching
+            # if current_best_eval == POSITIVE_INFINITY or current_best_eval == NEGATIVE_INFINITY:
+            #     best_move = current_best_move
+            #     best_eval = current_best_eval
+            #     break
+
+            if current_best_move is None:
                 break
 
             result_container.append((current_best_move, current_best_eval, False))
