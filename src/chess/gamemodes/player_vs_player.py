@@ -585,6 +585,24 @@ class PlayerVsPlayer:
                     self.edit_fen()
         return False
 
+    def draw_white_attacked_squares(self):
+        '''
+        Draw the squares that are attacked by white
+        '''
+        for square, attacked_num in enumerate(self.board.white_attacked_squares):
+            color = (255, 0, 0)
+            alpha = 10 + attacked_num * 50
+            alpha = min(alpha, 255)
+            x, y = square_to_pixel(square)
+            draw_transparent_rect(self.screen, (x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE), color, alpha)
+
+            # write the number of times the square is attacked
+            text_color = (255, 255, 255)
+            text_rect = pygame.Rect(x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE)
+            write_centered_text(self.screen, str(attacked_num), text_rect, text_color)
+
+        print(self.board.white_attacked_squares)
+
     def main_loop(self):
         running = True
 
@@ -607,6 +625,8 @@ class PlayerVsPlayer:
             self.handle_piece_selection()
 
             self.draw_game()
+
+            self.draw_white_attacked_squares()
 
             # print(self.board.create_fen())
 
