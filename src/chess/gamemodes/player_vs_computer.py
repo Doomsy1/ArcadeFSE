@@ -117,6 +117,8 @@ class PlayerVsComputer:
         self.screen = screen
 
         self.board = Board()
+        
+        # self.board.load_fen('8/p4p2/Q7/3P4/1p1kB3/1K4N1/5R2/8 w - - 0 1')
 
         self.selected_square = None
 
@@ -135,10 +137,11 @@ class PlayerVsComputer:
         self.preview_annotation_start_square = None
         self.preview_annotation_end_square = None
 
+        self.allocated_engine_time = self.start_time_per_side*1000//50 + self.increment*900
         self.engine = Engine(
             self.board, 
             self.engine_depth, 
-            time_limit_ms=self.start_time_per_side//30*1000 + self.increment*1000)
+            time_limit_ms=self.allocated_engine_time)
         self.engine_move_container = []
         self.engine_status = 'idle'
 
@@ -538,8 +541,14 @@ class PlayerVsComputer:
     def request_engine_move(self):
         '''Request a move from the engine'''
 
+        if self.human_player:
+            self.engine.set_time_limit(min(self.chess_clock.black_time*1000//4, self.allocated_engine_time))
+        else:
+            self.engine.set_time_limit(min(self.chess_clock.white_time*1000//4, self.allocated_engine_time))
+
         self.engine_move_container = []
         threading.Thread(target=self.engine.find_best_move, args=(self.engine_move_container,)).start()
+        # self.engine.find_best_move(self.engine_move_container) # for debugging purposes
 
     def draw_latest_engine_move(self):
         '''Draw the latest move of the engine'''

@@ -433,27 +433,40 @@ class Board:
         # single move
         single_move = square + direction
         if self.is_empty(single_move):
-            moves.append((
-                square,         # start
-                single_move,    # end
-                piece,          # start_piece
-                0,              # captured_piece
-                0,              # promotion_piece
-                0,              # castling
-                0               # en_passant
-                ))
-
-            # double move
-            if piece_rank == start_rank and self.is_empty(single_move + direction):
+            if (single_move//8) == promotion_rank:
+                for promotion_piece in [Piece.knight, Piece.bishop, Piece.rook, Piece.queen]:
+                    moves.append((
+                        square,                 # start
+                        single_move,            # end
+                        piece,                  # start_piece
+                        0,                      # captured_piece
+                        promotion_piece | color,# promotion_piece
+                        0,                      # castling
+                        0                       # en_passant
+                        ))
+                
+            else:
                 moves.append((
-                    square,                     # start
-                    single_move + direction,    # end
-                    piece,                      # start_piece
-                    0,                          # captured_piece
-                    0,                          # promotion_piece
-                    0,                          # castling
-                    0                           # en_passant
+                    square,         # start
+                    single_move,    # end
+                    piece,          # start_piece
+                    0,              # captured_piece
+                    0,              # promotion_piece
+                    0,              # castling
+                    0               # en_passant
                     ))
+
+                # double move
+                if piece_rank == start_rank and self.is_empty(single_move + direction):
+                    moves.append((
+                        square,                     # start
+                        single_move + direction,    # end
+                        piece,                      # start_piece
+                        0,                          # captured_piece
+                        0,                          # promotion_piece
+                        0,                          # castling
+                        0                           # en_passant
+                        ))
                 
         # captures
         for capture_direction in [direction - 1, direction + 1]:
@@ -476,7 +489,7 @@ class Board:
                             capture_square,             # end
                             piece,                      # start_piece
                             captured_piece,             # captured_piece
-                            promotion_piece | color,    # promotion_piece
+                            color | promotion_piece,    # promotion_piece
                             0,                          # castling
                             0                           # en_passant
                             ))
@@ -499,7 +512,7 @@ class Board:
                     square,                     # start
                     capture_square,             # end
                     piece,                      # start_piece
-                    (piece ^ 24) | Piece.pawn,  # captured_piece
+                    (piece ^ 24),               # captured_piece
                     0,                          # promotion_piece
                     0,                          # castling
                     1                           # en_passant
@@ -737,7 +750,7 @@ class Board:
                 self.clear_piece(end_square+8, captured_piece)
 
         # capture
-        elif captured_piece:
+        elif captured_piece: # TODO: promotion capture
             self.clear_piece(end_square, captured_piece)
 
         # promotion

@@ -1,4 +1,5 @@
 # from src.chess.engine.PSQT import PSQT
+import random
 import time
 from src.chess.PSQT import PSQT, PHASE_WEIGHTS, TOTAL_PHASE
 from src.chess.board import Board
@@ -27,13 +28,13 @@ def get_piece_square_table_value(piece, square, phase):
 
     return opening_value * (1 - phase) + endgame_value * phase
 
-def evaluate_psqt(board: Board):
-    phase = calculate_phase(board.board)
+def evaluate_psqt(board):
+    phase = calculate_phase(board)
 
     score = 0
 
     # TODO: switch to using board.white_pieces and board.black_pieces
-    for square, piece in enumerate(board.board):
+    for square, piece in enumerate(board):
         if piece != 0:
             score += get_piece_square_table_value(piece, square, phase)
 
@@ -45,18 +46,38 @@ def evaluate_psqt(board: Board):
 
 
 
+def order_moves(unordered_moves):
+    ordered_moves = []
 
+    capture_moves = []
+    non_capture_moves = []
+
+    for move in unordered_moves:
+        if move[3]:
+            capture_moves.append(move)
+        else:
+            non_capture_moves.append(move)
+
+    # order capture moves based on the piece that is getting captured
+    capture_moves.sort(key=lambda move: (-move[3], move[2]))
+
+    # order non-capture moves based on the piece that is moving
+    non_capture_moves.sort(key=lambda move: -move[2])
+
+    ordered_moves.extend(capture_moves)
+    ordered_moves.extend(non_capture_moves)
+
+    return ordered_moves
 
 def evaluate(board: Board):
     evaluation = 0
     
     # Material
-    evaluation += evaluate_psqt(board)
+    evaluation += evaluate_psqt(board.board)
 
     # TODO: add more evaluation terms
 
     return evaluation
-
 
 
 
@@ -92,6 +113,8 @@ class Engine:
         self.board.undo_list = board.undo_list.copy()
 
 
+    def set_time_limit(self, time_limit_ms: int):
+        self.time_limit_ms = time_limit_ms
 
     def time_exceeded(self):
         return (time.time() - self.start_time) * 1000 >= self.time_limit_ms
@@ -107,7 +130,7 @@ class Engine:
 
         if self.board.white_to_move:
             best_eval = NEGATIVE_INFINITY
-            for move in self.board.generate_legal_moves(True):
+            for move in order_moves(self.board.generate_legal_moves(True)):
                 self.board.make_move(move)
                 value = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -118,7 +141,7 @@ class Engine:
 
         else:
             best_eval = POSITIVE_INFINITY
-            for move in self.board.generate_legal_moves(False):
+            for move in order_moves(self.board.generate_legal_moves(False)):
                 self.board.make_move(move)
                 value = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -128,7 +151,7 @@ class Engine:
                     break
 
         return best_eval
-    
+
     def find_best_move(self, result_container):
         # TODO: check if this code is correct
         self.start_time = time.time()
@@ -136,36 +159,34 @@ class Engine:
         best_move = None
         best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
 
-        alpha = NEGATIVE_INFINITY
-        beta = POSITIVE_INFINITY
-
         for current_depth in range(1, self.depth + 1):
-            current_best_move = None
+            ordered_moves = order_moves(self.board.generate_legal_moves(starting_player))
+            alpha = NEGATIVE_INFINITY
+            beta = POSITIVE_INFINITY
+            current_best_move = random.choice(ordered_moves)
             current_best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
 
-            if starting_player:
-                for move in self.board.generate_legal_moves(True):
-                    self.board.make_move(move)
-                    value = self.minimax(current_depth - 1, alpha, beta)
-                    self.board.undo_move()
+            for move in ordered_moves:
+                self.board.make_move(move)
+                value = self.minimax(current_depth - 1, alpha, beta)
+                self.board.undo_move()
+
+                if starting_player:
                     if value > current_best_eval:
                         current_best_eval = value
                         current_best_move = move
                     alpha = max(alpha, value)
-                    if beta <= alpha:
-                        break
-
-            else:
-                for move in self.board.generate_legal_moves(False):
-                    self.board.make_move(move)
-                    value = self.minimax(current_depth - 1, alpha, beta)
-                    self.board.undo_move()
+                else:
                     if value < current_best_eval:
                         current_best_eval = value
                         current_best_move = move
                     beta = min(beta, value)
-                    if beta <= alpha:
-                        break
+
+                if beta <= alpha:
+                    break
+
+            if self.time_exceeded() or current_best_move is None:
+                break
 
             result_container.append((current_best_move, current_best_eval, False))
             print(f"Depth: {current_depth}, Best move: {current_best_move}, Best eval: {current_best_eval}")

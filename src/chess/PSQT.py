@@ -133,7 +133,7 @@ for phase in PSQT: # Opening, Endgame
         table = PSQT[phase][piece]
 
         black_table = []
-        for rank in table:
+        for rank in table[::-1]:
             black_rank = [-score for score in rank]
             black_table.append(black_rank)
 
