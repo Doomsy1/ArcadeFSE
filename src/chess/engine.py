@@ -102,15 +102,13 @@ class Engine:
         self.board.white_pieces = board.white_pieces.copy()
         self.board.black_pieces = board.black_pieces.copy()
 
-        self.board.white_attacked_squares = board.white_attacked_squares.copy()
-        self.board.black_attacked_squares = board.black_attacked_squares.copy()
 
         self.board.white_to_move = board.white_to_move
         self.board.castling_rights =  board.castling_rights
         self.board.en_passant_target_square = board.en_passant_target_square
         self.board.halfmove_clock = board.halfmove_clock
         self.board.fullmove_number = board.fullmove_number
-        self.board.undo_list = board.undo_list.copy()
+        self.board.undo_stack = board.undo_stack.copy()
 
 
     def set_time_limit(self, time_limit_ms: int):

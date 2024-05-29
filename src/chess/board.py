@@ -90,11 +90,8 @@ class Board:
         self.white_king_square = 0              # square of white king
         self.black_king_square = 0              # square of black king
 
-        self.white_pieces = []                  # list of white piece squares
-        self.black_pieces = []                  # list of black piece squares
-
-        self.white_attacked_squares = [0] * 64  # list of squares attacked by white (used by is_check)
-        self.black_attacked_squares = [0] * 64  # list of squares attacked by black (used by is check)
+        self.white_pieces = set()               # set of white piece squares
+        self.black_pieces = set()               # set of black piece squares
 
         self.white_to_move = True               # True if it's white's turn
         self.castling_rights = 0                # 4 bits for each side (KQkq)
@@ -102,7 +99,7 @@ class Board:
         self.halfmove_clock = 0                 # number of halfmoves since last capture or pawn move
         self.fullmove_number = 0                # starts at 1 and is incremented after b's move
 
-        self.undo_list = []                     # list of previous board states
+        self.undo_stack = []                    # stack of moves (used for undo_move)
 
         self.generated_moves = {}               # dictionary of generated moves for each board state
 
@@ -124,15 +121,12 @@ class Board:
         new_board.white_pieces = self.white_pieces
         new_board.black_pieces = self.black_pieces
 
-        new_board.white_attacked_squares = self.white_attacked_squares
-        new_board.black_attacked_squares = self.black_attacked_squares
-
         new_board.white_to_move = self.white_to_move
         new_board.castling_rights = self.castling_rights
         new_board.en_passant_target_square = self.en_passant_target_square
         new_board.halfmove_clock = self.halfmove_clock
         new_board.fullmove_number = self.fullmove_number
-        new_board.undo_list = self.undo_list
+        new_board.undo_stack = self.undo_stack
 
         return new_board
 
@@ -151,26 +145,27 @@ class Board:
     def set_piece(self, square, piece):
         '''Sets the piece on the square'''
         self.board[square] = piece
+        piece_color = Piece.get_color(piece)
+        piece_type = Piece.get_type(piece)
 
-        if Piece.get_color(piece) == Piece.white:
-            self.white_pieces.append(square)
-            if Piece.get_type(piece) == Piece.king:
+        if piece_color == Piece.white:
+            self.white_pieces.add(square)
+            if piece_type == Piece.king:
                 self.white_king_square = square
-
         else:
-            self.black_pieces.append(square)
-            if Piece.get_type(piece) == Piece.king:
+            self.black_pieces.add(square)
+            if piece_type == Piece.king:
                 self.black_king_square = square
 
     def clear_piece(self, square, piece):
         '''Clears the piece on the square'''
         self.board[square] = 0
+        piece_color = Piece.get_color(piece)
 
-        if Piece.get_color(piece) == Piece.white:
-            self.white_pieces.remove(square)
-
+        if piece_color == Piece.white:
+            self.white_pieces.discard(square)
         else:
-            self.black_pieces.remove(square)
+            self.black_pieces.discard(square)
 
     def move_piece(self, start_square, end_square, piece):
         '''Moves the piece from start_square to end_square'''
@@ -188,8 +183,8 @@ class Board:
         self.white_king_square = 0
         self.black_king_square = 0
         
-        self.white_pieces = []
-        self.black_pieces = []
+        self.white_pieces = set()
+        self.black_pieces = set()
         
         fen_data = fen.split(' ')
         piece_placement = fen_data[0]
@@ -337,7 +332,7 @@ class Board:
         start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
 
         # save the board for undoing the move
-        self.save_state()
+        self.add_to_stack(move)
 
         # special moves
         if castling:
@@ -366,15 +361,10 @@ class Board:
         # update turn
         self.white_to_move = not self.white_to_move
 
-    def save_state(self):
-        self.undo_list.append((
-            self.board.copy(),
-            self.white_king_square,
-            self.black_king_square,
-            self.white_pieces.copy(),
-            self.black_pieces.copy(),
-            self.white_attacked_squares.copy(),
-            self.black_attacked_squares.copy(),
+    def add_to_stack(self, move):
+        '''Adds info needed to undo the move to the undo stack'''
+        self.undo_stack.append((
+            move,
             self.castling_rights,
             self.en_passant_target_square,
             self.halfmove_clock
@@ -461,24 +451,57 @@ class Board:
         '''Undoes the last move made on the board'''
         # TODO: implement undoing the move manually (for now this works)
         # restore board state
-        board, white_king_square, black_king_square, white_pieces, black_pieces, white_attacked_squares, black_attacked_squares, castling_rights, en_passant_target_square, halfmove_clock = self.undo_list.pop()
+        move, castling_rights, en_passant_target_square, halfmove_clock = self.undo_stack.pop()
 
-        self.board = board
+        start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
 
-        self.white_king_square = white_king_square
-        self.black_king_square = black_king_square
+        self.white_to_move = not self.white_to_move
 
-        self.white_pieces = white_pieces
-        self.black_pieces = black_pieces
+        # undo special moves
+        if castling:
+            self.undo_castling(end_square)
+        elif en_passant:
+            self.undo_en_passant(end_square, captured_piece)
+        # capture (+ promotion capture)
+        elif captured_piece:
+            pass
 
-        self.white_attacked_squares = white_attacked_squares
-        self.black_attacked_squares = black_attacked_squares
-
+        # restore board state
         self.castling_rights = castling_rights
         self.en_passant_target_square = en_passant_target_square
         self.halfmove_clock = halfmove_clock
         self.fullmove_number -= 1 if self.white_to_move else 0
-        self.white_to_move = not self.white_to_move
+
+    def undo_castling(self, end_square):
+        match end_square:
+            case 6:
+                self.move_piece(5, 7, Piece.white | Piece.rook)
+            case 2:
+                self.move_piece(3, 0, Piece.white | Piece.rook)
+
+            case 62:
+                self.move_piece(61, 63, Piece.black | Piece.rook)
+            case 58:
+                self.move_piece(59, 56, Piece.black | Piece.rook)
+
+    def undo_en_passant(self, end_square, captured_piece):
+        if self.white_to_move:
+            self.set_piece(end_square-8, captured_piece)
+        else:
+            self.set_piece(end_square+8, captured_piece)
+
+    def undo_capture(self, start_square, end_square, start_piece, captured_piece, promotion_piece):
+        if promotion_piece:
+            pass
+
+
+
+
+    def undo_promotion(self, start_square, end_square, start_piece, promotion_piece):
+        self.clear_piece(end_square, promotion_piece)
+        self.set_piece(start_square, start_piece)
+
+
 
     def is_check(self, color):
         '''Returns True if the given color is in check, False otherwise'''
