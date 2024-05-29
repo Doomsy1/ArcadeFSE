@@ -181,7 +181,7 @@ class PlayerVsPlayer:
             moves = self.get_square_legal_moves(self.selected_square)
             for move in moves:
                 end = move[1]
-                capture = move[3] # TODO: check this
+                capture = move[3]
                 if capture:
                     color = CAPTURE_SQUARE_COLOR
                     alpha = CAPTURE_SQUARE_ALPHA
@@ -641,6 +641,10 @@ class PlayerVsPlayer:
 
             if self.mb[0]:
                 self.draw_selected_piece()
+
+            # draw a transparent rect on the en passant square
+            en_passant_target = self.board.en_passant_target_square
+            draw_transparent_rect(self.screen, (square_to_pixel(en_passant_target)[0], square_to_pixel(en_passant_target)[1], CHESS_GRID_SIZE, CHESS_GRID_SIZE), (0,0,0), 200)
 
             # set the title of the window to the fps
             pygame.display.set_caption(f'Chess | FPS: {int(self.clock.get_fps())}')

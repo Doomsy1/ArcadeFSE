@@ -100,7 +100,7 @@ class PacmanMap:
             if pygame.Rect(pellet[0] - PELLET_RADIUS, pellet[1] - PELLET_RADIUS, PELLET_RADIUS * 2, PELLET_RADIUS * 2).collidepoint(x, y):
                 self.pellets.remove(pellet)
                 return
-            
+
     def remove_powerup(self, x, y):
         '''Remove the powerup at the given x, y coordinates'''
         for powerup in self.powerups:
