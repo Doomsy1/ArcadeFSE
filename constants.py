@@ -36,6 +36,8 @@ PREVIOUS_MOVE_ALPHA = 128
 
 
 # Constants for the pacman game
-GRID_SIZE = 32
 
-VEL = 5  # Velocity of Pac-Man
+PACMAN_VEL = 5  # Velocity of Pac-Man
+
+PACMAN_X_OFFSET, PACMAN_Y_OFFSET = 0, 0
+PACMAN_GRID_SIZE = 16
