@@ -17,7 +17,7 @@ def file_rank_to_square(file, rank):
     return 8*rank + file
 
 def square_to_file_rank(square):
-    return square%8, square//8
+    return square % 8, square // 8
 
 def square_to_pixel(square):
     file, rank = square_to_file_rank(square)
@@ -256,7 +256,7 @@ class PlayerVsComputer:
         board_image = pygame.Surface((CHESS_GRID_SIZE*8, CHESS_GRID_SIZE*8))
 
         for square in range(64):
-            rank, file = square_to_file_rank(square)
+            file, rank = square_to_file_rank(square)
             color = dark_square_color if (rank + file) % 2 == 1 else light_square_color
             pygame.draw.rect(board_image, color, (rank*CHESS_GRID_SIZE, file*CHESS_GRID_SIZE, CHESS_GRID_SIZE, CHESS_GRID_SIZE))
 

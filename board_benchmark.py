@@ -9,7 +9,7 @@ def count_positions(board: Board, depth):
     if depth == 0:
         return 1
     count = 0
-    for move in board.generate_legal_moves(board.white_to_move):
+    for move in board.generate_legal_moves():
         board.make_move(move)
         count += count_positions(board, depth - 1)
         board.undo_move()

@@ -227,23 +227,23 @@ class PlayerVsPlayer:
         '''
         promotion_choices = {
             'knight': {
-                'white': 0b1010,
-                'black': 0b0010,
+                'white': Piece.white | Piece.knight,
+                'black': Piece.black | Piece.knight,
                 'rect': pygame.Rect(200, 200, 100, 100)
             },
             'bishop': {
-                'white': 0b1011,
-                'black': 0b0011,
+                'white': Piece.white | Piece.bishop,
+                'black': Piece.black | Piece.bishop,
                 'rect': pygame.Rect(200, 300, 100, 100)
             },
             'rook': {
-                'white': 0b1100,
-                'black': 0b0100,
+                'white': Piece.white | Piece.rook,
+                'black': Piece.black | Piece.rook,
                 'rect': pygame.Rect(300, 200, 100, 100)
             },
             'queen': {
-                'white': 0b1101,
-                'black': 0b0101,
+                'white': Piece.white | Piece.queen,
+                'black': Piece.black | Piece.queen,
                 'rect': pygame.Rect(300, 300, 100, 100)
             }
         }
@@ -634,9 +634,9 @@ class PlayerVsPlayer:
 
             # print(self.board.create_fen())
 
-            if self.board.is_game_over():
-                self.sfx['game_over'].play()
-                return self.draw_game_over()
+            # if self.board.is_game_over():
+            #     self.sfx['game_over'].play()
+            #     return self.draw_game_over()
             
 
             if self.mb[0]:

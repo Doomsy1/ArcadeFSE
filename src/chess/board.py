@@ -4,10 +4,6 @@
 
 import random
 
-
-
-
-
 class Piece:
     # last 3 bits are type
     pawn = 1
@@ -52,45 +48,6 @@ class Piece:
     @staticmethod
     def get_char_from_piece(piece):
         return char_to_piece_map[piece]
-        
-    @staticmethod
-    def directions_for_piece(piece_type):
-        if piece_type == Piece.rook:
-            return [8, 1, -8, -1]  # vertical and horizontal
-        elif piece_type == Piece.bishop:
-            return [9, 7, -7, -9]  # diagonal
-        elif piece_type == Piece.queen:
-            return [8, 1, -8, -1, 9, 7, -7, -9]  # combination of rook and bishop
-        return []
-    
-    @staticmethod
-    def moves_for_piece(piece_type, square):
-        file = square % 8
-        rank = square // 8
-
-        if piece_type == Piece.pawn:
-            # Assuming this is just for generating attack squares, not actual moves
-            return [square + 8, square - 8] if file != 0 else []
-
-        elif piece_type == Piece.knight:
-            moves = []
-            knight_moves = [(-2, -1), (-1, -2), (1, -2), (2, -1), (2, 1), (1, 2), (-1, 2), (-2, 1)]
-            for dr, dc in knight_moves:
-                r, c = rank + dr, file + dc
-                if 0 <= r < 8 and 0 <= c < 8:
-                    moves.append(r * 8 + c)
-            return moves
-
-        elif piece_type == Piece.king:
-            moves = []
-            king_moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-            for dr, dc in king_moves:
-                r, c = rank + dr, file + dc
-                if 0 <= r < 8 and 0 <= c < 8:
-                    moves.append(r * 8 + c)
-            return moves
-
-        return []
 
 piece_to_char_map = {
     'p': Piece.black | Piece.pawn,
@@ -120,50 +77,6 @@ char_to_piece_map = {
     Piece.white | Piece.queen: 'Q',
     Piece.white | Piece.king: 'K',
 }
-
-
-knight_directions = [
-    -17, # (-8 x 2) - 1    | 2 down, 1 left
-    -15, # (-8 x 2) + 1    | 2 down, 1 right
-    -10, # (-8 + 2) x 2    | 1 down, 2 left
-    -6, # (-8 + 2) x 2    | 1 down, 2 right
-    6,  # (8 - 2) x 2     | 1 up, 2 left
-    10,  # (8 + 2) x 2     | 1 up, 2 right
-    15,  # (8 x 2) + 1     | 2 up, 1 left
-    17   # (8 x 2) - 1     | 2 up, 1 right
-]
-
-directions = [8, 1, -8, -1, 9, 7, -7, -9]
-distance_to_edge = []
-
-for square in range(64):
-    file = square % 8
-    rank = square // 8
-
-    # horizontal and vertical distances
-    distance_to_north = 7 - rank
-    distance_to_east = 7 - file
-    distance_to_south = rank
-    distance_to_west = file
-
-    # diagonal distances
-    distance_to_north_east = min(distance_to_north, distance_to_east)
-    distance_to_north_west = min(distance_to_north, distance_to_west)
-    distance_to_south_east = min(distance_to_south, distance_to_east)
-    distance_to_south_west = min(distance_to_south, distance_to_west)
-
-    distance_to_edge.append((
-        distance_to_north,      # 0
-        distance_to_east,       # 1
-        distance_to_south,      # 2
-        distance_to_west,       # 3
-
-        distance_to_north_east, # 4
-        distance_to_north_west, # 5
-
-        distance_to_south_east, # 6
-        distance_to_south_west  # 7
-    ))
 
 # moves will be represented as a tuple
 # (start, end, start_piece, captured_piece, promotion_piece, castling, en_passant)
@@ -249,8 +162,6 @@ class Board:
             if Piece.get_type(piece) == Piece.king:
                 self.black_king_square = square
 
-        self.update_attacks(square, piece, add=True)
-
     def clear_piece(self, square, piece):
         '''Clears the piece on the square'''
         self.board[square] = 0
@@ -261,15 +172,10 @@ class Board:
         else:
             self.black_pieces.remove(square)
 
-        self.update_attacks(square, piece, add=False)
-
     def move_piece(self, start_square, end_square, piece):
         '''Moves the piece from start_square to end_square'''
         self.clear_piece(start_square, piece)
         self.set_piece(end_square, piece)
-
-        self.update_attacks(start_square, piece, add=False)
-        self.update_attacks(end_square, piece, add=True)
 
     def load_fen(self, fen):
         '''Sets the state of the board to the given FEN string'''
@@ -401,9 +307,6 @@ class Board:
 
         return fen
     
-
-
-    # in generator
     def generate_moves(self):
         '''Generates all possible moves for the given turn'''
         # key = self.hash_board(turn)
@@ -418,346 +321,17 @@ class Board:
 
             match piece_type:
                 case Piece.pawn:
-                    self.generate_pawn_moves(piece, square, moves)
+                    generate_pawn_moves(self, piece, square, moves)
                 case Piece.knight:
-                    self.generate_knight_moves(piece, square, moves)
-                case Piece.bishop:
-                    self.generate_bishop_moves(piece, square, moves)
-                case Piece.rook:
-                    self.generate_rook_moves(piece, square, moves)
-                case Piece.queen:
-                    self.generate_queen_moves(piece, square, moves)
+                    generate_knight_moves(self, piece, square, moves)
+                case Piece.bishop, Piece.rook, Piece.queen:
+                    generate_sliding_moves(self, piece, square, moves)
                 case Piece.king:
-                    self.generate_king_moves(piece, square, moves)
+                    generate_king_moves(self, piece, square, moves)
 
         # self.generated_moves[key] = moves
         return moves
-    
-    def generate_sliding_moves(self, piece, square, moves, direction_indexes):
-        '''Generates all possible sliding moves for the piece on the given square'''
-        color = Piece.get_color(piece)
 
-        for direction_index in direction_indexes:
-            for distance in range(1, distance_to_edge[square][direction_index] + 1):
-                target_square = square + directions[direction_index] * distance
-                target_square_piece = self.board[target_square]
-
-                if target_square_piece:
-                    # capture if the target square has an enemy piece
-                    if Piece.get_color(target_square_piece) != color:
-                        moves.append((
-                            square,                 # start
-                            target_square,          # end
-                            piece,                  # start_piece
-                            target_square_piece,    # captured_piece
-                            0,                      # promotion_piece
-                            0,                      # castling
-                            0                       # en_passant
-                            ))
-                    break
-
-                moves.append((
-                    square,         # start
-                    target_square,  # end
-                    piece,          # start_piece
-                    0,              # captured_piece
-                    0,              # promotion_piece
-                    0,              # castling
-                    0               # en_passant
-                    ))
-
-    def generate_pawn_moves(self, piece, square, moves):
-        '''Generates all possible moves for the pawn on the given square'''
-        color = Piece.get_color(piece)
-
-        if color == Piece.white:
-            direction = 8
-            start_rank = 1
-            promotion_rank = 7
-        else:
-            direction = -8
-            start_rank = 6
-            promotion_rank = 0
-        
-        piece_rank = square // 8
-
-        # single move
-        single_move = square + direction
-        if self.is_empty(single_move):
-            if (single_move//8) == promotion_rank:
-                for promotion_piece in [Piece.knight, Piece.bishop, Piece.rook, Piece.queen]:
-                    moves.append((
-                        square,                 # start
-                        single_move,            # end
-                        piece,                  # start_piece
-                        0,                      # captured_piece
-                        promotion_piece | color,# promotion_piece
-                        0,                      # castling
-                        0                       # en_passant
-                        ))
-                
-            else:
-                moves.append((
-                    square,         # start
-                    single_move,    # end
-                    piece,          # start_piece
-                    0,              # captured_piece
-                    0,              # promotion_piece
-                    0,              # castling
-                    0               # en_passant
-                    ))
-
-                # double move
-                if piece_rank == start_rank and self.is_empty(single_move + direction):
-                    moves.append((
-                        square,                     # start
-                        single_move + direction,    # end
-                        piece,                      # start_piece
-                        0,                          # captured_piece
-                        0,                          # promotion_piece
-                        0,                          # castling
-                        0                           # en_passant
-                        ))
-                
-        # captures
-        for capture_direction in [direction - 1, direction + 1]:
-            capture_square = square + capture_direction
-            capture_rank = capture_square // 8
-
-            # off the board
-            if abs(capture_rank - piece_rank) != 1:
-                continue
-
-            # capture
-            if self.is_piece(capture_square) and Piece.get_color(self.board[capture_square]) != color:
-
-                # promotion capture
-                if capture_rank == promotion_rank:
-                    captured_piece = self.board[capture_square]
-                    for promotion_piece in [Piece.knight, Piece.bishop, Piece.rook, Piece.queen]:
-                        moves.append((
-                            square,                     # start
-                            capture_square,             # end
-                            piece,                      # start_piece
-                            captured_piece,             # captured_piece
-                            color | promotion_piece,    # promotion_piece
-                            0,                          # castling
-                            0                           # en_passant
-                            ))
-                        
-                # regular capture
-                else:
-                    moves.append((
-                        square,                     # start
-                        capture_square,             # end
-                        piece,                      # start_piece
-                        self.board[capture_square], # captured_piece
-                        0,                          # promotion_piece
-                        0,                          # castling
-                        0                           # en_passant
-                        ))
-                    
-            # en passant
-            elif capture_square == self.en_passant_target_square:
-                moves.append((
-                    square,                     # start
-                    capture_square,             # end
-                    piece,                      # start_piece
-                    (piece ^ 24),               # captured_piece
-                    0,                          # promotion_piece
-                    0,                          # castling
-                    1                           # en_passant
-                    ))
-        
-    def generate_knight_moves(self, piece, square, moves):
-        '''Generates all possible moves for the knight on the given square'''
-        color = Piece.get_color(piece)
-        # distance_to_north,      # 0
-        # distance_to_east,       # 1
-        # distance_to_south,      # 2
-        # distance_to_west,       # 3
-
-        # distance_to_north_east, # 4
-        # distance_to_north_west, # 5
-
-        # distance_to_south_east, # 6
-        # distance_to_south_west  # 7
-
-
-        # -17,  # (-8 x 2) - 1    | 2 down, 1 left
-        # -15,  # (-8 x 2) + 1    | 2 down, 1 right
-        # -10,  # (-8 x 2) - 2    | 1 down, 2 left
-        # -6,   # (-8 x 2) + 2    | 1 down, 2 right
-        # 6,    # ( 8 x 2) - 2    | 1 up,   2 left
-        # 10,   # ( 8 x 2) + 2    | 1 up,   2 right
-        # 15,   # ( 8 x 2) - 1    | 2 up,   1 left
-        # 17    # ( 8 x 2) + 1    | 2 up,   1 right
-        distance_data = distance_to_edge[square]
-
-        invalid_list = []
-
-        if distance_data[0] == 0:       # remove all up moves
-            invalid_list.append(6)
-            invalid_list.append(10)
-            invalid_list.append(15)
-            invalid_list.append(17)
-        elif distance_data[0] == 1:     # remove 2 up moves
-            invalid_list.append(15)
-            invalid_list.append(17)
-
-        if distance_data[1] == 0:       # remove all right moves
-            invalid_list.append(-15)
-            invalid_list.append(-6)
-            invalid_list.append(10)
-            invalid_list.append(17)
-        elif distance_data[1] == 1:     # remove 2 right moves
-            invalid_list.append(-6)
-            invalid_list.append(10)
-
-        if distance_data[2] == 0:       # remove all down moves
-            invalid_list.append(-17)
-            invalid_list.append(-15)
-            invalid_list.append(-10)
-            invalid_list.append(-6)
-        elif distance_data[2] == 1:     # remove 2 down moves
-            invalid_list.append(-17)
-            invalid_list.append(-15)
-
-        if distance_data[3] == 0:       # remove all left moves
-            invalid_list.append(-17)
-            invalid_list.append(-10)
-            invalid_list.append(6)
-            invalid_list.append(15)
-        elif distance_data[3] == 1:     # remove 2 left moves
-            invalid_list.append(-10)
-            invalid_list.append(6)
-
-        for move in knight_directions:
-            if move in invalid_list:
-                continue
-
-            target_square = square + move
-            target_square_piece = self.board[target_square]
-
-            if target_square_piece:
-                if Piece.get_color(target_square_piece) != color:
-                    moves.append((
-                        square,                 # start
-                        target_square,          # end
-                        piece,                  # start_piece
-                        target_square_piece,    # captured_piece
-                        0,                      # promotion_piece
-                        0,                      # castling
-                        0                       # en_passant
-                        ))
-            else:
-                moves.append((
-                    square,         # start
-                    target_square,  # end
-                    piece,          # start_piece
-                    0,              # captured_piece
-                    0,              # promotion_piece
-                    0,              # castling
-                    0               # en_passant
-                    ))
-
-    def generate_bishop_moves(self, piece, square, moves):
-        '''Generates all possible moves for the bishop on the given square'''
-        self.generate_sliding_moves(piece, square, moves, [4, 5, 6, 7])
-
-    def generate_rook_moves(self, piece, square, moves):
-        '''Generates all possible moves for the rook on the given square'''
-        self.generate_sliding_moves(piece, square, moves, [0, 1, 2, 3])
-
-    def generate_queen_moves(self, piece, square, moves):
-        '''Generates all possible moves for the queen on the given square'''
-        self.generate_sliding_moves(piece, square, moves, [0, 1, 2, 3, 4, 5, 6, 7])
-
-    def generate_king_moves(self, piece, square, moves):
-        '''Generates all possible moves for the king on the given square'''
-        color = Piece.get_color(piece)
-
-        for direction_index in range(8):
-            if distance_to_edge[square][direction_index] == 0:
-                continue
-
-            target_square = square + directions[direction_index]
-            target_square_piece = self.board[target_square]
-
-
-            # normal move
-            if target_square_piece:
-                if Piece.get_color(target_square_piece) != color:
-                    moves.append((
-                        square,                 # start
-                        target_square,          # end
-                        piece,                  # start_piece
-                        target_square_piece,    # captured_piece
-                        0,                      # promotion_piece
-                        0,                      # castling
-                        0                       # en_passant
-                        ))
-            else:
-                moves.append((
-                    square,         # start
-                    target_square,  # end
-                    piece,          # start_piece
-                    0,              # captured_piece
-                    0,              # promotion_piece
-                    0,              # castling
-                    0               # en_passant
-                    ))
-                
-            # castling
-            if color == Piece.white:
-                if self.castling_rights & 8: # white kingside
-                    if self.is_empty(5) and self.is_empty(6):
-                        moves.append((
-                            square,         # start
-                            6,              # end
-                            piece,          # start_piece
-                            0,              # captured_piece
-                            0,              # promotion_piece
-                            1,              # castling
-                            0               # en_passant
-                            ))
-                if self.castling_rights & 4: # white queenside
-                    if self.is_empty(3) and self.is_empty(2) and self.is_empty(1):
-                        moves.append((
-                            square,         # start
-                            2,              # end
-                            piece,          # start_piece
-                            0,              # captured_piece
-                            0,              # promotion_piece
-                            1,              # castling
-                            0               # en_passant
-                            ))
-            else:
-                if self.castling_rights & 2: # black kingside
-                    if self.is_empty(61) and self.is_empty(62):
-                        moves.append((
-                            square,         # start
-                            62,             # end
-                            piece,          # start_piece
-                            0,              # captured_piece
-                            0,              # promotion_piece
-                            1,              # castling
-                            0               # en_passant
-                            ))
-                if self.castling_rights & 1: # black queenside
-                    if self.is_empty(59) and self.is_empty(58) and self.is_empty(57):
-                        moves.append((
-                            square,         # start
-                            58,             # end
-                            piece,          # start_piece
-                            0,              # captured_piece
-                            0,              # promotion_piece
-                            1,              # castling
-                            0               # en_passant
-                            ))
-
-
-    # in board   
     def make_move(self, move):
         '''Makes the given move on the board'''
         start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
@@ -891,118 +465,205 @@ class Board:
         self.fullmove_number -= 1 if self.white_to_move else 0
         self.white_to_move = not self.white_to_move
 
-    def update_attacks(self, square, piece, add=True):
-        increment = 1 if add else -1
-        piece_type = Piece.get_type(piece)
-        color = Piece.get_color(piece)
-        attack_map = self.white_attacked_squares if color == Piece.white else self.black_attacked_squares
-
-        if piece_type in [Piece.rook, Piece.bishop, Piece.queen]:
-            # Update for sliding pieces
-            directions = Piece.directions_for_piece(piece_type)
-            for direction in directions:
-                next_square = square
-                while True:
-                    next_square += direction
-                    if not (0 <= next_square < 64) or not self.is_on_same_line(next_square - direction, next_square):
-                        break
-                    attack_map[next_square] += increment
-                    if self.board[next_square] != 0:  # Stop if there's another piece
-                        break
-        else:
-            # Update for non-sliding pieces (knights, king, pawns)
-            moves = Piece.moves_for_piece(piece_type, square)
-            for move in moves:
-                attack_map[move] += increment
-
-    @staticmethod
-    def is_on_same_line(sq1, sq2):
-        return sq1 // 8 == sq2 // 8 or sq1 % 8 == sq2 % 8 or (sq1 // 8 - sq2 // 8 == sq1 % 8 - sq2 % 8)
-
-
-
-    # game conditions?
-    def new_is_check(self, turn):
-        king_square = self.white_king_square if turn == Piece.white else self.black_king_square
-        attack_map = self.black_attacked_squares if turn == Piece.white else self.white_attacked_squares
-        return attack_map[king_square] > 0
-    
     def is_check(self):
-        '''Returns True if the given turn is in check, False otherwise'''
-        king_square = self.white_king_square if self.white_to_move else self.black_king_square
-
-        # TODO: optimize by checking only the pieces that can attack the king
-        # TODO: check for pins
-        # TODO: check for discovered checks
-        # TODO: check for en passant checks
-        # generate moves for the enemy pieces to see if they can capture the king
         moves = self.generate_moves()
+        king_square = self.white_king_square if not self.white_to_move else self.black_king_square
         for move in moves:
             if move[1] == king_square:
                 return True
-            
         return False
-    
 
-
-    # in generator
     def generate_legal_moves(self):
         '''Generates all legal moves for the given turn'''
-        potential_moves = self.generate_moves()
         legal_moves = []
-
-        for move in potential_moves:
+        for move in self.generate_moves():
             self.make_move(move)
-            if not self.is_check():  # Check if the current player is not in check
+            if not self.is_check():
                 legal_moves.append(move)
             self.undo_move()
         return legal_moves
-    
 
-    
-    # game conditions?
-    def is_checkmate(self):
-        '''Returns True if the given turn is in checkmate, False otherwise'''
-        return self.is_check() and not self.generate_legal_moves()
-    
-    def is_stalemate(self):
-        '''Returns True if the given turn is in stalemate, False otherwise'''
-        return not self.is_check() and not self.generate_legal_moves()
-    
-    def is_threefold_repetition(self):
-        '''Returns True if the current board state has occurred three times, False otherwise'''
-        # count the number of occurrences of the current board state in the undo list
-        # TODO: optimize?
-        # count = 0
-        # for board, _, _, _ in self.undo_list:
-        #     if board == self.board:
-        #         count += 1
-        #         if count == 3:
-        #             return True
-        return False
-    
-    def is_fifty_move_rule(self):
-        '''Returns True if the halfmove clock is greater than or equal to 100, False otherwise'''
-        return self.halfmove_clock >= 100
-    
-    def is_insufficient_material(self):
-        '''Returns True if there is insufficient material for checkmate, False otherwise'''
-        return False # TODO: implement
+def is_within_board(rank, file):
+    return 0 <= rank < 8 and 0 <= file < 8
 
-    def is_draw(self):
-        '''Returns True if the game is a draw, False otherwise'''
-        return self.is_threefold_repetition() or self.is_fifty_move_rule() or self.is_insufficient_material()
+
+sliding_directions = {
+    Piece.rook: [(0, 1), (1, 0), (0, -1), (-1, 0)],
+    Piece.bishop: [(1, 1), (1, -1), (-1, -1), (-1, 1)],
+    Piece.queen: [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    }
+
+def generate_sliding_moves(board: Board, piece, square, moves):
+        rank, file = divmod(square, 8)
+        color = Piece.get_color(piece)
+
+        for rank_change, file_change in sliding_directions[Piece.get_type(piece)]:
+            new_rank, new_file = rank + rank_change, file + file_change
+            while is_within_board(new_rank, new_file):
+                target_square = new_rank * 8 + new_file
+                target_piece = board.get_piece(target_square)
+
+                # capture or stop if there is a piece on the target square
+                if target_piece:
+                    if Piece.get_color(target_piece) != color:
+                        moves.append((
+                            square,             # start
+                            target_square,      # end
+                            piece,              # start piece
+                            target_piece,       # captured piece
+                            0, 0, 0))
+                    break
+
+                else:
+                    moves.append((square, target_square, piece, 0, 0, 0, 0))
+                new_rank += rank_change
+                new_file += file_change
+
+
+
+knight_offsets =   [(-2, -1), (-1, -2), (1, -2), (2, -1), 
+                    (2, 1), (1, 2), (-1, 2), (-2, 1)]
+def generate_knight_moves(board: Board, piece, square, moves):
+        x, y = divmod(square, 8)
+        color = Piece.get_color(piece)
+
+        for dx, dy in knight_offsets:
+            nx, ny = x + dx, y + dy
+            if is_within_board(nx, ny):
+                target_square = nx * 8 + ny
+                target_piece = board.get_piece(target_square)
+                if target_piece == 0 or Piece.get_color(target_piece) != color:
+                    moves.append((
+                        square,         # start
+                        target_square,  # end
+                        piece,          # start piece
+                        target_piece,   # captured piece (0 if empty)
+                        0, 0, 0))
+        
+king_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1),
+                (0, 1), (1, -1), (1, 0), (1, 1)]
+def generate_king_moves(board: Board, piece, square, moves):
+        x, y = divmod(square, 8)
+        color = Piece.get_color(piece)
+
+        for offset in king_offsets:
+            target_x = x + offset[0]
+            target_y = y + offset[1]
+            if is_within_board(target_x, target_y):
+                target_square = target_x * 8 + target_y
+                if not is_within_board(target_x, target_y):
+                    continue
+                target_piece = board.board[target_square]
+                if target_piece == 0 or Piece.get_color(target_piece) != color:
+                    moves.append((
+                        square,         # start
+                        target_square,  # end
+                        piece,          # start piece
+                        target_piece,   # captured piece (0 if empty)
+                        0, 0, 0))
+
+        handle_castling_moves(board, piece, moves, color)
+
+def handle_castling_moves(board: Board, piece, moves, color):
+    if color == Piece.white:
+        check_castling(board, 60, (5, 6), moves, piece, 8)
+        check_castling(board, 60, (3, 2, 1), moves, piece, 4)
+    else:
+        check_castling(board, 4, (61, 62), moves, piece, 2)
+        check_castling(board, 4, (59, 58, 57), moves, piece, 1)
+
+def check_castling(board: Board, king_initial, squares, moves, piece, rights_bit):
+    if board.castling_rights & rights_bit:
+        if all(board.is_empty(sq) for sq in squares):
+            end_square = squares[1] # king moves 2 squares
+            moves.append((
+                king_initial,   # start
+                end_square,     # end
+                piece,          # start piece
+                0,              # captured piece
+                0,              # promotion piece
+                1,              # castling
+                0               # en passant
+            ))
+
+
+
+pawn_ranks = {
+    # (move_direction, start_rank, promotion_rank)
+    Piece.white: ( 1, 1, 7),
+    Piece.black: (-1, 6, 0)
+}
+
+def generate_pawn_moves(board: Board, piece, square, moves):
+    color = Piece.get_color(piece)
+    move_direction, start_rank, promotion_rank = pawn_ranks[color]
+    single_step = square + move_direction * 8
     
-    def is_game_over(self):
-        '''Returns True if the game is over, False otherwise'''
-        return self.is_checkmate() or self.is_stalemate() or self.is_draw()
-    
+    if board.is_empty(single_step):
+        handle_pawn_promotion(piece, square, single_step, moves, promotion_rank)
+        handle_pawn_double_move(board, piece, square, single_step, move_direction, start_rank, moves)
 
-if __name__ == "__main__":
-    b = Board()
-    print(STARTING_FEN)
-    print(b.create_fen())
+    handle_pawn_captures(board, piece, square, move_direction, moves, promotion_rank)
 
-    print(b.generate_legal_moves(True))
+def handle_pawn_promotion(piece, start_square, end_square, moves, promotion_rank):
+        if end_square // 8 == promotion_rank:
+            for promotion_piece in [Piece.knight, Piece.bishop, Piece.rook, Piece.queen]:
+                moves.append((
+                    start_square,   # start
+                    end_square,     # end
+                    piece,          # start piece
+                    0,              # captured piece
+                    promotion_piece | Piece.get_color(piece),   # promotion piece
+                    0,0))
+        else:
+            moves.append((
+                start_square,       # start
+                end_square,         # end
+                piece,              # start piece
+                0, 0, 0, 0))
+        
+def handle_pawn_double_move(board: Board, piece, start_square, single_step, move_direction, start_rank, moves):
+    if start_square // 8 == start_rank and board.is_empty(single_step + move_direction * 8):
+        moves.append((
+            start_square,           # start
+            single_step + move_direction * 8,   # end
+            piece,                  # start piece
+            0, 0, 0, 0))
+        
+def handle_pawn_captures(board: Board, piece, square, move_direction, moves, promotion_rank):
+    for offset in [-1, 1]:
+        capture_rank = square // 8 + move_direction
+        capture_file = square % 8 + offset
+        if not is_within_board(capture_rank, capture_file):
+            continue
 
-    print(b.create_fen())
+        capture_square = capture_rank * 8 + capture_file
+        if board.get_piece(capture_square) and Piece.get_color(board.get_piece(capture_square)) != Piece.get_color(piece):
+            process_capture_or_promotion(board, piece, square, capture_square, moves, promotion_rank)
+        elif capture_square == board.en_passant_target_square:
+            process_en_passant(piece, square, capture_square, moves)
+
+def process_capture_or_promotion(board: Board, piece, start_square, capture_square, moves, promotion_rank):
+    captured_piece = board.get_piece(capture_square)
+    if capture_square // 8 == promotion_rank:
+        for promotion_piece in [Piece.knight, Piece.bishop, Piece.rook, Piece.queen]:
+            moves.append((
+                start_square,       # start
+                capture_square,     # end
+                piece,              # start piece
+                captured_piece,     # captured piece
+                promotion_piece | Piece.get_color(piece),   # promotion piece
+                0, 0))
+    else:
+        moves.append((start_square, capture_square, piece, captured_piece, 0, 0, 0))
+
+def process_en_passant(board: Board, piece, start_square, capture_square, moves):
+        moves.append((
+            start_square,           # start
+            capture_square,         # end
+            piece,                  # start piece
+            board.get_piece(capture_square),    # captured piece
+            0,                      # promotion piece
+            0,                      # castling
+            1                       # en passant
+            ))
