@@ -292,7 +292,7 @@ class PlayerVsPlayer:
         pygame.display.flip()
 
         result_container = []
-        self.engine.find_best_move(result_container)
+        self.engine.iterative_deepening(result_container)
         self.engine_suggestion = result_container[-1][0]
     
     def draw_game_over(self):

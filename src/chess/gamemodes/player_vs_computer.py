@@ -547,7 +547,7 @@ class PlayerVsComputer:
             self.engine.set_time_limit(min(self.chess_clock.white_time*1000//4, self.allocated_engine_time))
 
         self.engine_move_container = []
-        threading.Thread(target=self.engine.find_best_move, args=(self.engine_move_container,)).start()
+        threading.Thread(target=self.engine.iterative_deepening, args=(self.engine_move_container,)).start()
         # self.engine.find_best_move(self.engine_move_container) # for debugging purposes
 
     def draw_latest_engine_move(self):

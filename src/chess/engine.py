@@ -2,7 +2,7 @@
 import random
 import time
 from src.chess.PSQT import PSQT, PHASE_WEIGHTS, TOTAL_PHASE
-from src.chess.board import Board
+from src.chess.board import Board, Piece
 
 
 
@@ -20,11 +20,8 @@ def get_piece_square_table_value(piece, square, phase):
     opening_table = PSQT["Opening"][piece]
     endgame_table = PSQT["Endgame"][piece]
 
-    rank = square // 8
-    file = square % 8
-
-    opening_value = opening_table[7 - rank][file]
-    endgame_value = endgame_table[7 - rank][file]
+    opening_value = opening_table[square]
+    endgame_value = endgame_table[square]
 
     return opening_value * (1 - phase) + endgame_value * phase
 
@@ -46,28 +43,7 @@ def evaluate_psqt(board):
 
 
 
-def order_moves(unordered_moves):
-    ordered_moves = []
 
-    capture_moves = []
-    non_capture_moves = []
-
-    for move in unordered_moves:
-        if move[3]:
-            capture_moves.append(move)
-        else:
-            non_capture_moves.append(move)
-
-    # order capture moves based on the piece that is getting captured
-    capture_moves.sort(key=lambda move: (-move[3], move[2]))
-
-    # order non-capture moves based on the piece that is moving
-    non_capture_moves.sort(key=lambda move: -move[2])
-
-    ordered_moves.extend(capture_moves)
-    ordered_moves.extend(non_capture_moves)
-
-    return ordered_moves
 
 def evaluate(board: Board):
     evaluation = 0
@@ -117,6 +93,37 @@ class Engine:
     def time_exceeded(self):
         return (time.time() - self.start_time) * 1000 >= self.time_limit_ms
     
+    def order_moves(self, unordered_moves):
+        ordered_moves = []
+
+        check_moves = []
+        capture_moves = []
+        non_capture_moves = []
+
+        for move in unordered_moves:
+            if self.board.is_checking_move(move):
+                check_moves.append(move)
+            elif move[3]:
+                capture_moves.append(move)
+            else:
+                non_capture_moves.append(move)
+
+        # order check moves based on the piece that is moving
+        check_moves.sort(key=lambda move: move[2]) # least valuable piece first
+
+        # order capture moves based on the piece that is getting captured
+        capture_moves.sort(key=lambda move: (-move[3], move[2]))
+
+        # order non-capture moves based on the piece that is moving
+        non_capture_moves.sort(key=lambda move: -move[2]) # most valuable piece first
+
+        ordered_moves.extend(check_moves)
+        ordered_moves.extend(capture_moves)
+        ordered_moves.extend(non_capture_moves)
+
+        return ordered_moves
+
+
     def quiescence_search(self):
         if self.board.is_checkmate():
             return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
@@ -126,84 +133,86 @@ class Engine:
         return evaluate(self.board)
 
     def minimax(self, depth, alpha, beta):
-        # TODO: review this code
         if depth == 0 or self.time_exceeded():
             return self.quiescence_search()
+        
+        moves = self.board.generate_moves()
+        moves = self.order_moves(moves)
 
         if self.board.white_to_move:
             best_eval = NEGATIVE_INFINITY
-            for move in order_moves(self.board.generate_legal_moves()):
+            for move in moves:
                 self.board.make_move(move)
-                value = self.minimax(depth - 1, alpha, beta)
+                eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
-                best_eval = max(best_eval, value)
-                alpha = max(alpha, value)
-                if beta <= alpha:
+
+                best_eval = max(best_eval, eval)
+                alpha = max(alpha, eval)
+
+                if beta <= alpha: # TODO: check
                     break
 
+            return best_eval
+        
         else:
             best_eval = POSITIVE_INFINITY
-            for move in order_moves(self.board.generate_legal_moves()):
+            for move in moves:
                 self.board.make_move(move)
-                value = self.minimax(depth - 1, alpha, beta)
+                eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
-                best_eval = min(best_eval, value)
-                beta = min(beta, value)
-                if beta <= alpha:
+
+                best_eval = min(best_eval, eval)
+                beta = min(beta, eval)
+
+                if beta <= alpha: # TODO: check
                     break
 
-        return best_eval
+            return best_eval
+        
+    def find_best_move(self, depth):
+        moves = self.board.generate_moves()
+        best_move = random.choice(moves)
+        best_eval = NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
 
-    def find_best_move(self, result_container):
-        # TODO: check if this code is correct
+        alpha = NEGATIVE_INFINITY
+        beta = POSITIVE_INFINITY
+
+        for move in self.order_moves(moves):
+            self.board.make_move(move)
+            eval = self.minimax(depth - 1, alpha, beta)
+            self.board.undo_move()
+
+            if self.board.white_to_move:
+                alpha = max(alpha, eval)
+                if eval > best_eval:
+                    best_eval = eval
+                    best_move = move
+
+            else:
+                beta = min(beta, eval)
+                if eval < best_eval:
+                    best_eval = eval
+                    best_move = move
+
+            if alpha >= beta: # TODO: check
+                break
+
+        return best_move, best_eval
+
+    def iterative_deepening(self, result_container):
         self.start_time = time.time()
-        starting_player = self.board.white_to_move
-        best_move = None
-        best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
+        
+        for depth in range(1, self.depth + 1):
+            best_move, best_eval = self.find_best_move(depth)
+            result_container.append((best_move, best_eval, False))
+            print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
 
-        for current_depth in range(1, self.depth + 1):
-            ordered_moves = order_moves(self.board.generate_legal_moves())
-            alpha = NEGATIVE_INFINITY
-            beta = POSITIVE_INFINITY
-            current_best_move = random.choice(ordered_moves)
-            current_best_eval = NEGATIVE_INFINITY if starting_player else POSITIVE_INFINITY
-
-            for move in ordered_moves:
-                self.board.make_move(move)
-                value = self.minimax(current_depth - 1, alpha, beta)
-                self.board.undo_move()
-
-                if starting_player:
-                    if value > current_best_eval:
-                        current_best_eval = value
-                        current_best_move = move
-                    alpha = max(alpha, value)
-                else:
-                    if value < current_best_eval:
-                        current_best_eval = value
-                        current_best_move = move
-                    beta = min(beta, value)
-
-                if beta <= alpha:
-                    break
-
-            # if the move will result in a checkmate, don't continue searching
-            # if current_best_eval == POSITIVE_INFINITY or current_best_eval == NEGATIVE_INFINITY:
-            #     best_move = current_best_move
-            #     best_eval = current_best_eval
-            #     break
-
-            if current_best_move is None:
-                break
-
-            result_container.append((current_best_move, current_best_eval, False))
-            print(f"Depth: {current_depth}, Best move: {current_best_move}, Best eval: {current_best_eval}")
-
-            best_move = current_best_move
-            best_eval = current_best_eval
             if self.time_exceeded():
+                print("Time exceeded")
+                print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
+                result_container.append((best_move, best_eval, True))
                 break
 
 
-        result_container.append((best_move, best_eval, True))
-        print(f"Best move: {best_move}, Best eval: {best_eval}")
+# result_container = []
+# (best_move, best_eval, is_final)

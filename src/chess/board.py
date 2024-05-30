@@ -106,6 +106,8 @@ class Board:
 
         self.load_fen(fen)
 
+        # TODO: test this: "r2q3r/1N1pkpb1/5p2/1B5p/p7/8/PPP2PPP/RNBQR1K1 w - - 0 0"
+
     def hash_board(self, turn):
         '''Returns a hash of the board state'''
         # TODO: implement Zobrist hashing
@@ -465,7 +467,7 @@ class Board:
     def undo_move(self):
         '''Undoes the last move made on the board'''
         # TODO: check if this is faster than copying the board
-
+        # TODO: capture promotion undo
         move, castling_rights, en_passant_target_square, halfmove_clock = self.undo_stack.pop()
 
         start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
@@ -827,7 +829,7 @@ class Board:
                     legal_moves.append(move)
 
         return legal_moves
-    
+
     def known_generate_legal_moves(self):
         '''Generates all legal moves for the given turn'''
         pseuo_legal_moves = self.generate_moves()
@@ -841,6 +843,83 @@ class Board:
 
         return legal_moves
     
+    def old_generate_legal_moves(self):
+        pseudo_legal_mpves = self.generate_moves()
+
+        ally_king_square = self.white_king_square if self.white_to_move else self.black_king_square
+
+        legal_moves = []
+        for move in pseudo_legal_mpves:
+            check = False
+            self.make_move(move)
+            enemy_responses = self.generate_moves()
+            for response in enemy_responses:
+                if response[1] == ally_king_square:
+                    check = True
+                    break
+            self.undo_move()
+
+            if not check:
+                legal_moves.append(move)
+                
+        return legal_moves
+    
+    def is_checking_move(self, move):
+        enemy_king_square = self.black_king_square if self.white_to_move else self.white_king_square
+
+        future_square = move[1]
+
+        piece_type = Piece.get_type(move[2])
+
+        match piece_type:
+            case Piece.pawn:
+                return self.is_pawn_check(future_square, enemy_king_square, move[2])
+            case Piece.knight:
+                return self.is_knight_check(future_square, enemy_king_square)
+            case Piece.bishop | Piece.rook | Piece.queen:
+                return self.is_sliding_check(future_square, enemy_king_square, move[2])
+            case Piece.king:
+                return False
+
+    def is_pawn_check(self, square, enemy_king_square, piece):
+        move_direction = 1 if Piece.get_color(piece) == Piece.white else -1
+
+        for offset in [-1, 1]:
+            attack_rank = square // 8 + move_direction
+            attack_file = square % 8 + offset
+            if 0 <= attack_rank < 8 and 0 <= attack_file < 8:
+                attack_square = attack_rank * 8 + attack_file
+                if attack_square == enemy_king_square:
+                    return True
+
+        return False
+    
+    def is_knight_check(self, square, enemy_king_square):
+        for rank_change, file_change in knight_offsets:
+            new_rank, new_file = square // 8 + rank_change, square % 8 + file_change
+            if 0 <= new_rank < 8 and 0 <= new_file < 8:
+                if new_rank * 8 + new_file == enemy_king_square:
+                    return True
+                
+        return False
+    
+    def is_sliding_check(self, square, enemy_king_square, piece):
+        piece_type = Piece.get_type(piece)
+
+        for rank_change, file_change in sliding_offsets[piece_type]:
+            new_rank, new_file = square // 8 + rank_change, square % 8 + file_change
+            while 0 <= new_rank < 8 and 0 <= new_file < 8:
+                attack_square = new_rank * 8 + new_file
+                if attack_square == enemy_king_square:
+                    return True
+                if self.get_piece(attack_square):
+                    break
+                new_rank += rank_change
+                new_file += file_change
+
+        return False
+
+
     def is_checkmate(self):
         '''Returns True if the current player is in checkmate, False otherwise'''
         return self.is_check(self.white_to_move) and not self.generate_legal_moves()

@@ -17,7 +17,7 @@ def traverse_positions(board: Board, depth):
 def main():
     board = Board()
 
-    for depth in range(1, 6):
+    for depth in range(1, 5):
         start_time = time.time_ns()
         count = traverse_positions(board, depth)
         duration = time.time_ns() - start_time
