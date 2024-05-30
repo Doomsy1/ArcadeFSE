@@ -199,10 +199,10 @@ class Engine:
             result_container.append((current_best_move, current_best_eval, False))
             print(f"Depth: {current_depth}, Best move: {current_best_move}, Best eval: {current_best_eval}")
 
-            if self.time_exceeded():
-                break
             best_move = current_best_move
             best_eval = current_best_eval
+            if self.time_exceeded():
+                break
 
 
         result_container.append((best_move, best_eval, True))

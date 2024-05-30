@@ -117,8 +117,6 @@ class PlayerVsComputer:
 
         self.board = Board()
         
-        self.board.load_fen('2b3N1/8/1r2pN1b/1p2kp2/1P1R4/8/4K3/6Q1 w - - 0 1')
-
         self.selected_square = None
 
         self.board_image = self.create_board_image()

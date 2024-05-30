@@ -11,19 +11,19 @@ def count_positions(board: Board, depth):
     count = 0
 
     legal_moves = board.generate_legal_moves()
-    known_legal_moves = board.known_generate_legal_moves()
-    for move in known_legal_moves:
-        if move not in legal_moves:
-            print(board.create_fen())
-            print(move, "not in generated legal moves")
-            input()
-            print("ok")
+    # known_legal_moves = board.known_generate_legal_moves()
+    # for move in known_legal_moves:
+    #     if move not in legal_moves:
+    #         print(board.create_fen())
+    #         print(move, "not in generated legal moves")
+    #         input()
+    #         print("ok")
     for move in legal_moves:
-        if move not in known_legal_moves:
-            print(board.create_fen())
-            print(move, "not in known legal moves")
-            input()
-            print("ok")
+        # if move not in known_legal_moves:
+        #     print(board.create_fen())
+        #     print(move, "not in known legal moves")
+        #     input()
+        #     print("ok")
         board.make_move(move)
         count += count_positions(board, depth - 1)
         board.undo_move()

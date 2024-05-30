@@ -85,6 +85,7 @@ STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 class Board:
     def __init__(self, fen=STARTING_FEN):
+        # TODO: see if using bitboards is faster
         self.board = [0] * 64                   # 64 squares
 
         self.white_king_square = 0              # square of white king
@@ -168,9 +169,23 @@ class Board:
             self.black_pieces.discard(square)
 
     def move_piece(self, start_square, end_square, piece):
-        '''Moves the piece from start_square to end_square'''
-        self.clear_piece(start_square, piece)
-        self.set_piece(end_square, piece)
+        '''Moves the piece from start_square to end_square, optimized for performance'''
+        # directly update the board
+        self.board[end_square] = piece
+        self.board[start_square] = 0
+
+        # update piece sets
+        piece_color = Piece.get_color(piece)
+        if piece_color == Piece.white:
+            self.white_pieces.discard(start_square)
+            self.white_pieces.add(end_square)
+            if Piece.get_type(piece) == Piece.king:
+                self.white_king_square = end_square
+        else:
+            self.black_pieces.discard(start_square)
+            self.black_pieces.add(end_square)
+            if Piece.get_type(piece) == Piece.king:
+                self.black_king_square = end_square
 
     def load_fen(self, fen):
         '''Sets the state of the board to the given FEN string'''
@@ -249,7 +264,7 @@ class Board:
         for rank in range(7, -1, -1):
             for file in range(8):
                 square = rank * 8 + file
-                piece = self.board[square]
+                piece = self.get_piece(square)
 
                 if self.is_piece(square):
                     if empty_counter:
@@ -311,7 +326,7 @@ class Board:
         moves = []
 
         for square in (self.white_pieces if self.white_to_move else self.black_pieces):
-            piece = self.board[square]
+            piece = self.get_piece(square)
             piece_type = Piece.get_type(piece)
 
             match piece_type:
@@ -609,7 +624,7 @@ class Board:
             while 0 <= new_rank < 8 and 0 <= new_file < 8:
                 attack_square = new_rank * 8 + new_file
                 attack_map[attack_square] += 1
-                if not is_sliding or self.board[attack_square]:
+                if not is_sliding or self.get_piece(attack_square):
                     break
                 new_rank += rank_change
                 new_file += file_change
@@ -619,7 +634,7 @@ class Board:
         attack_map = [0] * 64
 
         for square in (self.white_pieces if color else self.black_pieces):
-            piece = self.board[square]
+            piece = self.get_piece(square)
             piece_type = Piece.get_type(piece)
 
             match piece_type:
