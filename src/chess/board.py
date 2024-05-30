@@ -654,6 +654,7 @@ class Board:
         '''Optimized legal move generation'''
         pseuo_legal_moves = self.generate_moves()
         # TODO: en passant pinning
+        # TODO: castling through check
 
         king_square = self.white_king_square if self.white_to_move else self.black_king_square
         king_rank, king_file = divmod(king_square, 8)
