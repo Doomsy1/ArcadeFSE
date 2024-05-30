@@ -498,6 +498,8 @@ class PlayerVsPlayer:
         '''
         self.draw_board()
 
+        # self.draw_attack_map()
+
         self.draw_previous_move()
 
         self.draw_selected_square()
@@ -556,13 +558,14 @@ class PlayerVsPlayer:
             if event.type == pygame.KEYDOWN:
                 # if u is pressed, undo the last move and play the move sound effect
                 if event.key == pygame.K_u:
-                    self.sfx['move'].play()
-                    self.board.undo_move()
-                    self.engine.update_board(self.board)
                     if len(self.move_list) > 0:
-                        self.move_list.pop()
-                    self.turn = not self.turn
-                    self.selected_square = None
+                        self.sfx['move'].play()
+                        self.board.undo_move()
+                        self.engine.update_board(self.board)
+                        if len(self.move_list) > 0:
+                            self.move_list.pop()
+                        self.turn = not self.turn
+                        self.selected_square = None
 
                 # if e is pressed, request a move from the engine
                 if event.key == pygame.K_e:
@@ -587,11 +590,11 @@ class PlayerVsPlayer:
                     self.edit_fen()
         return False
 
-    def draw_white_attacked_squares(self):
+    def draw_attack_map(self):
         '''
         Draw the squares that are attacked by white
         '''
-        for square, attacked_num in enumerate(self.board.white_attacked_squares):
+        for square, attacked_num in enumerate(self.board.generate_attack_map(True)):
             color = (255, 0, 0)
             alpha = 10 + attacked_num * 50
             alpha = min(alpha, 255)
@@ -644,7 +647,7 @@ class PlayerVsPlayer:
 
             # draw a transparent rect on the en passant square
             en_passant_target = self.board.en_passant_target_square
-            draw_transparent_rect(self.screen, (square_to_pixel(en_passant_target)[0], square_to_pixel(en_passant_target)[1], CHESS_GRID_SIZE, CHESS_GRID_SIZE), (0,0,0), 200)
+            draw_transparent_rect(self.screen, (square_to_pixel(en_passant_target)[0], square_to_pixel(en_passant_target)[1], CHESS_GRID_SIZE, CHESS_GRID_SIZE), (0,0,0), 128)
 
             # set the title of the window to the fps
             pygame.display.set_caption(f'Chess | FPS: {int(self.clock.get_fps())}')

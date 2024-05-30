@@ -9,7 +9,19 @@ def count_positions(board: Board, depth):
     if depth == 0:
         return 1
     count = 0
-    for move in board.generate_legal_moves():
+
+    legal_moves = board.generate_legal_moves()
+    known_legal_moves = board.known_generate_legal_moves()
+    for move in known_legal_moves:
+        if move not in legal_moves:
+            print(board.create_fen())
+            print(move, "not in generated legal moves")
+            input()
+    for move in legal_moves:
+        if move not in known_legal_moves:
+            print(board.create_fen())
+            print(move, "not in known legal moves")
+            input()
         board.make_move(move)
         count += count_positions(board, depth - 1)
         board.undo_move()
@@ -17,8 +29,9 @@ def count_positions(board: Board, depth):
 
 def main():
     board = Board()
+    # board.load_fen("rnb1kbnr/pppp1ppp/5q2/4p3/5P2/8/PPPPPKPP/RNBQ1BNR w kq - 2 0")
 
-    for depth in range(1, 5):
+    for depth in range(1, 7):
         start_time = time.time()
         count = count_positions(board, depth)
         duration = time.time() - start_time
@@ -30,6 +43,9 @@ def main():
     # Depth: 2, Positions: 400
     # Depth: 3, Positions: 8902
     # Depth: 4, Positions: 197281
+    # Depth: 5, Positions: 4865609
+    # Depth: 6, Positions: 119060324
+
 
 if __name__ == "__main__":
     pr = cProfile.Profile()

@@ -290,7 +290,7 @@ class PlayerVsComputer:
 
     def get_square_legal_moves(self, square):
         '''Draw the legal moves of the selected piece'''
-        moves = self.board.generate_legal_moves(self.turn)
+        moves = self.board.generate_legal_moves()
         piece_moves = []
         for move in moves:
             start = move[0]
