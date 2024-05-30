@@ -643,7 +643,7 @@ class Board:
         king_square = self.white_king_square if self.white_to_move else self.black_king_square
         king_rank, king_file = divmod(king_square, 8)
         king_color = Piece.white if self.white_to_move else Piece.black
-        enem_color = Piece.black if self.white_to_move else Piece.white
+        enemy_color = Piece.black if self.white_to_move else Piece.white
 
         # generate enemy attack map
         enemy_attack_map = self.generate_attack_map(not self.white_to_move)
@@ -678,7 +678,9 @@ class Board:
                         pinned_piece_square = target_square
 
                     # if the piece is an enemy rook or queen and there is only one ally piece in the path, it is a pin
-                    elif Piece.get_type(target_piece) in [Piece.rook, Piece.queen]:
+                    elif Piece.get_color(target_piece) == enemy_color:
+                        if Piece.get_type(target_piece) not in [Piece.rook, Piece.queen]:
+                            break
                         enemy_attacker_square = target_square
 
                         # find the squares between the king and the attacker (including the attacker)
@@ -714,7 +716,9 @@ class Board:
                         pinned_piece_square = target_square
 
                     # if the piece is an enemy bishop or queen and there is only one ally piece in the path, it is a pin
-                    elif Piece.get_type(target_piece) in [Piece.bishop, Piece.queen]:
+                    elif Piece.get_color(target_piece) == enemy_color:
+                        if Piece.get_type(target_piece) not in [Piece.bishop, Piece.queen]:
+                            break
                         enemy_attacker_square = target_square
 
                         # find the squares between the king and the attacker (including the attacker)
@@ -737,7 +741,7 @@ class Board:
             if is_within_board(new_rank, new_file):
                 target_square = new_rank * 8 + new_file
                 target_piece = self.get_piece(target_square)
-                if target_piece == (enem_color | Piece.knight):
+                if target_piece == (enemy_color | Piece.knight):
                     checks = [target_square]
 
         pawn_direction = 1 if self.white_to_move else -1
@@ -745,7 +749,7 @@ class Board:
             target_square = king_square + pawn_direction * 8 + offset
             if is_within_board(target_square // 8, target_square % 8):
                 target_piece = self.get_piece(target_square)
-                if target_piece == (enem_color | Piece.pawn):
+                if target_piece == (enemy_color | Piece.pawn):
                     checks = [target_square]
                     break
         

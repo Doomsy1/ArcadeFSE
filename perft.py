@@ -17,11 +17,13 @@ def count_positions(board: Board, depth):
             print(board.create_fen())
             print(move, "not in generated legal moves")
             input()
+            print("ok")
     for move in legal_moves:
         if move not in known_legal_moves:
             print(board.create_fen())
             print(move, "not in known legal moves")
             input()
+            print("ok")
         board.make_move(move)
         count += count_positions(board, depth - 1)
         board.undo_move()
@@ -29,9 +31,8 @@ def count_positions(board: Board, depth):
 
 def main():
     board = Board()
-    # board.load_fen("rnb1kbnr/pppp1ppp/5q2/4p3/5P2/8/PPPPPKPP/RNBQ1BNR w kq - 2 0")
 
-    for depth in range(1, 7):
+    for depth in range(1, 5):
         start_time = time.time()
         count = count_positions(board, depth)
         duration = time.time() - start_time

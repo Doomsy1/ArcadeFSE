@@ -17,13 +17,15 @@ def traverse_positions(board: Board, depth):
 def main():
     board = Board()
 
-    starting_time = time.time()
+    for depth in range(1, 5):
+        start_time = time.time_ns()
+        count = traverse_positions(board, depth)
+        duration = time.time_ns() - start_time
 
-    count = traverse_positions(board, 4)
-    
-    duration = time.time() - starting_time
-
-    print(f"Positions: {count}, Duration: {duration:.2f} sec, Positions per second: {count / duration:.0f}")
+        try:
+            print(f"Positions: {count}, Duration: {(duration / 1e9):.4f} seconds, Positions per second: {(count / (duration / 1e9)):.0f}")
+        except ZeroDivisionError:
+            print(f"Positions: {count}, Duration: {duration} ns, Positions per ns: {count}")
 
 if __name__ == "__main__":
     main()
