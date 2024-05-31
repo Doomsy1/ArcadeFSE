@@ -45,15 +45,7 @@ def evaluate_psqt(board):
 
 
 
-def evaluate(board: Board):
-    evaluation = 0
-    
-    # Material
-    evaluation += evaluate_psqt(board.board)
 
-    # TODO: add more evaluation terms
-
-    return evaluation
 
 
 
@@ -61,7 +53,7 @@ NEGATIVE_INFINITY = -9999999
 POSITIVE_INFINITY = 9999999
 
 class Engine:
-    def __init__(self, board: Board, depth: int = 6, time_limit_ms: int = 2500):
+    def __init__(self, board: Board, depth: int = 1, time_limit_ms: int = 2500):
         self.board = board.__copy__()
         self.depth = depth
         self.time_limit_ms = time_limit_ms
@@ -123,95 +115,118 @@ class Engine:
 
         return ordered_moves
 
+    def get_ordered_moves(self):
+        moves = self.board.generate_legal_moves()
+        return self.order_moves(moves)
 
-    def quiescence_search(self):
+    def evaluate(self):
+        evaluation = 0
+        
+        # Material
+        evaluation += evaluate_psqt(self.board.board)
+
+        # TODO: add more evaluation terms
+
+        return evaluation
+
+    def evaluate_terminal(self):
         if self.board.is_checkmate():
             return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
-        if self.board.is_stalemate():        
-            return 0
-        # TODO: implement quiescence search
-        return evaluate(self.board)
+        return 0
 
-    def minimax(self, depth, alpha, beta):
-        if depth == 0 or self.time_exceeded():
-            return self.quiescence_search()
-        
-        moves = self.board.generate_moves()
-        moves = self.order_moves(moves)
-
+    def quiescence_search(self, alpha, beta):
+        stand_pat = self.evaluate()
         if self.board.white_to_move:
-            best_eval = NEGATIVE_INFINITY
-            for move in moves:
-                self.board.make_move(move)
-                eval = self.minimax(depth - 1, alpha, beta)
-                self.board.undo_move()
-
-                best_eval = max(best_eval, eval)
-                alpha = max(alpha, eval)
-
-                if beta <= alpha: # TODO: check
-                    break
-
-            return best_eval
-        
+            if stand_pat >= beta:
+                return beta
+            if alpha < stand_pat:
+                alpha = stand_pat
         else:
-            best_eval = POSITIVE_INFINITY
-            for move in moves:
-                self.board.make_move(move)
-                eval = self.minimax(depth - 1, alpha, beta)
-                self.board.undo_move()
+            if stand_pat <= alpha:
+                return alpha
+            if beta > stand_pat:
+                beta = stand_pat
 
-                best_eval = min(best_eval, eval)
-                beta = min(beta, eval)
-
-                if beta <= alpha: # TODO: check
-                    break
-
-            return best_eval
-        
-    def find_best_move(self, depth):
-        moves = self.board.generate_moves()
-        best_move = random.choice(moves)
-        best_eval = NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
-
-        alpha = NEGATIVE_INFINITY
-        beta = POSITIVE_INFINITY
-
-        for move in self.order_moves(moves):
+        moves = self.board.generate_legal_moves() # only use capture moves (move[3] == True)
+        capture_moves = [move for move in moves if move[3]]
+        for move in capture_moves:
             self.board.make_move(move)
-            eval = self.minimax(depth - 1, alpha, beta)
+            score = -self.quiescence_search(-beta, -alpha)
             self.board.undo_move()
 
             if self.board.white_to_move:
-                alpha = max(alpha, eval)
+                if score >= beta:
+                    return beta
+                alpha = max(alpha, score)
+            else:
+                if score <= alpha:
+                    return alpha
+                beta = min(beta, score)
+
+        return alpha if self.board.white_to_move else beta
+
+    def minimax(self, depth):
+        if depth == 0 or self.board.is_game_over():
+            return self.evaluate()
+        
+        if self.board.white_to_move:
+            best_eval = NEGATIVE_INFINITY
+            for move in self.get_ordered_moves():
+                self.board.make_move(move)
+                eval = self.minimax(depth - 1)
+                self.board.undo_move()
+
+                best_eval = max(best_eval, eval)
+        else:
+            best_eval = POSITIVE_INFINITY
+            for move in self.get_ordered_moves():
+                self.board.make_move(move)
+                eval = self.minimax(depth - 1)
+                self.board.undo_move()
+
+                best_eval = min(best_eval, eval)
+
+        return best_eval
+
+    def find_best_move(self, depth):
+        best_eval = NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
+
+        moves = self.get_ordered_moves()
+        best_move = random.choice(moves)
+
+        for move in moves:
+            self.board.make_move(move)
+            eval = self.minimax(depth - 1)
+            self.board.undo_move()
+
+            if self.board.white_to_move:
                 if eval > best_eval:
                     best_eval = eval
                     best_move = move
-
             else:
-                beta = min(beta, eval)
                 if eval < best_eval:
                     best_eval = eval
                     best_move = move
 
-            if alpha >= beta: # TODO: check
-                break
-
         return best_move, best_eval
 
-    def iterative_deepening(self, result_container):
+    def iterative_deepening(self, result_container: list):
+        """Perform an iterative deepening search."""
         self.start_time = time.time()
-        
-        for depth in range(1, self.depth + 1):
-            best_move, best_eval = self.find_best_move(depth)
-            result_container.append((best_move, best_eval, False))
-            print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
 
-            if self.time_exceeded():
-                print("Time exceeded")
-                print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
-                result_container.append((best_move, best_eval, True))
+        depth = 1
+        while not self.time_exceeded():
+            best_move, best_eval = self.find_best_move(depth)
+            print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
+            result_container.append((best_move, best_eval, False))
+            depth += 1
+
+            time_elapsed = (time.time() - self.start_time) * 1000
+            if time_elapsed * 2 >= self.time_limit_ms:
                 break
+
+        print(f"Time taken: {(time.time() - self.start_time) * 1000:.2f} ms")
+        result_container.append((best_move, best_eval, True))
 
 
 # result_container = []
