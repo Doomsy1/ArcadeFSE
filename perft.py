@@ -38,7 +38,7 @@ def main():
         duration = time.time() - start_time
 
         print(f"Depth: {depth}, Positions: {count}, Duration: {duration:.2f} sec")
-    
+
     # expected output:
     # Depth: 1, Positions: 20
     # Depth: 2, Positions: 400
