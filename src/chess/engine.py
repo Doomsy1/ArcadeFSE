@@ -49,6 +49,8 @@ def evaluate_psqt(board):
 
 
 
+
+
 NEGATIVE_INFINITY = -9999999
 POSITIVE_INFINITY = 9999999
 
@@ -116,11 +118,15 @@ class Engine:
         return ordered_moves
 
     def get_ordered_moves(self):
+        self.move_generations += 1
         moves = self.board.generate_legal_moves()
         return self.order_moves(moves)
 
     def evaluate(self):
+        self.positions_evaluated += 1
         evaluation = 0
+        if self.board.is_game_over():
+            return self.evaluate_terminal()
         
         # Material
         evaluation += evaluate_psqt(self.board.board)
@@ -165,57 +171,64 @@ class Engine:
 
         return alpha if self.board.white_to_move else beta
 
-    def minimax(self, depth):
+    def minimax(self, depth, alpha, beta):
         if depth == 0 or self.board.is_game_over():
             return self.evaluate()
-        
+
         if self.board.white_to_move:
-            best_eval = NEGATIVE_INFINITY
+            max_eval = NEGATIVE_INFINITY
             for move in self.get_ordered_moves():
                 self.board.make_move(move)
-                eval = self.minimax(depth - 1)
+                eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
-
-                best_eval = max(best_eval, eval)
+                max_eval = max(max_eval, eval)
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break
+            return max_eval
         else:
-            best_eval = POSITIVE_INFINITY
+            min_eval = POSITIVE_INFINITY
             for move in self.get_ordered_moves():
                 self.board.make_move(move)
-                eval = self.minimax(depth - 1)
+                eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
-
-                best_eval = min(best_eval, eval)
-
-        return best_eval
+                min_eval = min(min_eval, eval)
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break
+            return min_eval
 
     def find_best_move(self, depth):
-        # TODO: opening book lookup
-        # TODO: endgame tablebase lookup
-
         best_eval = NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
-
         moves = self.get_ordered_moves()
+
         best_move = random.choice(moves)
+        alpha = NEGATIVE_INFINITY
+        beta = POSITIVE_INFINITY
 
         for move in moves:
             self.board.make_move(move)
-            eval = self.minimax(depth - 1)
+            eval = self.minimax(depth - 1, alpha, beta)
             self.board.undo_move()
 
             if self.board.white_to_move:
                 if eval > best_eval:
                     best_eval = eval
                     best_move = move
+                alpha = max(alpha, eval)
             else:
                 if eval < best_eval:
                     best_eval = eval
                     best_move = move
+                beta = min(beta, eval)
 
         return best_move, best_eval
 
     def iterative_deepening(self, result_container: list):
         """Perform an iterative deepening search."""
         self.start_time = time.time()
+        self.positions_evaluated = 0
+        self.move_generations = 0
 
         depth = 1
         while not self.time_exceeded():
@@ -223,12 +236,14 @@ class Engine:
             print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
             result_container.append((best_move, best_eval, False))
             depth += 1
+            if best_eval == POSITIVE_INFINITY or best_eval == NEGATIVE_INFINITY:
+                break
 
             time_elapsed = (time.time() - self.start_time) * 1000
             if time_elapsed * 2 >= self.time_limit_ms:
                 break
 
-        print(f"Time taken: {(time.time() - self.start_time) * 1000:.2f} ms")
+        print(f"Time taken: {(time.time() - self.start_time) * 1000:.2f} ms, Positions evaluated: {self.positions_evaluated}, Move generations: {self.move_generations}")
         result_container.append((best_move, best_eval, True))
 
 
