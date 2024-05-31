@@ -189,6 +189,9 @@ class Engine:
         return best_eval
 
     def find_best_move(self, depth):
+        # TODO: opening book lookup
+        # TODO: endgame tablebase lookup
+
         best_eval = NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
 
         moves = self.get_ordered_moves()
