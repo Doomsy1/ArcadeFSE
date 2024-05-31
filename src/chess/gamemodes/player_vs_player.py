@@ -588,6 +588,9 @@ class PlayerVsPlayer:
                 # if the f key is pressed, create a popup to edit the fen string
                 if event.key == pygame.K_f:
                     self.edit_fen()
+                # if the n key is pressed, print the legal moves
+                if event.key == pygame.K_n:
+                    print(self.board.generate_legal_moves())
         return False
 
     def draw_attack_map(self):
@@ -637,9 +640,9 @@ class PlayerVsPlayer:
 
             # print(self.board.create_fen())
 
-            # if self.board.is_game_over():
-            #     self.sfx['game_over'].play()
-            #     return self.draw_game_over()
+            if self.board.is_game_over():
+                self.sfx['game_over'].play()
+                return self.draw_game_over()
             
 
             if self.mb[0]:
