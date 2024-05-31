@@ -425,7 +425,7 @@ class Board:
             self.castling_rights &= 0b1100
 
         # rook move
-        match start_piece:
+        match start_square:
             case 0:
                 self.castling_rights &= 0b1011
             case 7:
@@ -437,7 +437,7 @@ class Board:
                 self.castling_rights &= 0b1110
 
         # rook capture
-        match captured_piece:
+        match end_square:
             case 0:
                 self.castling_rights &= 0b1011
             case 7:
@@ -592,8 +592,6 @@ class Board:
     def generate_pawn_attacks(self, piece, square, attack_map):
         color = Piece.get_color(piece)
         move_direction = 1 if color == Piece.white else -1
-        start_rank = 1 if color == Piece.white else 6
-        promotion_rank = 7 if color == Piece.white else 0
 
         for offset in [-1, 1]:
             attack_rank = square // 8 + move_direction
@@ -675,7 +673,7 @@ class Board:
         # knight -> square of the attacker
         # pawn -> square of the attacker
         # [list of squares to stop the attack]
-        checks = [] # only used for single check
+        checks = () # only used for single check
 
         # move away from the king and add to the list of pins if you come across an ally piece followed by an enemy piece
         for rank_change, file_change in sliding_offsets[Piece.rook]:
@@ -711,7 +709,7 @@ class Board:
                         if num_allies == 1:
                             pins.append((pinned_piece_square, enemy_attacker_square, blocking_squares))
                         elif num_allies == 0:
-                            checks = blocking_squares
+                            checks = tuple(blocking_squares)
                         break
                 new_rank += rank_change
                 new_file += file_change
@@ -749,7 +747,7 @@ class Board:
                         if num_allies == 1:
                             pins.append((pinned_piece_square, enemy_attacker_square, blocking_squares))
                         elif num_allies == 0:
-                            checks = blocking_squares
+                            checks = tuple(blocking_squares)
                         break
                 new_rank += rank_change
                 new_file += file_change
@@ -760,7 +758,7 @@ class Board:
                 target_square = new_rank * 8 + new_file
                 target_piece = self.get_piece(target_square)
                 if target_piece == (enemy_color | Piece.knight):
-                    checks = [target_square]
+                    checks = (target_square,)
 
         pawn_direction = 1 if self.white_to_move else -1
         for offset in [-1, 1]:
@@ -768,7 +766,7 @@ class Board:
             if is_within_board(target_square // 8, target_square % 8):
                 target_piece = self.get_piece(target_square)
                 if target_piece == (enemy_color | Piece.pawn):
-                    checks = [target_square]
+                    checks = (target_square,)
                     break
         
 
@@ -946,7 +944,8 @@ class Board:
 
     def is_draw(self):
         '''Returns True if the game is a draw, False otherwise'''
-        return self.is_stalemate() or self.halfmove_clock >= 50 or self.is_insufficient_material()
+        # TODO: add 50 move rule
+        return self.is_stalemate()or self.is_insufficient_material()
     
     def is_game_over(self):
         '''Returns True if the game is over, False otherwise'''
