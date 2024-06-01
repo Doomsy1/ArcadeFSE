@@ -8,6 +8,7 @@ kbK5/pp6/1P6/8/8/8/8/R7 w - - 0 1
 2b3N1/8/1r2pN1b/1p2kp2/1P1R4/8/4K3/6Q1 w - - 0 1
 5B2/8/K7/8/kpp5/7R/8/1B6 w - - 0 1
 
+
 ### Mate in 3
 2r3k1/p4p2/3Rp2p/1p2P1pK/8/1P4P1/P3Q2P/1q6 b - - 0 1
 1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0
@@ -24,7 +25,6 @@ r3k2r/ppp2Npp/1b5n/4p2b/2B1P2q/BQP2P2/P5PP/RN5K w kq - 1 0
 r4r1k/1pqb1B1p/p3p2B/2bpP2Q/8/1NP5/PP4PP/5R1K w - - 1 0
 Q4R2/3kr3/1q3n1p/2p1p1p1/1p1bP1P1/1B1P3P/2PBK3/8 w - - 1 0
 r3q2k/1bn2p2/p4P1p/1pPp2R1/3P4/P1N1Q3/1PB3PP/6K1 w - - 1 0
-
 
 
 ### Mate in 4

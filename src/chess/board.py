@@ -958,15 +958,13 @@ def is_within_board(rank, file):
 
 
 
-
-
-
 sliding_offsets = {
     Piece.rook: [(0, 1), (1, 0), (0, -1), (-1, 0)],
     Piece.bishop: [(1, 1), (1, -1), (-1, -1), (-1, 1)],
     Piece.queen: [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     }
 
+# TODO: bring these functions into the class
 def generate_sliding_moves(board: Board, piece, square, moves):
         rank, file = divmod(square, 8)
         color = Piece.get_color(piece)
@@ -1112,7 +1110,7 @@ def handle_pawn_captures(board: Board, piece, square, move_direction, moves, pro
         capture_square = capture_rank * 8 + capture_file
         if board.get_piece(capture_square) and Piece.get_color(board.get_piece(capture_square)) != Piece.get_color(piece):
             process_capture_or_promotion(board, piece, square, capture_square, moves, promotion_rank)
-        elif capture_square == board.en_passant_target_square:
+        elif board.en_passant_target_square != 0 and capture_square == board.en_passant_target_square:
             process_en_passant(board, piece, square, capture_square, moves)
 
 def process_capture_or_promotion(board: Board, piece, start_square, capture_square, moves, promotion_rank):
