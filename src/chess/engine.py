@@ -172,6 +172,9 @@ class Engine:
         return alpha if self.board.white_to_move else beta
 
     def minimax(self, depth, alpha, beta):
+        if self.time_exceeded():
+            raise Exception("Time exceeded")
+
         if depth == 0 or self.board.is_game_over():
             return self.evaluate()
 
@@ -226,13 +229,27 @@ class Engine:
 
     def iterative_deepening(self, result_container: list):
         """Perform an iterative deepening search."""
+        # TODO: quiescence search (necessary)
+        # TODO: transposition table (necessary)
+        # TODO: killer moves (necessary)
+        # TODO: history heuristic (necessary)
+
+        # TODO: aspiration windows (maybe)
+        # TODO: null move pruning (maybe)
+        # TODO: futility pruning (maybe)
+        # TODO: late move reduction (maybe)
+        # TODO: parallel search (maybe)
+        
         self.start_time = time.time()
         self.positions_evaluated = 0
         self.move_generations = 0
 
         depth = 1
         while not self.time_exceeded():
-            best_move, best_eval = self.find_best_move(depth)
+            try:
+                best_move, best_eval = self.find_best_move(depth)
+            except:
+                break
             print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
             result_container.append((best_move, best_eval, False))
             depth += 1
