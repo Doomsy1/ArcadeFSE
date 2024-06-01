@@ -108,11 +108,11 @@ class Board:
 
         # TODO: test this: "r2q3r/1N1pkpb1/5p2/1B5p/p7/8/PPP2PPP/RNBQR1K1 w - - 0 0"
 
-    def hash_board(self, turn):
+    def hash_board(self):
         '''Returns a hash of the board state'''
         # TODO: implement Zobrist hashing
         # for now, use python's built-in hash function
-        return hash((tuple(self.board), self.white_to_move, turn, self.castling_rights, self.en_passant_target_square))
+        return hash((tuple(self.board), self.castling_rights, self.en_passant_target_square))
 
     def __copy__(self):
         new_board = Board()

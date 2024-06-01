@@ -55,15 +55,17 @@ NEGATIVE_INFINITY = -9999999
 POSITIVE_INFINITY = 9999999
 
 class Engine:
-    def __init__(self, board: Board, depth: int = 1, time_limit_ms: int = 2500):
+    def __init__(self, board: Board, depth: int = 1, time_limit_ms: int = 5000):
         self.board = board.__copy__()
         self.depth = depth
         self.time_limit_ms = time_limit_ms
 
-        self.evaluated_boards = {}
+        self.history_table = {}
+        self.cached_generations = {}
         self.start_time = 0
 
     def update_board(self, board: Board):
+        '''Used to sync the engine's board with the actual board.'''
         self.board.board = board.board.copy()
 
         self.board.white_king_square = board.white_king_square
@@ -85,46 +87,53 @@ class Engine:
         self.time_limit_ms = time_limit_ms
 
     def time_exceeded(self):
-        '''Returns True if the time limit has been exceeded, False otherwise'''
         return (time.time() - self.start_time) * 1000 >= self.time_limit_ms
     
+    def calculate_mvv_lva(self, move):
+        '''Most valuable victim, least valuable attacker.'''
+        victim_piece = Piece.get_type(move[3])
+        attacker_piece = Piece.get_type(move[2])
+        promotion_piece = Piece.get_type(move[4])
+
+        if victim_piece == 0:
+            return attacker_piece + promotion_piece
+        return victim_piece*2 - attacker_piece + promotion_piece
+
     def order_moves(self, unordered_moves):
-        ordered_moves = []
+        '''Order moves based on the history heuristic, MVV/LVA, and other factors.'''
 
-        check_moves = []
-        capture_moves = []
-        non_capture_moves = []
-
+        move_scores = []
         for move in unordered_moves:
-            if self.board.is_checking_move(move):
-                check_moves.append(move)
-            elif move[3]:
-                capture_moves.append(move)
-            else:
-                non_capture_moves.append(move)
+            history_score = lambda move: self.history_table.get(move, 0)
+            # might be None if the move is not in the history table
 
-        # order check moves based on the piece that is moving
-        check_moves.sort(key=lambda move: move[2]) # least valuable piece first
+            mvv_lva_score = self.calculate_mvv_lva(unordered_moves[0])
 
-        # order capture moves based on the piece that is getting captured
-        capture_moves.sort(key=lambda move: (-move[3], move[2]))
+            check_score = 5 if self.board.is_checking_move(move) else 0
+            # TODO: add tactical evaluation
+            # TODO: add static exchange evaluation
 
-        # order non-capture moves based on the piece that is moving
-        non_capture_moves.sort(key=lambda move: -move[2]) # most valuable piece first
+            move_score = history_score(move)*10 + mvv_lva_score + check_score
 
-        ordered_moves.extend(check_moves)
-        ordered_moves.extend(capture_moves)
-        ordered_moves.extend(non_capture_moves)
+            move_scores.append((move, move_score))
 
-        return ordered_moves
+        move_scores.sort(key=lambda x: x[1], reverse=True)
+        return [move[0] for move in move_scores]
 
-    def get_ordered_moves(self):
-        '''Returns a list of moves ordered by the move ordering heuristic'''
-        self.move_generations += 1
-        moves = self.board.generate_legal_moves()
+
+
+    def get_ordered_moves(self): # TODO: add a parameter to generate_legal_moves to only generate capture moves
+        key = self.board.hash_board()
+        if key in self.cached_generations:
+            moves = self.cached_generations[key]
+        else:
+            self.move_generations += 1
+            moves = self.board.generate_legal_moves()
         return self.order_moves(moves)
 
     def evaluate(self):
+        '''Evaluate the current board position. 
+        Return a score where positive is good for white and negative is good for black.'''
         self.positions_evaluated += 1
         evaluation = 0
         if self.board.is_game_over():
@@ -141,45 +150,18 @@ class Engine:
         if self.board.is_checkmate():
             return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
         return 0
-
-    def quiescence_search(self, alpha, beta):
-        stand_pat = self.evaluate()
-        if self.board.white_to_move:
-            if stand_pat >= beta:
-                return beta
-            if alpha < stand_pat:
-                alpha = stand_pat
-        else:
-            if stand_pat <= alpha:
-                return alpha
-            if beta > stand_pat:
-                beta = stand_pat
-
-        moves = self.board.generate_legal_moves() # only use capture moves (move[3] == True)
-        # TODO: add a parameter to generate_legal_moves to only generate capture moves
-        capture_moves = [move for move in moves if move[3]]
-        for move in capture_moves:
-            self.board.make_move(move)
-            score = -self.quiescence_search(-beta, -alpha)
-            self.board.undo_move()
-
-            if self.board.white_to_move:
-                if score >= beta:
-                    return beta
-                alpha = max(alpha, score)
-            else:
-                if score <= alpha:
-                    return alpha
-                beta = min(beta, score)
-
-        return alpha if self.board.white_to_move else beta
+    
+    def update_history_score(self, move, depth):
+        if move not in self.history_table:
+            self.history_table[move] = 0
+        self.history_table[move] += 2 ** depth
 
     def minimax(self, depth, alpha, beta):
         if self.time_exceeded():
             raise Exception("Time exceeded")
 
         if depth == 0 or self.board.is_game_over():
-            return self.quiescence_search(alpha, beta)
+            return self.evaluate()
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY
@@ -190,6 +172,7 @@ class Engine:
                 max_eval = max(max_eval, eval)
                 alpha = max(alpha, eval)
                 if beta <= alpha:
+                    self.update_history_score(move, depth)
                     break
             return max_eval
         else:
@@ -201,6 +184,7 @@ class Engine:
                 min_eval = min(min_eval, eval)
                 beta = min(beta, eval)
                 if beta <= alpha:
+                    self.update_history_score(move, depth)
                     break
             return min_eval
 
@@ -235,7 +219,6 @@ class Engine:
         # TODO: quiescence search (necessary)
         # TODO: transposition table (necessary)
         # TODO: killer moves (necessary)
-        # TODO: history heuristic (necessary)
 
         # TODO: parallel search (maybe)
         # TODO: null move pruning (maybe)
