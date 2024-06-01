@@ -85,6 +85,7 @@ class Engine:
         self.time_limit_ms = time_limit_ms
 
     def time_exceeded(self):
+        '''Returns True if the time limit has been exceeded, False otherwise'''
         return (time.time() - self.start_time) * 1000 >= self.time_limit_ms
     
     def order_moves(self, unordered_moves):
@@ -118,6 +119,7 @@ class Engine:
         return ordered_moves
 
     def get_ordered_moves(self):
+        '''Returns a list of moves ordered by the move ordering heuristic'''
         self.move_generations += 1
         moves = self.board.generate_legal_moves()
         return self.order_moves(moves)
@@ -154,6 +156,7 @@ class Engine:
                 beta = stand_pat
 
         moves = self.board.generate_legal_moves() # only use capture moves (move[3] == True)
+        # TODO: add a parameter to generate_legal_moves to only generate capture moves
         capture_moves = [move for move in moves if move[3]]
         for move in capture_moves:
             self.board.make_move(move)
@@ -176,7 +179,7 @@ class Engine:
             raise Exception("Time exceeded")
 
         if depth == 0 or self.board.is_game_over():
-            return self.evaluate()
+            return self.quiescence_search(alpha, beta)
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY
@@ -234,11 +237,11 @@ class Engine:
         # TODO: killer moves (necessary)
         # TODO: history heuristic (necessary)
 
-        # TODO: aspiration windows (maybe)
-        # TODO: null move pruning (maybe)
-        # TODO: futility pruning (maybe)
-        # TODO: late move reduction (maybe)
         # TODO: parallel search (maybe)
+        # TODO: null move pruning (maybe)
+        # TODO: aspiration windows (maybe)
+        # TODO: late move reduction (maybe)
+        # TODO: futility pruning (maybe)
         
         self.start_time = time.time()
         self.positions_evaluated = 0
@@ -248,7 +251,8 @@ class Engine:
         while not self.time_exceeded():
             try:
                 best_move, best_eval = self.find_best_move(depth)
-            except:
+            except Exception as e:
+                print(e)
                 break
             print(f"Depth: {depth}, Best move: {best_move}, Best eval: {best_eval}")
             result_container.append((best_move, best_eval, False))
