@@ -1,37 +1,36 @@
 Function,Calls,Total Time,Per Call,Cumulative Time,Per Call (cumulative)
-c:\Users\Ario\Downloads\ArcadeFSE\perft.py:32(main),1,0.000624,0.000624,0.06866960000000001,0.06866960000000001
-{built-in method builtins.print},64,0.0408931,0.0006389546875,0.0408931,0.0006389546875
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:653(generate_legal_moves),65,0.0033409000000000004,5.139846153846155e-05,0.027454500000000003,0.00042237692307692314
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:322(generate_moves),65,0.0020858,3.208923076923077e-05,0.016103700000000002,0.0002477492307692308
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:632(generate_attack_map),65,0.0019543,3.0066153846153844e-05,0.006321500000000001,9.725384615384617e-05
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1068(generate_pawn_moves),520,0.001673,3.2173076923076924e-06,0.0052158000000000005,1.0030384615384616e-05
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:969(generate_sliding_moves),325,0.0023637000000000003,7.272923076923078e-06,0.0035811000000000003,1.1018769230769231e-05
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1016(generate_king_moves),65,0.0008003000000000001,1.2312307692307693e-05,0.0028121,4.3263076923076926e-05
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:955(is_within_board),6565,0.0024725000000000003,3.7661843107387664e-07,0.0024725000000000003,3.7661843107387664e-07
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:607(generate_sliding_attacks),325,0.000689,2.12e-06,0.0020974,6.453538461538462e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:620(generate_piece_attacks),520,0.0016759000000000001,3.2228846153846155e-06,0.0019602,3.769615384615385e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:997(generate_knight_moves),130,0.0012671000000000002,9.746923076923078e-06,0.0018927000000000002,1.455923076923077e-05
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1104(handle_pawn_captures),520,0.0012008000000000001,2.3092307692307694e-06,0.0018618,3.5803846153846155e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1038(handle_castling_moves),65,0.00021160000000000002,3.2553846153846156e-06,0.0016454000000000002,2.5313846153846158e-05
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1046(check_castling),130,0.0007797,5.997692307692308e-06,0.0014338,1.102923076923077e-05
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:144(get_piece),6565,0.0013411,2.0428027418126427e-07,0.0013411,2.0428027418126427e-07
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:592(generate_pawn_attacks),520,0.0009119000000000001,1.7536538461538463e-06,0.001026,1.973076923076923e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1096(handle_pawn_double_move),520,0.000591,1.1365384615384617e-06,0.0008498000000000001,1.6342307692307693e-06
-{method 'append' of 'list' objects},2600,0.0008288000000000001,3.187692307692308e-07,0.0008288000000000001,3.187692307692308e-07
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:28(get_color),3477,0.0007629000000000001,2.194132873166523e-07,0.0007629000000000001,2.194132873166523e-07
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:32(get_type),2827,0.0006806000000000001,2.407499115670322e-07,0.0006806000000000001,2.407499115670322e-07
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1079(handle_pawn_promotion),520,0.00041020000000000005,7.888461538461539e-07,0.0005917,1.1378846153846154e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:603(generate_knight_attacks),130,0.0001229,9.453846153846154e-07,0.0005234,4.026153846153847e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1048(<genexpr>),260,0.00047870000000000003,1.8411538461538463e-06,0.0005221000000000001,2.0080769230769234e-06
-{built-in method builtins.divmod},1105,0.00035870000000000005,3.2461538461538467e-07,0.00035870000000000005,3.2461538461538467e-07
-{built-in method builtins.all},130,0.000132,1.0153846153846155e-06,0.0002942,2.263076923076923e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:140(is_empty),1170,0.00028240000000000003,2.413675213675214e-07,0.00028240000000000003,2.413675213675214e-07
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:616(generate_king_attacks),65,5.2300000000000004e-05,8.046153846153847e-07,0.000275,4.230769230769231e-06
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:87(__init__),1,8.1e-06,8.1e-06,0.00015250000000000002,0.00015250000000000002
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:192(load_fen),1,5.64e-05,5.64e-05,0.0001444,0.0001444
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:148(set_piece),32,4.58e-05,1.43125e-06,6.92e-05,2.1625e-06
-{method 'disable' of '_lsprof.Profiler' objects},1,3.0500000000000003e-05,3.0500000000000003e-05,3.0500000000000003e-05,3.0500000000000003e-05
-{method 'isdigit' of 'str' objects},36,1.1000000000000001e-05,3.055555555555556e-07,1.1000000000000001e-05,3.055555555555556e-07
-{method 'add' of 'set' objects},32,9.800000000000001e-06,3.0625000000000003e-07,9.800000000000001e-06,3.0625000000000003e-07
-c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:44(get_piece_from_char),32,6.8e-06,2.125e-07,6.8e-06,2.125e-07
-{method 'split' of 'str' objects},1,1.0000000000000002e-06,1.0000000000000002e-06,1.0000000000000002e-06,1.0000000000000002e-06
+c:\Users\Ario\Downloads\ArcadeFSE\perft.py:50(gen_moves),1,0.015282,0.015282,3.6501651,3.6501651
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:653(generate_legal_moves),10000,0.4657452,4.657452e-05,3.6345651,0.00036345651000000003
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:322(generate_moves),10000,0.24692270000000002,2.4692270000000002e-05,2.0430824000000003,0.00020430824000000004
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:632(generate_attack_map),10000,0.2449551,2.449551e-05,0.8826322000000001,8.826322000000001e-05
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1069(generate_pawn_moves),80000,0.20122020000000002,2.5152525000000004e-06,0.7262712,9.07839e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:970(generate_sliding_moves),50000,0.31820970000000004,6.364194000000001e-06,0.49283400000000005,9.85668e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:956(is_within_board),1010000,0.3533526,3.498540594059406e-07,0.3533526,3.498540594059406e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:620(generate_piece_attacks),80000,0.25213240000000003,3.1516550000000005e-06,0.2979064,3.7238300000000002e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:607(generate_sliding_attacks),50000,0.08093610000000001,1.6187220000000002e-06,0.29280330000000004,5.856066000000001e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1105(handle_pawn_captures),80000,0.1784183,2.23022875e-06,0.2726427,3.40803375e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1017(generate_king_moves),10000,0.102856,1.02856e-05,0.2614997,2.614997e-05
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:998(generate_knight_moves),20000,0.1538141,7.690705000000001e-06,0.24397100000000002,1.219855e-05
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:144(get_piece),1010000,0.20887460000000002,2.0680653465346536e-07,0.20887460000000002,2.0680653465346536e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:592(generate_pawn_attacks),80000,0.1386735,1.73341875e-06,0.1565708,1.957135e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1097(handle_pawn_double_move),80000,0.09004480000000001,1.12556e-06,0.12967030000000002,1.6208787500000002e-06
+{method 'append' of 'list' objects},400000,0.1214983,3.0374575e-07,0.1214983,3.0374575e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:28(get_color),530032,0.11929550000000001,2.250722597880883e-07,0.11929550000000001,2.250722597880883e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1039(handle_castling_moves),10000,0.0165066,1.6506599999999999e-06,0.09993400000000001,9.993400000000002e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:32(get_type),430032,0.0977857,2.273916824794434e-07,0.0977857,2.273916824794434e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1080(handle_pawn_promotion),80000,0.0577415,7.217687500000001e-07,0.0851625,1.06453125e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1047(check_castling),20000,0.039832700000000006,1.9916350000000005e-06,0.0834274,4.17137e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:603(generate_knight_attacks),20000,0.015533900000000002,7.766950000000001e-07,0.0780242,3.90121e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:140(is_empty),180000,0.043484300000000004,2.4157944444444445e-07,0.043484300000000004,2.4157944444444445e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:616(generate_king_attacks),10000,0.007782300000000001,7.782300000000001e-07,0.0424867,4.24867e-06
+{built-in method builtins.divmod},170000,0.0413,2.4294117647058827e-07,0.0413,2.4294117647058827e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:1049(<genexpr>),40000,0.026026,6.5065e-07,0.0319472,7.986800000000001e-07
+{built-in method builtins.all},20000,0.0116475,5.82375e-07,0.030468000000000002,1.5234e-06
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:87(__init__),1,2.1400000000000002e-05,2.1400000000000002e-05,0.00031800000000000003,0.00031800000000000003
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:192(load_fen),1,0.0001249,0.0001249,0.0002966,0.0002966
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:148(set_piece),32,9.09e-05,2.840625e-06,0.0001332,4.1625e-06
+{method 'disable' of '_lsprof.Profiler' objects},1,2.5e-05,2.5e-05,2.5e-05,2.5e-05
+{method 'isdigit' of 'str' objects},36,2.22e-05,6.166666666666667e-07,2.22e-05,6.166666666666667e-07
+{method 'add' of 'set' objects},32,1.7800000000000002e-05,5.562500000000001e-07,1.7800000000000002e-05,5.562500000000001e-07
+c:\Users\Ario\Downloads\ArcadeFSE\src\chess\board.py:44(get_piece_from_char),32,1.3300000000000001e-05,4.1562500000000004e-07,1.3300000000000001e-05,4.1562500000000004e-07
+{method 'split' of 'str' objects},1,3e-06,3e-06,3e-06,3e-06

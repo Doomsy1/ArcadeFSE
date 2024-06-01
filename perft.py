@@ -47,11 +47,16 @@ def main():
     # Depth: 5, Positions: 4865609
     # Depth: 6, Positions: 119060324
 
+def gen_moves(count):
+    board = Board()
+    for _ in range(count):
+        board.generate_legal_moves()
 
 if __name__ == "__main__":
     pr = cProfile.Profile()
     pr.enable()
-    main()
+    # main()
+    gen_moves(10000)
     pr.disable()
     
     s = io.StringIO()
