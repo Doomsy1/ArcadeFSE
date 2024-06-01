@@ -46,6 +46,10 @@ def main():
     # Depth: 4, Positions: 197281
     # Depth: 5, Positions: 4865609
     # Depth: 6, Positions: 119060324
+    # Depth: 7, Positions: 3195901860
+    # Depth: 8, Positions: 84998978956
+    # Depth: 9, Positions: 2439530234167
+    # Depth: 10, Positions: 69352859712417
 
 def gen_moves(count):
     board = Board()
