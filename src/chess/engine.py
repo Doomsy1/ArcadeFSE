@@ -23,7 +23,7 @@ def get_piece_square_table_value(piece, square, phase):
     opening_value = opening_table[square]
     endgame_value = endgame_table[square]
 
-    return opening_value * (1 - phase) + endgame_value * phase
+    return opening_value * phase + endgame_value * (1 - phase)
 
 def evaluate_psqt(board):
     phase = calculate_phase(board)
@@ -37,16 +37,116 @@ def evaluate_psqt(board):
 
     return score
 
+def evaluate_mobility(board: Board):
+    '''Evaluate the mobility of the pieces on the board.'''
+    # generate attack map for each side
 
+    white_attack_map = board.generate_attack_map(True)
+    black_attack_map = board.generate_attack_map(False)
 
+    white_mobility = sum(white_attack_map)
+    black_mobility = sum(black_attack_map)
 
+    return (white_mobility - black_mobility) * 2
 
+def find_doubled_pawns(pawns_on_files):
+    '''Find the number of doubled pawns given the number of pawns on each file.'''
+    doubled_pawns = 0
+    for count in pawns_on_files:
+        if count > 1:
+            doubled_pawns += count - 1
+    return doubled_pawns
 
+def find_isolated_pawns(pawns_on_files):
+    '''Find the number of isolated pawns given the number of pawns on each file.'''
+    isolated_pawns = 0
 
+    for file, count in enumerate(pawns_on_files):
+        if count == 0:
+            continue
+        if file == 0:
+            if pawns_on_files[file+1] == 0:
+                isolated_pawns += count
+        elif file == 7:
+            if pawns_on_files[file-1] == 0:
+                isolated_pawns += count
+        else:
+            if pawns_on_files[file-1] == 0 and pawns_on_files[file+1] == 0:
+                isolated_pawns += count
 
+    return isolated_pawns
 
+def find_pawn_chains(pawn_squares, direction):
+    '''Find the number of pawn chains for each side.'''
+    pawn_chains = 0
+    for square in pawn_squares:
+        for offset in [-1, 1]:
+            if square + offset + direction in pawn_squares:
+                pawn_chains += 1
 
+    return pawn_chains
 
+def evaluate_pawn_structure(board: Board):
+    '''Evaluate the pawn structure of the board.'''
+    # doubled pawns [done]
+    # isolated pawns [done]
+    # pawn chains # TODO
+    # passed pawns # TODO
+
+    white_pawn_squares = [square for square in board.white_pieces if Piece.get_type(board.board[square]) == Piece.pawn]
+    black_pawn_squares = [square for square in board.black_pieces if Piece.get_type(board.board[square]) == Piece.pawn]
+
+    white_pawn_file_counts = [0] * 8
+    black_pawn_file_counts = [0] * 8
+
+    for square in white_pawn_squares:
+        file = square % 8
+        white_pawn_file_counts[file] += 1
+
+    for square in black_pawn_squares:
+        file = square % 8
+        black_pawn_file_counts[file] += 1
+
+    white_doubled_pawns = find_doubled_pawns(white_pawn_file_counts)
+    black_doubled_pawns = find_doubled_pawns(black_pawn_file_counts)
+
+    white_iso_pawns = find_isolated_pawns(white_pawn_file_counts)
+    black_iso_pawns = find_isolated_pawns(black_pawn_file_counts)
+
+    # white_passed_pawns, black_passed_pawns = find_passed_pawns(board)
+
+    white_pawn_chains = find_pawn_chains(white_pawn_squares, 8)
+    black_pawn_chains = find_pawn_chains(black_pawn_squares, -8)
+
+    # more doubled pawns is bad
+    doubled_pawn_eval = (black_doubled_pawns - white_doubled_pawns) * 10
+
+    # more isolated pawns is bad
+    isolated_pawn_eval = (black_iso_pawns - white_iso_pawns) * 10
+
+    # more pawn chains is good
+    pawn_chain_eval = (white_pawn_chains - black_pawn_chains) * 10
+
+    return doubled_pawn_eval + isolated_pawn_eval + pawn_chain_eval
+
+def evaluate_king_safety(board: Board):
+    '''Evaluate the safety of the kings on the board.'''
+    # castling rights [done]
+    # pawn shield # TODO
+    # open files # TODO
+    
+    white_castling_rights = board.castling_rights & 0b1100
+    black_castling_rights = board.castling_rights & 0b0011
+
+    # count castling rights
+    white_castling_eval = bin(white_castling_rights).count("1") * 25
+    black_castling_eval = bin(black_castling_rights).count("1") * 25
+
+    # pawn shield
+
+    # open files
+
+    return white_castling_eval - black_castling_eval
 
 
 
@@ -78,8 +178,6 @@ class Engine:
         self.board.white_to_move = board.white_to_move
         self.board.castling_rights =  board.castling_rights
         self.board.en_passant_target_square = board.en_passant_target_square
-        self.board.halfmove_clock = board.halfmove_clock
-        self.board.fullmove_number = board.fullmove_number
         self.board.undo_stack = board.undo_stack.copy()
 
 
@@ -109,11 +207,11 @@ class Engine:
 
             mvv_lva_score = self.calculate_mvv_lva(unordered_moves[0])
 
-            check_score = 5 if self.board.is_checking_move(move) else 0
+            check_score = 3 if self.board.is_checking_move(move) else 0
             # TODO: add tactical evaluation
             # TODO: add static exchange evaluation
 
-            move_score = history_score(move)*10 + mvv_lva_score + check_score
+            move_score = history_score(move)*6 + mvv_lva_score*2 + check_score
 
             move_scores.append((move, move_score))
 
@@ -139,8 +237,17 @@ class Engine:
         if self.board.is_game_over():
             return self.evaluate_terminal()
         
-        # Material
+        # material
         evaluation += evaluate_psqt(self.board.board)
+
+        # mobility
+        evaluation += evaluate_mobility(self.board)
+
+        # pawn structure
+        evaluation += evaluate_pawn_structure(self.board)
+
+        # king safety
+        evaluation += evaluate_king_safety(self.board)
 
         # TODO: add more evaluation terms
 
@@ -156,11 +263,29 @@ class Engine:
             self.history_table[move] = 0
         self.history_table[move] += 2 ** depth
 
+    def quiescence_search(self, alpha, beta):
+        stand_pat = self.evaluate()  # evaluate the static position
+        if stand_pat >= beta:
+            return beta
+        if alpha < stand_pat:
+            alpha = stand_pat
+
+        for move in self.board.generate_legal_moves(capture_only=True):
+            self.board.make_move(move)
+            score = -self.quiescence_search(-beta, -alpha)
+            self.board.undo_move()
+            if score >= beta:
+                return beta
+            if score > alpha:
+                alpha = score
+        return alpha
+
     def minimax(self, depth, alpha, beta):
         if self.time_exceeded():
             raise Exception("Time exceeded")
 
         if depth == 0 or self.board.is_game_over():
+            # return self.quiescence_search(alpha, beta) # extremely slow
             return self.evaluate()
 
         if self.board.white_to_move:
