@@ -97,8 +97,6 @@ class Board:
         self.white_to_move = True               # True if it's white's turn
         self.castling_rights = 0                # 4 bits for each side (KQkq)
         self.en_passant_target_square = 0       # square where en passant is possible (0 if not possible)
-        self.halfmove_clock = 0                 # number of halfmoves since last capture or pawn move
-        self.fullmove_number = 0                # starts at 1 and is incremented after b's move
 
         self.undo_stack = []                    # stack of moves (used for undo_move)
 
@@ -127,8 +125,6 @@ class Board:
         new_board.white_to_move = self.white_to_move
         new_board.castling_rights = self.castling_rights
         new_board.en_passant_target_square = self.en_passant_target_square
-        new_board.halfmove_clock = self.halfmove_clock
-        new_board.fullmove_number = self.fullmove_number
         new_board.undo_stack = self.undo_stack
 
         return new_board
@@ -208,8 +204,6 @@ class Board:
         turn = fen_data[1]
         castling_rights = fen_data[2]
         en_passant_square = fen_data[3]
-        halfmove_clock = fen_data[4]
-        fullmove_number = fen_data[5]
 
         # set up the board
         rank = 7
@@ -254,8 +248,7 @@ class Board:
             self.en_passant_target_square = rank * 8 + file
 
         # set the halfmove clock and fullmove number
-        self.halfmove_clock = int(halfmove_clock)
-        self.fullmove_number = int(fullmove_number)
+        # nahhhhhh
 
     def create_fen(self):
         '''Returns the FEN string representing the state of the board'''
@@ -315,7 +308,7 @@ class Board:
         fen += ' '
 
         # halfmove clock and fullmove number
-        fen += str(self.halfmove_clock) + ' ' + str(self.fullmove_number)
+        fen += '0 1'
 
         return fen
     
@@ -372,8 +365,6 @@ class Board:
         # update states
         self.update_castling_rights(start_square, end_square, start_piece, captured_piece)
         self.update_en_passant_target(start_square, end_square, start_piece)
-        self.update_halfmove_clock(start_piece, captured_piece)
-        self.update_fullmove_number()
 
         # update turn
         self.white_to_move = not self.white_to_move
@@ -383,8 +374,7 @@ class Board:
         self.undo_stack.append((
             move,
             self.castling_rights,
-            self.en_passant_target_square,
-            self.halfmove_clock
+            self.en_passant_target_square
         ))
 
     def handle_castling(self, end_square):
@@ -454,21 +444,11 @@ class Board:
         else:
             self.en_passant_target_square = 0
 
-    def update_halfmove_clock(self, start_piece, captured_piece):
-        if Piece.get_type(start_piece) == Piece.pawn or captured_piece:
-            self.halfmove_clock = 0
-        else:
-            self.halfmove_clock += 1
-
-    def update_fullmove_number(self):
-        if not self.white_to_move:
-            self.fullmove_number += 1
-
     def undo_move(self):
         '''Undoes the last move made on the board'''
         # TODO: check if this is faster than copying the board
         # TODO: capture promotion undo
-        move, castling_rights, en_passant_target_square, halfmove_clock = self.undo_stack.pop()
+        move, castling_rights, en_passant_target_square = self.undo_stack.pop()
 
         start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
 
@@ -493,8 +473,6 @@ class Board:
         # restore board state
         self.castling_rights = castling_rights
         self.en_passant_target_square = en_passant_target_square
-        self.halfmove_clock = halfmove_clock
-        self.fullmove_number -= 1 if self.white_to_move else 0
 
     def undo_castling(self, end_square):
         match end_square:
@@ -648,11 +626,81 @@ class Board:
                     self.generate_king_attacks(square, attack_map)
 
         return attack_map
-            
 
-    def generate_legal_moves(self):
+    def generate_capture_moves(self):
+        '''Generates all possible capture moves for the given turn'''
+        moves = []
+
+        for square in (self.white_pieces if self.white_to_move else self.black_pieces):
+            piece = self.get_piece(square)
+            piece_type = Piece.get_type(piece)
+
+            match piece_type:
+                case Piece.pawn:
+                    self.generate_pawn_capture_moves(piece, square, moves)
+                case Piece.knight:
+                    self.generate_knight_capture_moves(square, moves)
+                case Piece.bishop | Piece.rook | Piece.queen:
+                    self.generate_sliding_capture_moves(piece, square, moves)
+                case Piece.king:
+                    self.generate_king_capture_moves(square, moves)
+
+        return moves
+    
+    def generate_pawn_capture_moves(self, piece, square, moves):
+        color = Piece.get_color(piece)
+        move_direction = 1 if color == Piece.white else -1
+
+        for offset in [-1, 1]:
+            attack_rank = square // 8 + move_direction
+            attack_file = square % 8 + offset
+            if 0 <= attack_rank < 8 and 0 <= attack_file < 8:
+                attack_square = attack_rank * 8 + attack_file
+                attack_piece = self.get_piece(attack_square)
+                if attack_piece and Piece.get_color(attack_piece) != color:
+                    moves.append((
+                        square,         # start
+                        attack_square,  # end
+                        piece,          # start piece
+                        attack_piece,   # captured piece
+                        0, 0, 0))
+                    
+    def generate_knight_capture_moves(self, square, moves):
+        self.generate_piece_capture_moves(square, knight_offsets, moves)
+
+    def generate_sliding_capture_moves(self, piece, square, moves):
+        piece_type = Piece.get_type(piece)
+        self.generate_piece_capture_moves(square, sliding_offsets[piece_type], moves, True)
+
+    def generate_king_capture_moves(self, square, moves):
+        self.generate_piece_capture_moves(square, king_offsets, moves)
+
+    def generate_piece_capture_moves(self, square, offsets, moves, is_sliding=False):
+        rank, file = divmod(square, 8)
+        for rank_change, file_change in offsets:
+            new_rank, new_file = rank + rank_change, file + file_change
+            while 0 <= new_rank < 8 and 0 <= new_file < 8:
+                attack_square = new_rank * 8 + new_file
+                attack_piece = self.get_piece(attack_square)
+                if attack_piece:
+                    moves.append((
+                        square,                 # start
+                        attack_square,          # end
+                        self.get_piece(square), # start piece
+                        attack_piece,           # captured piece
+                        0, 0, 0))
+                    break
+                if not is_sliding:
+                    break
+                new_rank += rank_change
+                new_file += file_change
+
+    def generate_legal_moves(self, capture_only=False):
         '''Optimized legal move generation'''
-        pseuo_legal_moves = self.generate_moves()
+        if capture_only:
+            pseuo_legal_moves = self.generate_capture_moves()
+        else:
+            pseuo_legal_moves = self.generate_moves()
         # TODO: en passant pinning
         # TODO: castling through check
 
@@ -925,6 +973,13 @@ class Board:
     def is_stalemate(self):
         '''Returns True if the current player is in stalemate, False otherwise'''
         return not self.is_check(self.white_to_move) and not self.generate_legal_moves()
+
+    def is_threefold_repetition(self):
+        '''Returns True if the game is a draw due to threefold repetition, False otherwise'''
+        if len(self.undo_stack) < 6:
+            return False
+        count = self.undo_stack.count(self.undo_stack[-1])
+        return count >= 3
     
     def is_insufficient_material(self):
         '''Returns True if the game is a draw due to insufficient material, False otherwise'''
@@ -945,7 +1000,7 @@ class Board:
     def is_draw(self):
         '''Returns True if the game is a draw, False otherwise'''
         # TODO: add 50 move rule
-        return self.is_stalemate()or self.is_insufficient_material()
+        return self.is_stalemate() or self.is_insufficient_material() or self.is_threefold_repetition()
     
     def is_game_over(self):
         '''Returns True if the game is over, False otherwise'''
