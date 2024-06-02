@@ -48,6 +48,10 @@ class Piece:
     @staticmethod
     def get_char_from_piece(piece):
         return char_to_piece_map[piece]
+    
+    @staticmethod
+    def get_value(piece):
+        return piece_values[piece]
 
 piece_to_char_map = {
     'p': Piece.black | Piece.pawn,
@@ -77,6 +81,19 @@ char_to_piece_map = {
     Piece.white | Piece.queen: 'Q',
     Piece.white | Piece.king: 'K',
 }
+
+piece_values = {
+    0: 0, # empty square
+    Piece.pawn: 100,
+    Piece.knight: 290,
+    Piece.bishop: 320,
+    Piece.rook: 500,
+    Piece.queen: 900,
+    Piece.king: 0
+}
+
+# TODO: precompute moves for sliding pieces and knights (in a dictionary) - bounrdy checks are expensive
+
 
 # moves will be represented as a tuple
 # (start, end, start_piece, captured_piece, promotion_piece, castling, en_passant)
@@ -510,34 +527,6 @@ class Board:
         ally_king_rank, ally_king_file = divmod(ally_king_square, 8)
 
         enemy_color = Piece.black if color else Piece.white
-
-        # look at potential knight attacks
-        for rank_change, file_change in knight_offsets:
-            target_rank = ally_king_rank + rank_change
-            target_file = ally_king_file + file_change
-            if not is_within_board(target_rank, target_file):
-                continue
-            if self.get_piece(target_rank * 8 + target_file) == (enemy_color | Piece.knight):
-                return True
-            
-        # look at potential king attacks
-        for rank_change, file_change in king_offsets:
-            target_rank = ally_king_rank + rank_change
-            target_file = ally_king_file + file_change
-            if not is_within_board(target_rank, target_file):
-                continue
-            if self.get_piece(target_rank * 8 + target_file) == (enemy_color | Piece.king):
-                return True
-            
-        # look at potential pawn attacks
-        pawn_direction = 1 if color else -1
-        for offset in [-1, 1]:
-            target_rank = ally_king_rank + pawn_direction
-            target_file = ally_king_file + offset
-            if not is_within_board(target_rank, target_file):
-                continue
-            if self.get_piece(target_rank * 8 + target_file) == (enemy_color | Piece.pawn):
-                return True
             
         # look at potential rook attacks
         for rank_change, file_change in sliding_offsets[Piece.rook]:
@@ -565,6 +554,34 @@ class Board:
                 new_rank += rank_change
                 new_file += file_change
 
+        # look at potential knight attacks
+        for rank_change, file_change in knight_offsets:
+            target_rank = ally_king_rank + rank_change
+            target_file = ally_king_file + file_change
+            if not is_within_board(target_rank, target_file):
+                continue
+            if self.get_piece(target_rank * 8 + target_file) == (enemy_color | Piece.knight):
+                return True
+            
+        # look at potential pawn attacks
+        pawn_direction = 1 if color else -1
+        for offset in [-1, 1]:
+            target_rank = ally_king_rank + pawn_direction
+            target_file = ally_king_file + offset
+            if not is_within_board(target_rank, target_file):
+                continue
+            if self.get_piece(target_rank * 8 + target_file) == (enemy_color | Piece.pawn):
+                return True
+            
+        # look at potential king attacks
+        for rank_change, file_change in king_offsets:
+            target_rank = ally_king_rank + rank_change
+            target_file = ally_king_file + file_change
+            if not is_within_board(target_rank, target_file):
+                continue
+            if self.get_piece(target_rank * 8 + target_file) == (enemy_color | Piece.king):
+                return True
+
         return False
 
     def generate_pawn_attacks(self, piece, square, attack_map):
@@ -579,20 +596,13 @@ class Board:
                 attack_map[attack_square] += 1
 
     def generate_knight_attacks(self, square, attack_map):
-        knight_offsets = [(2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1)]
         self.generate_piece_attacks(square, knight_offsets, attack_map)
 
     def generate_sliding_attacks(self, piece, square, attack_map):
-        directions = {
-            Piece.bishop: [(1, 1), (1, -1), (-1, -1), (-1, 1)],
-            Piece.rook: [(1, 0), (0, 1), (-1, 0), (0, -1)],
-            Piece.queen: [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-        }
         piece_type = Piece.get_type(piece)
-        self.generate_piece_attacks(square, directions[piece_type], attack_map, True)
+        self.generate_piece_attacks(square, sliding_offsets[piece_type], attack_map, True)
 
     def generate_king_attacks(self, square, attack_map):
-        king_offsets = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, -1), (-1, 1)]
         self.generate_piece_attacks(square, king_offsets, attack_map)
 
     def generate_piece_attacks(self, square, offsets, attack_map, is_sliding=False):
@@ -695,22 +705,12 @@ class Board:
                 new_rank += rank_change
                 new_file += file_change
 
-    def generate_legal_moves(self, capture_only=False):
-        '''Optimized legal move generation'''
-        if capture_only:
-            pseuo_legal_moves = self.generate_capture_moves()
-        else:
-            pseuo_legal_moves = self.generate_moves()
-        # TODO: en passant pinning
-        # TODO: castling through check
+    def find_pins_and_checks(self, king_square):
+        '''Finds pinned pieces and checks for the given king square'''
 
-        king_square = self.white_king_square if self.white_to_move else self.black_king_square
         king_rank, king_file = divmod(king_square, 8)
         king_color = Piece.white if self.white_to_move else Piece.black
         enemy_color = Piece.black if self.white_to_move else Piece.white
-
-        # generate enemy attack map
-        enemy_attack_map = self.generate_attack_map(not self.white_to_move)
 
         # identify pinned pieces and which squares they can move to (between the king and the attacker, including the attacker)
         # [square of pinned piece, square of attacker, [list of squares between the king and the attacker]]
@@ -816,14 +816,37 @@ class Board:
                 if target_piece == (enemy_color | Piece.pawn):
                     checks = (target_square,)
                     break
+
+        return pins, checks
+
+    def generate_legal_moves(self, capture_only=False):
+        '''Optimized legal move generation'''
+        if capture_only:
+            pseuo_legal_moves = self.generate_capture_moves()
+        else:
+            pseuo_legal_moves = self.generate_moves()
+        # TODO: en passant pinning
+        # TODO: castling through check
+
+        king_square = self.white_king_square if self.white_to_move else self.black_king_square
+
+        # find pins and checks
+        pins, checks = self.find_pins_and_checks(king_square)
         
+
+        # generate enemy attack map
+        enemy_attack_map = self.generate_attack_map(not self.white_to_move)
+
 
         # if the king is double checked, the only legal moves will be moves that move the king somewhere it is not attacked
         if enemy_attack_map[king_square] > 1:
             legal_moves = []
             for move in pseuo_legal_moves:
                 if enemy_attack_map[move[1]] == 0:
-                    legal_moves.append(move)
+                    self.make_move(move)
+                    if not self.is_check(not self.white_to_move):
+                        legal_moves.append(move)
+                    self.undo_move()
             return legal_moves
         
         # if the king is single checked
@@ -964,15 +987,103 @@ class Board:
                 new_file += file_change
 
         return False
+    
+    def has_legal_moves(self):
+        '''Returns True if the current player has legal moves, False otherwise'''
+        
+        # exit as early as possible
+        # structured similarly to generate_legal_moves
+        pseudo_legal_moves = self.generate_moves()
+
+        king_square = self.white_king_square if self.white_to_move else self.black_king_square
+        
+        # find pins and checks
+        pins, checks = self.find_pins_and_checks(king_square)
+
+        # generate enemy attack map
+        enemy_attack_map = self.generate_attack_map(not self.white_to_move)
+
+        # if the king is double checked, the only legal moves will be moves that move the king somewhere it is not attacked
+        if enemy_attack_map[king_square] > 1:
+            for move in pseudo_legal_moves:
+                if enemy_attack_map[move[1]] == 0:
+                    self.make_move(move)
+                    if not self.is_check(not self.white_to_move):
+                        self.undo_move()
+                        return True
+                    self.undo_move()
+            return False
+        
+        # if the king is single checked
+        elif enemy_attack_map[king_square] == 1:
+            for move in pseudo_legal_moves:
+                # move king to a square that is not attacked (king can't castle out of check)
+                if move[0] == king_square and enemy_attack_map[move[1]] == 0 and not move[5]:
+                    self.make_move(move)
+                    if not self.is_check(not self.white_to_move):
+                        self.undo_move()
+                        return True
+                    self.undo_move()
+                
+                # capture the attacking piece or block the attack
+                if move[0] != king_square and move[1] in checks:
+                    # if the piece is pinned, it can only move along the pin
+                    for pin in pins:
+                        if move[0] == pin[0]:
+                            if move[1] in pin[2]:
+                                self.make_move(move)
+                                if not self.is_check(not self.white_to_move):
+                                    self.undo_move()
+                                    return True
+                            break
+
+                    # if the piece is not pinned, it can block the attack or capture the attacker freely
+                    else:
+                        self.make_move(move)
+                        if not self.is_check(not self.white_to_move):
+                            self.undo_move()
+                            return True
+            return False
+        
+        # if the king is not checked
+        for move in pseudo_legal_moves:
+            start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
+
+            # if the piece is pinned, it can only move along the pin
+            for pin in pins:
+                if start_square == pin[0]:
+                    if end_square in pin[2]:
+                        self.make_move(move)
+                        if not self.is_check(not self.white_to_move):
+                            self.undo_move()
+                            return True
+                    break
+
+            # if the piece is not pinned, it can move freely
+            else:
+                if start_square == king_square:
+                    if enemy_attack_map[end_square] == 0:
+                        self.make_move(move)
+                        if not self.is_check(not self.white_to_move):
+                            self.undo_move()
+                            return True
+                else:
+                    self.make_move(move)
+                    if not self.is_check(not self.white_to_move):
+                        self.undo_move()
+                        return True
+                    
+        return False
+
 
 
     def is_checkmate(self):
         '''Returns True if the current player is in checkmate, False otherwise'''
-        return self.is_check(self.white_to_move) and not self.generate_legal_moves()
+        return self.is_check(self.white_to_move) and not self.has_legal_moves()
     
     def is_stalemate(self):
         '''Returns True if the current player is in stalemate, False otherwise'''
-        return not self.is_check(self.white_to_move) and not self.generate_legal_moves()
+        return not self.is_check(self.white_to_move) and not self.has_legal_moves()
 
     def is_threefold_repetition(self):
         '''Returns True if the game is a draw due to threefold repetition, False otherwise'''
@@ -999,7 +1110,7 @@ class Board:
 
     def is_draw(self):
         '''Returns True if the game is a draw, False otherwise'''
-        # TODO: add 50 move rule
+        # 50 move rule - nope
         return self.is_stalemate() or self.is_insufficient_material() or self.is_threefold_repetition()
     
     def is_game_over(self):

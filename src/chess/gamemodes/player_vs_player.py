@@ -617,7 +617,6 @@ class PlayerVsPlayer:
             write_centered_text(self.screen, str(attacked_num), text_rect, text_color)
 
         # print(self.board.white_attacked_squares) 
-        # TODO: fix attacked squares
 
     def main_loop(self):
         running = True

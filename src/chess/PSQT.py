@@ -1,14 +1,7 @@
 from src.chess.PSQT_2D import PSQT_2D
 from src.chess.board import Piece
 
-piece_values = {
-    Piece.pawn: 100,
-    Piece.knight: 290,
-    Piece.bishop: 320,
-    Piece.rook: 500,
-    Piece.queen: 900,
-    Piece.king: 0
-}
+
 
 PSQT = {}
 
@@ -16,7 +9,7 @@ for phase in PSQT_2D:
     PSQT[phase] = {}
     for piece in PSQT_2D[phase]:
         piece_type = Piece.get_type(piece)
-        piece_value = piece_values[piece_type]
+        piece_value = Piece.get_value(piece_type)
         piece_value *= -1 if Piece.get_color(piece) == Piece.black else 1
         
         table = PSQT_2D[phase][piece]

@@ -30,7 +30,6 @@ def evaluate_psqt(board):
 
     score = 0
 
-    # TODO: switch to using board.white_pieces and board.black_pieces
     for square, piece in enumerate(board):
         if piece != 0:
             score += get_piece_square_table_value(piece, square, phase)
@@ -90,8 +89,8 @@ def evaluate_pawn_structure(board: Board):
     '''Evaluate the pawn structure of the board.'''
     # doubled pawns [done]
     # isolated pawns [done]
-    # pawn chains # TODO
-    # passed pawns # TODO
+    # pawn chains [done]
+    # passed pawns #TODO
 
     white_pawn_squares = [square for square in board.white_pieces if Piece.get_type(board.board[square]) == Piece.pawn]
     black_pawn_squares = [square for square in board.black_pieces if Piece.get_type(board.board[square]) == Piece.pawn]
@@ -162,6 +161,7 @@ class Engine:
 
         self.history_table = {}
         self.cached_generations = {}
+        self.transposition_table = {}
         self.start_time = 0
 
     def update_board(self, board: Board):
@@ -193,9 +193,14 @@ class Engine:
         attacker_piece = Piece.get_type(move[2])
         promotion_piece = Piece.get_type(move[4])
 
-        if victim_piece == 0:
-            return attacker_piece + promotion_piece
-        return victim_piece*2 - attacker_piece + promotion_piece
+        victim_value = Piece.get_value(victim_piece)
+        attacker_value = Piece.get_value(attacker_piece)
+        promotion_value = Piece.get_value(promotion_piece)
+
+
+        if victim_value == 0:
+            return -attacker_value + promotion_value
+        return victim_value * 3 - attacker_value + promotion_value
 
     def order_moves(self, unordered_moves):
         '''Order moves based on the history heuristic, MVV/LVA, and other factors.'''
@@ -220,22 +225,31 @@ class Engine:
 
 
 
-    def get_ordered_moves(self): # TODO: add a parameter to generate_legal_moves to only generate capture moves
+    def get_ordered_moves(self):
         key = self.board.hash_board()
         if key in self.cached_generations:
+            self.cache_retreivals += 1
             moves = self.cached_generations[key]
         else:
             self.move_generations += 1
             moves = self.board.generate_legal_moves()
-        return self.order_moves(moves)
+
+        ordered_moves = self.order_moves(moves)
+        self.cached_generations[key] = ordered_moves
+        return ordered_moves
 
     def evaluate(self):
         '''Evaluate the current board position. 
         Return a score where positive is good for white and negative is good for black.'''
         self.positions_evaluated += 1
         evaluation = 0
+        key = self.board.hash_board()
+        if key in self.transposition_table:
+            return self.transposition_table[key]
         if self.board.is_game_over():
-            return self.evaluate_terminal()
+            evaluation = self.evaluate_terminal()
+            self.transposition_table[key] = evaluation
+            return evaluation
         
         # material
         evaluation += evaluate_psqt(self.board.board)
@@ -251,6 +265,7 @@ class Engine:
 
         # TODO: add more evaluation terms
 
+        self.transposition_table[key] = evaluation
         return evaluation
 
     def evaluate_terminal(self):
@@ -264,29 +279,55 @@ class Engine:
         self.history_table[move] += 2 ** depth
 
     def quiescence_search(self, alpha, beta):
-        stand_pat = self.evaluate()  # evaluate the static position
+        if self.board.white_to_move:
+            return self.quiescence_max(alpha, beta)
+        else:
+            return self.quiescence_min(alpha, beta)
+
+    def quiescence_max(self, alpha, beta):
+        stand_pat = self.evaluate()
         if stand_pat >= beta:
             return beta
-        if alpha < stand_pat:
+        if stand_pat > alpha:
             alpha = stand_pat
 
         for move in self.board.generate_legal_moves(capture_only=True):
             self.board.make_move(move)
-            score = -self.quiescence_search(-beta, -alpha)
+            score = self.quiescence_min(alpha, beta)
             self.board.undo_move()
+
             if score >= beta:
                 return beta
             if score > alpha:
                 alpha = score
+
         return alpha
+
+    def quiescence_min(self, alpha, beta):
+        stand_pat = self.evaluate()
+        if stand_pat <= alpha:
+            return alpha
+        if stand_pat < beta:
+            beta = stand_pat
+
+        for move in self.board.generate_legal_moves(capture_only=True):
+            self.board.make_move(move)
+            score = self.quiescence_max(alpha, beta)
+            self.board.undo_move()
+
+            if score <= alpha:
+                return alpha
+            if score < beta:
+                beta = score
+
+        return beta
 
     def minimax(self, depth, alpha, beta):
         if self.time_exceeded():
             raise Exception("Time exceeded")
 
         if depth == 0 or self.board.is_game_over():
-            # return self.quiescence_search(alpha, beta) # extremely slow
-            return self.evaluate()
+            return self.quiescence_search(alpha, beta)
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY
@@ -341,11 +382,16 @@ class Engine:
 
     def iterative_deepening(self, result_container: list):
         """Perform an iterative deepening search."""
+        # TODO: thinking during opponent's turn (necessary)
+        # TODO: time management (necessary)
         # TODO: quiescence search (necessary)
         # TODO: transposition table (necessary)
         # TODO: killer moves (necessary)
+        # TODO: parallel search (necessary)
 
-        # TODO: parallel search (maybe)
+        # TODO: opening book (maybe)
+        # TODO: endgame tablebases (maybe)
+
         # TODO: null move pruning (maybe)
         # TODO: aspiration windows (maybe)
         # TODO: late move reduction (maybe)
@@ -354,6 +400,16 @@ class Engine:
         self.start_time = time.time()
         self.positions_evaluated = 0
         self.move_generations = 0
+        self.cache_retreivals = 0
+
+        moves = self.get_ordered_moves()
+        if len(moves) == 0:
+            return
+        if len(moves) == 1:
+            result_container.append((moves[0], None, True))
+            return
+        best_move = moves[0]
+        best_eval = None
 
         depth = 1
         while not self.time_exceeded():
@@ -372,7 +428,7 @@ class Engine:
             if time_elapsed * 2 >= self.time_limit_ms:
                 break
 
-        print(f"Time taken: {(time.time() - self.start_time) * 1000:.2f} ms, Positions evaluated: {self.positions_evaluated}, Move generations: {self.move_generations}")
+        print(f"Time taken: {(time.time() - self.start_time) * 1000:.2f} ms, Positions evaluated: {self.positions_evaluated}, Move generations: {self.move_generations}, Cache retrievals: {self.cache_retreivals}")
         result_container.append((best_move, best_eval, True))
 
 

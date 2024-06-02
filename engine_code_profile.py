@@ -10,7 +10,7 @@ if __name__ == "__main__":
     pr = cProfile.Profile()
     b = Board()
     engine = Engine(b)
-    b.load_fen('2r3k1/p4p2/3Rp2p/1p2P1pK/8/1P4P1/P3Q2P/1q6 b - - 0 1')
+    b.load_fen('3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0')
     engine.update_board(b)
 
     pr.enable()
