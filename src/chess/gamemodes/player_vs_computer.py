@@ -17,6 +17,8 @@ def file_rank_to_square(file, rank):
     return 8*rank + file
 
 def square_to_file_rank(square):
+    if square is None: # TOFIX: placeholder
+        return 0, 0
     return square % 8, square // 8
 
 def square_to_pixel(square):
@@ -373,6 +375,12 @@ class PlayerVsComputer:
         
         elif self.board.is_stalemate():
             write_centered_text(self.screen, "Stalemate! It's a draw\nClick to return to the main menu", description_rect, description_color)
+
+        elif self.board.is_insufficient_material():
+            write_centered_text(self.screen, "Insufficient material! It's a draw\nClick to return to the main menu", description_rect, description_color)
+
+        elif self.board.is_threefold_repetition():
+            write_centered_text(self.screen, "Draw by repetition! It's a draw\nClick to return to the main menu", description_rect, description_color)
         
         elif self.chess_clock.white_time <= 0:
             write_centered_text(self.screen, "Time's up! Black wins\nClick to return to the main menu", description_rect, description_color)
@@ -509,7 +517,7 @@ class PlayerVsComputer:
             self.draw_arrow(start, end, ARROW_COLOR, ARROW_ALPHA)  
 
         # draw the preview annotation
-        if self.preview_annotation_start_square != None:
+        if self.preview_annotation_start_square is not None:
             if self.preview_annotation_start_square == self.preview_annotation_end_square:
                 self.draw_circle(self.preview_annotation_start_square, CIRCLE_COLOR, CIRCLE_ALPHA)
             else:
@@ -569,12 +577,49 @@ class PlayerVsComputer:
         # draw an arrow from the start square to the end square
         self.draw_arrow(start, end, ENGINE_SUGGESTION_COLOR, ENGINE_SUGGESTION_ALPHA)
 
+    def draw_algebraic_notation(self):
+        '''
+        Draw the algebraic notation of the board
+        '''
+        p, q = 7, 24
+        # draw files
+        for file in range(8):
+            letter = chr(ord('a') + file)
+            x, y = square_to_pixel(file)
+
+            # draw the file letter on the bottom left of the square
+            text_x = x + (q - p)*CHESS_GRID_SIZE/q
+            text_y = y + (q - p)*CHESS_GRID_SIZE/q
+            
+            text_rect = pygame.Rect(text_x, text_y, p*CHESS_GRID_SIZE/q, p*CHESS_GRID_SIZE/q)
+            # draw a black rectangle behind the text
+            pygame.draw.rect(self.screen, (0, 0, 0), text_rect)
+
+            # draw the text
+            write_centered_text(self.screen, letter, text_rect, (255, 255, 255))
+
+        for rank in range(8):
+            number = str(rank + 1)
+            x, y = square_to_pixel(rank*8)
+
+            # draw the rank number on the top right of the square
+            text_x = x
+            text_y = y
+
+            text_rect = pygame.Rect(text_x, text_y, p*CHESS_GRID_SIZE/q, p*CHESS_GRID_SIZE/q)
+            # draw a black rectangle behind the text
+            pygame.draw.rect(self.screen, (0, 0, 0), text_rect)
+
+            # draw the text
+            write_centered_text(self.screen, number, text_rect, (255, 255, 255))
+
+
     def draw_game(self):
         '''
         Draw the chess game
         '''
         self.draw_board()
-
+        
         self.draw_previous_move()
 
         self.draw_selected_square()
@@ -586,6 +631,8 @@ class PlayerVsComputer:
         self.draw_annotations()
 
         self.draw_latest_engine_move()
+
+        self.draw_algebraic_notation()
 
         self.chess_clock.draw(self.screen)
 
@@ -654,6 +701,10 @@ class PlayerVsComputer:
                 # if the f key is pressed, create a popup to edit the fen string
                 if event.key == pygame.K_f:
                     self.edit_fen()
+                # if the t key is pressed, give 30 seconds to each player
+                if event.key == pygame.K_t:
+                    self.chess_clock.white_time += 30
+                    self.chess_clock.black_time += 30
         return False
     
     def handle_engine(self):

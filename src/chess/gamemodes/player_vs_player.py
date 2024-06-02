@@ -492,6 +492,11 @@ class PlayerVsPlayer:
         with open(file_name, 'w') as file:
             json.dump(self.move_list, file)
 
+    
+
+
+
+
     def draw_game(self):
         '''
         Draw the chess game
@@ -591,6 +596,7 @@ class PlayerVsPlayer:
                 # if the n key is pressed, print the legal moves
                 if event.key == pygame.K_n:
                     print(self.board.generate_legal_moves())
+                
         return False
 
     def draw_attack_map(self):
