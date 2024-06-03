@@ -118,13 +118,13 @@ def evaluate_pawn_structure(board: Board):
     black_pawn_chains = find_pawn_chains(black_pawn_squares, -8)
 
     # more doubled pawns is bad
-    doubled_pawn_eval = (black_doubled_pawns - white_doubled_pawns) * 10
+    doubled_pawn_eval = (black_doubled_pawns - white_doubled_pawns) * 7
 
     # more isolated pawns is bad
     isolated_pawn_eval = (black_iso_pawns - white_iso_pawns) * 10
 
     # more pawn chains is good
-    pawn_chain_eval = (white_pawn_chains - black_pawn_chains) * 10
+    pawn_chain_eval = (white_pawn_chains - black_pawn_chains) * 5
 
     return doubled_pawn_eval + isolated_pawn_eval + pawn_chain_eval
 
@@ -138,8 +138,8 @@ def evaluate_king_safety(board: Board):
     black_castling_rights = board.castling_rights & 0b0011
 
     # count castling rights
-    white_castling_eval = bin(white_castling_rights).count("1") * 25
-    black_castling_eval = bin(black_castling_rights).count("1") * 25
+    white_castling_eval = bin(white_castling_rights).count("1") * 15
+    black_castling_eval = bin(black_castling_rights).count("1") * 15
 
     # pawn shield
 
@@ -199,7 +199,7 @@ class Engine:
 
 
         if victim_value == 0:
-            return -attacker_value + promotion_value
+            return attacker_value + promotion_value
         return victim_value * 3 - attacker_value + promotion_value
 
     def order_moves(self, unordered_moves):
@@ -212,11 +212,11 @@ class Engine:
 
             mvv_lva_score = self.calculate_mvv_lva(unordered_moves[0])
 
-            check_score = 3 if self.board.is_checking_move(move) else 0
+            check_score = 1 if self.board.is_checking_move(move) else 0
             # TODO: add tactical evaluation
             # TODO: add static exchange evaluation
 
-            move_score = history_score(move)*6 + mvv_lva_score*2 + check_score
+            move_score = history_score(move)*3000 + mvv_lva_score + check_score * 1000
 
             move_scores.append((move, move_score))
 
@@ -226,16 +226,10 @@ class Engine:
 
 
     def get_ordered_moves(self):
-        key = self.board.hash_board()
-        if key in self.cached_generations:
-            self.cache_retreivals += 1
-            moves = self.cached_generations[key]
-        else:
-            self.move_generations += 1
-            moves = self.board.generate_legal_moves()
+        self.move_generations += 1
+        moves = self.board.generate_legal_moves()
 
         ordered_moves = self.order_moves(moves)
-        self.cached_generations[key] = ordered_moves
         return ordered_moves
 
     def evaluate(self):
@@ -243,12 +237,8 @@ class Engine:
         Return a score where positive is good for white and negative is good for black.'''
         self.positions_evaluated += 1
         evaluation = 0
-        key = self.board.hash_board()
-        if key in self.transposition_table:
-            return self.transposition_table[key]
         if self.board.is_game_over():
             evaluation = self.evaluate_terminal()
-            self.transposition_table[key] = evaluation
             return evaluation
         
         # material
@@ -265,7 +255,6 @@ class Engine:
 
         # TODO: add more evaluation terms
 
-        self.transposition_table[key] = evaluation
         return evaluation
 
     def evaluate_terminal(self):
@@ -328,6 +317,7 @@ class Engine:
 
         if depth == 0 or self.board.is_game_over():
             return self.quiescence_search(alpha, beta)
+            # return self.evaluate()
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY
