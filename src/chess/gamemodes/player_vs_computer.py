@@ -347,9 +347,66 @@ class PlayerVsComputer:
             self.screen.blit(piece_image, (x, y))
 
     def promotion_popup(self):
-        '''Show a promotion popup'''
-        # TODO: add a promotion popup
-        pass
+        '''
+        Display a promotion popup
+        '''
+        promotion_choices = {
+            'knight': {
+                'white': Piece.white | Piece.knight,
+                'black': Piece.black | Piece.knight,
+                'rect': pygame.Rect(200, 200, 100, 100)
+            },
+            'bishop': {
+                'white': Piece.white | Piece.bishop,
+                'black': Piece.black | Piece.bishop,
+                'rect': pygame.Rect(200, 300, 100, 100)
+            },
+            'rook': {
+                'white': Piece.white | Piece.rook,
+                'black': Piece.black | Piece.rook,
+                'rect': pygame.Rect(300, 200, 100, 100)
+            },
+            'queen': {
+                'white': Piece.white | Piece.queen,
+                'black': Piece.black | Piece.queen,
+                'rect': pygame.Rect(300, 300, 100, 100)
+            }
+        }
+
+        promotion_box_rect = pygame.Rect(200, 200, 200, 200)
+
+        promotion_piece = 0b0000
+        while promotion_piece == 0b0000:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return 'chess main menu'
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return 'chess main menu'
+
+            mx, my = pygame.mouse.get_pos()
+            mb = pygame.mouse.get_pressed()
+            # draw the promotion popup background
+            pygame.draw.rect(self.screen, (128, 128, 128), promotion_box_rect)
+
+            # draw the promotion choices
+            for choice in promotion_choices:
+                pygame.draw.rect(self.screen, (255, 255, 255), promotion_choices[choice]['rect'])
+                if promotion_choices[choice]['rect'].collidepoint(mx, my):
+                    pygame.draw.rect(self.screen, (255, 0, 0), promotion_choices[choice]['rect'], 5)
+
+                    if mb[0]:
+                        promotion_piece = promotion_choices[choice]['white'] if self.turn else promotion_choices[choice]['black']
+                        return promotion_piece
+                    
+                if self.turn:
+                    piece = promotion_choices[choice]['white']
+                else:
+                    piece = promotion_choices[choice]['black']
+                piece_image = self.piece_images[piece]
+                self.screen.blit(piece_image, promotion_choices[choice]['rect'].topleft)
+
+            pygame.display.flip()
 
     def draw_game_over(self):
         '''Draw the game over screen'''
@@ -542,7 +599,7 @@ class PlayerVsComputer:
     def export_move_list(self):
         '''Export the move list to a json file'''
 
-        file_name = f'src/chess/debug_data/move_lists/{len(self.move_list)}_ID{self.board.hash_board(self.turn)}.json'
+        file_name = f'src/chess/debug_data/move_lists/{len(self.move_list)}_ID{self.board.hash_board()}.json'
         with open(file_name, 'w') as file:
             json.dump(self.move_list, file)
     
