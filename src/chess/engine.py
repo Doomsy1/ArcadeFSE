@@ -155,7 +155,7 @@ NEGATIVE_INFINITY = -9999999
 POSITIVE_INFINITY = 9999999
 
 class Engine:
-    def __init__(self, board: Board, depth: int = 1, time_limit_ms: int = 5000):
+    def __init__(self, board: Board, depth: int = 1, time_limit_ms: int = 50000):
         self.board = board.__copy__()
         self.depth = depth
         self.time_limit_ms = time_limit_ms
@@ -323,8 +323,8 @@ class Engine:
             raise Exception("Time exceeded")
 
         if depth == 0 or self.board.is_game_over():
-            return self.quiescence_search(alpha, beta)
-            # return self.evaluate()
+            # return self.quiescence_search(alpha, beta)
+            return self.evaluate()
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY
