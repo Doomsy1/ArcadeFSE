@@ -1,10 +1,11 @@
 # from src.chess.engine.PSQT import PSQT
+import json
 import random
 import time
 from src.chess.PSQT import PSQT, PHASE_WEIGHTS, TOTAL_PHASE
 from src.chess.board import Board, Piece
 
-
+OPENINGS_FILE = "src\chess\Carlsen_openings.json"
 
 def calculate_phase(board):
     phase = 0
@@ -118,13 +119,13 @@ def evaluate_pawn_structure(board: Board):
     black_pawn_chains = find_pawn_chains(black_pawn_squares, -8)
 
     # more doubled pawns is bad
-    doubled_pawn_eval = (black_doubled_pawns - white_doubled_pawns) * 7
+    doubled_pawn_eval = (black_doubled_pawns - white_doubled_pawns) * 13
 
     # more isolated pawns is bad
-    isolated_pawn_eval = (black_iso_pawns - white_iso_pawns) * 10
+    isolated_pawn_eval = (black_iso_pawns - white_iso_pawns) * 11
 
     # more pawn chains is good
-    pawn_chain_eval = (white_pawn_chains - black_pawn_chains) * 5
+    pawn_chain_eval = (white_pawn_chains - black_pawn_chains) * 9
 
     return doubled_pawn_eval + isolated_pawn_eval + pawn_chain_eval
 
@@ -164,6 +165,12 @@ class Engine:
         self.transposition_table = {}
         self.start_time = 0
 
+        self.load_openings()
+
+    def load_openings(self):
+        with open(OPENINGS_FILE, "r") as file:
+            self.openings = json.load(file)
+
     def update_board(self, board: Board):
         '''Used to sync the engine's board with the actual board.'''
         self.board.board = board.board.copy()
@@ -200,7 +207,7 @@ class Engine:
 
         if victim_value == 0:
             return attacker_value + promotion_value
-        return victim_value * 3 - attacker_value + promotion_value
+        return victim_value - attacker_value + promotion_value
 
     def order_moves(self, unordered_moves):
         '''Order moves based on the history heuristic, MVV/LVA, and other factors.'''
@@ -216,7 +223,7 @@ class Engine:
             # TODO: add tactical evaluation
             # TODO: add static exchange evaluation
 
-            move_score = history_score(move)*3000 + mvv_lva_score + check_score * 1000
+            move_score = history_score(move)*2000 + mvv_lva_score + check_score * 1200
 
             move_scores.append((move, move_score))
 
@@ -265,7 +272,7 @@ class Engine:
     def update_history_score(self, move, depth):
         if move not in self.history_table:
             self.history_table[move] = 0
-        self.history_table[move] += 2 ** depth
+        self.history_table[move] += 3 ** depth
 
     def quiescence_search(self, alpha, beta):
         if self.board.white_to_move:
@@ -386,6 +393,32 @@ class Engine:
         # TODO: aspiration windows (maybe)
         # TODO: late move reduction (maybe)
         # TODO: futility pruning (maybe)
+
+        fen = self.board.create_fen(ignore_en_passant = True)
+        turn = self.board.white_to_move
+        if fen in self.openings:
+            opening_moves = self.openings[fen]
+            # sort opening moves by score
+            # they are formatted like this: move: score
+            opening_moves = sorted(opening_moves.items(), key=lambda x: x[1], reverse=turn) # position is good for white
+            opening_moves = [move[0].split(", ") for move in opening_moves]
+            valid_moves = self.board.generate_legal_moves()
+            move_found = False
+            for opening_move in opening_moves:
+                if move_found:
+                    break
+
+                for valid_move in valid_moves:
+                    
+                    if valid_move[0] == int(opening_move[0]) and valid_move[1] == int(opening_move[1]):
+                        best_opening_move = valid_move
+                        move_found = True
+                        break
+            if move_found:
+                result_container.append((best_opening_move, None, True))
+                return
+            
+
         
         self.start_time = time.time()
         self.positions_evaluated = 0
