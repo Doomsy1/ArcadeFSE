@@ -10,7 +10,7 @@ HISTORY_SCORE = 2500
 VICTIM_SCORE_MULTIPLIER = 2
 
 
-OPENINGS_FILE = "src\chess\openings.json"
+OPENINGS_FILE = "src\chess\condensed_openings.json"
 
 def calculate_phase(board):
     phase = 0
