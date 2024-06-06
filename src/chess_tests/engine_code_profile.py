@@ -2,8 +2,8 @@ import cProfile
 import csv
 import io
 import pstats
-from src.chess.engine import Engine
 from src.chess.board import Board
+from src.chess.engine import Engine
 
 def time_mate(engine: Engine, fen):
     engine.board.load_fen(fen)

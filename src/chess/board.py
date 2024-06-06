@@ -238,7 +238,6 @@ class Board:
 
     def move_piece(self, start_square, end_square, piece):
         """Moves the piece from start_square to end_square, optimized for performance"""
-        # directly update the board
         self.board[end_square] = piece
         self.board[start_square] = 0
 

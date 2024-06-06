@@ -5,9 +5,9 @@ import time
 from src.chess.PSQT import PSQT, PHASE_WEIGHTS, TOTAL_PHASE
 from src.chess.board import Board, Piece
 
-CHECK_SCORE = 1500
+CHECK_SCORE = 1200
 HISTORY_SCORE = 2500
-VICTIM_SCORE_MULTIPLIER = 2
+VICTIM_SCORE_MULTIPLIER = 3
 
 
 OPENINGS_FILE = "src\chess\condensed_openings.json"
@@ -213,7 +213,7 @@ class Engine:
 
         if victim_value == 0:
             return attacker_value + promotion_value
-        return victim_value * 2 - attacker_value + promotion_value
+        return victim_value * VICTIM_SCORE_MULTIPLIER - attacker_value + promotion_value
 
     def order_moves(self, unordered_moves):
         '''Order moves based on the history heuristic, MVV/LVA, and other factors.'''
@@ -221,11 +221,14 @@ class Engine:
         move_scores = []
         for move in unordered_moves:
             history_score = lambda move: self.history_table.get(move, 0)
-            # might be None if the move is not in the history table
 
             mvv_lva_score = self.calculate_mvv_lva(unordered_moves[0])
 
+            # TODO: speed up check detection
             check_score = 1 if self.board.is_checking_move(move) else 0
+
+            # TODO: penalize moving to a square that is attacked by the opponent
+
             # TODO: add tactical evaluation
             # TODO: add static exchange evaluation
 
@@ -250,9 +253,6 @@ class Engine:
         Return a score where positive is good for white and negative is good for black.'''
         self.positions_evaluated += 1
         evaluation = 0
-        if self.board.is_game_over():
-            evaluation = self.evaluate_terminal()
-            return evaluation
         
         # material
         evaluation += evaluate_psqt(self.board.board)
@@ -270,11 +270,6 @@ class Engine:
         # Open file rooks and queens
 
         return evaluation
-
-    def evaluate_terminal(self):
-        if self.board.is_checkmate():
-            return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
-        return 0
     
     def update_history_score(self, move, depth):
         if move not in self.history_table:
@@ -288,13 +283,18 @@ class Engine:
             return self.quiescence_min(alpha, beta)
 
     def quiescence_max(self, alpha, beta):
+        moves = self.board.generate_legal_moves(capture_only=True)
+        if len(moves) == 0: # no legal moves
+            if self.board.is_check(True):
+                return NEGATIVE_INFINITY # if white is in check, black wins
+            return 0 # stalemate
         stand_pat = self.evaluate()
         if stand_pat >= beta:
             return beta
         if stand_pat > alpha:
             alpha = stand_pat
 
-        for move in self.board.generate_legal_moves(capture_only=True):
+        for move in moves:
             self.board.make_move(move)
             score = self.quiescence_min(alpha, beta)
             self.board.undo_move()
@@ -307,13 +307,18 @@ class Engine:
         return alpha
 
     def quiescence_min(self, alpha, beta):
+        moves = self.board.generate_legal_moves(capture_only=True)
+        if len(moves) == 0: # no legal moves
+            if self.board.is_check(False):
+                return POSITIVE_INFINITY # if black is in check, white wins
+            return 0 # stalemate
         stand_pat = self.evaluate()
         if stand_pat <= alpha:
             return alpha
         if stand_pat < beta:
             beta = stand_pat
 
-        for move in self.board.generate_legal_moves(capture_only=True):
+        for move in moves:
             self.board.make_move(move)
             score = self.quiescence_max(alpha, beta)
             self.board.undo_move()
@@ -329,13 +334,19 @@ class Engine:
         if self.time_exceeded():
             raise Exception("Time exceeded")
 
-        if depth == 0 or self.board.is_game_over():
-            # return self.quiescence_search(alpha, beta)
+        moves = self.get_ordered_moves()
+        if len(moves) == 0: # no legal moves
+            if self.board.is_check(self.board.white_to_move):
+                return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
+            return 0 # stalemate
+        
+        if depth == 0:
+            # return self.quiescence_search(alpha, beta) # broken
             return self.evaluate() 
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY
-            for move in self.get_ordered_moves():
+            for move in moves:
                 self.board.make_move(move)
                 eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -347,7 +358,7 @@ class Engine:
             return max_eval
         else:
             min_eval = POSITIVE_INFINITY
-            for move in self.get_ordered_moves():
+            for move in moves:
                 self.board.make_move(move)
                 eval = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -401,7 +412,7 @@ class Engine:
         # TODO: late move reduction (maybe)
         # TODO: futility pruning (maybe)
 
-        fen = self.board.create_fen()
+        fen = self.board.create_fen(ignore_en_passant=True)
         turn = self.board.white_to_move
         if fen in self.openings:
             opening_moves = self.openings[fen]
