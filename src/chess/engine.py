@@ -10,12 +10,7 @@ HISTORY_SCORE = 2500
 VICTIM_SCORE_MULTIPLIER = 2
 
 
-CHECK_SCORE = 1500
-HISTORY_SCORE = 2500
-VICTIM_SCORE_MULTIPLIER = 2
-
-
-OPENINGS_FILE = "src\chess\Carlsen_openings.json"
+OPENINGS_FILE = "src\chess\openings.json"
 
 def calculate_phase(board):
     phase = 0
@@ -406,7 +401,7 @@ class Engine:
         # TODO: late move reduction (maybe)
         # TODO: futility pruning (maybe)
 
-        fen = self.board.create_fen(ignore_en_passant = True)
+        fen = self.board.create_fen()
         turn = self.board.white_to_move
         if fen in self.openings:
             opening_moves = self.openings[fen]
