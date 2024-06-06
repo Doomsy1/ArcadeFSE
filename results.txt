@@ -1,8 +1,0 @@
-Positions: 20, Duration: 0 ns, Positions per ns: 20
-Positions: 400, Duration: 0.0070 seconds, Positions per second: 57145
-Positions: 8902, Duration: 0.2421 seconds, Positions per second: 36771
-Positions: 197277, Duration: 2.5266 seconds, Positions per second: 78079
-Positions: 20, Duration: 0 ns, Positions per ns: 20
-Positions: 400, Duration: 0.0025 seconds, Positions per second: 158560
-Positions: 8902, Duration: 0.0485 seconds, Positions per second: 183492
-Positions: 197281, Duration: 1.0808 seconds, Positions per second: 182532
