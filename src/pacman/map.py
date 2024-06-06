@@ -52,7 +52,7 @@ class PacmanMap:
         map_image = pygame.Surface((len(map_grid[0]) * PACMAN_GRID_SIZE, len(map_grid) * PACMAN_GRID_SIZE))
         for y, row in enumerate(map_grid):
             for x, cell in enumerate(row):
-                cell_rect = pygame.Rect(x * PACMAN_GRID_SIZE + PACMAN_X_OFFSET, y * PACMAN_GRID_SIZE + PACMAN_Y_OFFSET, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
+                cell_rect = pygame.Rect(x * PACMAN_GRID_SIZE, y * PACMAN_GRID_SIZE, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
 
                 match cell:
                     # empty
@@ -79,45 +79,58 @@ class PacmanMap:
     def draw(self):
         '''Draw the map image to the screen and the pellets and powerups'''
         
-        self.screen.blit(self.map_image, (0, 0))
+        self.screen.blit(self.map_image, (PACMAN_X_OFFSET, PACMAN_Y_OFFSET))
 
         for pellet in self.pellets:
-            pygame.draw.circle(self.screen, PELLET_COLOR, pellet, PELLET_RADIUS)
+            x = pellet[0] + PACMAN_X_OFFSET
+            y = pellet[1] + PACMAN_Y_OFFSET
+            pygame.draw.circle(self.screen, PELLET_COLOR, (x, y), PELLET_RADIUS)
 
         for powerup in self.powerups:
-            pygame.draw.circle(self.screen, POWERUP_COLOR, powerup, POWERUP_RADIUS)
+            x = powerup[0] + PACMAN_X_OFFSET
+            y = powerup[1] + PACMAN_Y_OFFSET
+            pygame.draw.circle(self.screen, POWERUP_COLOR, (x, y), POWERUP_RADIUS)
 
-    def is_wall(self, x, y):
+    def is_wall(self, rect):
         '''Check if the given x, y coordinates are a wall'''
+        rect = rect.move(-PACMAN_X_OFFSET, -PACMAN_Y_OFFSET)
         for wall in self.wall_rects:
-            if wall.collidepoint(x, y):
+            if wall.colliderect(rect):
                 return True
         return False
     
-    def is_pellet(self, x, y):
+    def is_pellet(self, rect):
         '''Check if the given x, y coordinates are a pellet'''
         for pellet in self.pellets:
-            if pygame.Rect(pellet[0] - PELLET_RADIUS, pellet[1] - PELLET_RADIUS, PELLET_RADIUS * 2, PELLET_RADIUS * 2).collidepoint(x, y):
+            pellet_x = pellet[0] - PELLET_RADIUS + PACMAN_X_OFFSET
+            pellet_y = pellet[1] - PELLET_RADIUS + PACMAN_Y_OFFSET
+            if pygame.Rect(pellet_x, pellet_y, PELLET_RADIUS * 2, PELLET_RADIUS * 2).colliderect(rect):
                 return True
         return False
     
-    def is_powerup(self, x, y):
+    def is_powerup(self, rect):
         '''Check if the given x, y coordinates are a powerup'''
-        for powerup in self.powerups:
-            if pygame.Rect(powerup[0] - POWERUP_RADIUS, powerup[1] - POWERUP_RADIUS, POWERUP_RADIUS * 2, POWERUP_RADIUS * 2).collidepoint(x, y):
+        for powerup in self.powerups:   
+            powerup_x = powerup[0] - POWERUP_RADIUS + PACMAN_X_OFFSET
+            powerup_y = powerup[1] - POWERUP_RADIUS + PACMAN_Y_OFFSET
+            if pygame.Rect(powerup_x, powerup_y, POWERUP_RADIUS * 2, POWERUP_RADIUS * 2).colliderect(rect):
                 return True
         return False
     
-    def remove_pellet(self, x, y):
+    def remove_pellet(self, rect):
         '''Remove the pellet at the given x, y coordinates'''
         for pellet in self.pellets:
-            if pygame.Rect(pellet[0] - PELLET_RADIUS, pellet[1] - PELLET_RADIUS, PELLET_RADIUS * 2, PELLET_RADIUS * 2).collidepoint(x, y):
+            pellet_x = pellet[0] - PELLET_RADIUS + PACMAN_X_OFFSET
+            pellet_y = pellet[1] - PELLET_RADIUS + PACMAN_Y_OFFSET
+            if pygame.Rect(pellet_x, pellet_y, PELLET_RADIUS * 2, PELLET_RADIUS * 2).colliderect(rect):
                 self.pellets.remove(pellet)
                 return
 
-    def remove_powerup(self, x, y):
+    def remove_powerup(self, rect):
         '''Remove the powerup at the given x, y coordinates'''
         for powerup in self.powerups:
-            if pygame.Rect(powerup[0] - POWERUP_RADIUS, powerup[1] - POWERUP_RADIUS, POWERUP_RADIUS * 2, POWERUP_RADIUS * 2).collidepoint(x, y):
+            powerup_x = powerup[0] - POWERUP_RADIUS + PACMAN_X_OFFSET
+            powerup_y = powerup[1] - POWERUP_RADIUS + PACMAN_Y_OFFSET
+            if pygame.Rect(powerup_x, powerup_y, POWERUP_RADIUS * 2, POWERUP_RADIUS * 2).colliderect(rect):
                 self.powerups.remove(powerup)
                 return

@@ -32,7 +32,7 @@ class PlayerVsPlayer:
         self.board = Board()
 
         self.engine_depth = self.load_engine_depth()
-        self.engine = Engine(self.board, self.engine_depth, time_limit_ms=5000)
+        self.engine = Engine(self.board, self.engine_depth, time_limit_ms=50000)
         self.engine_suggestion = 0
         self.engine_suggestion_arrow_start = None
         self.engine_suggestion_arrow_end = None
