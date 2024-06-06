@@ -5,6 +5,16 @@ import time
 from src.chess.PSQT import PSQT, PHASE_WEIGHTS, TOTAL_PHASE
 from src.chess.board import Board, Piece
 
+CHECK_SCORE = 1500
+HISTORY_SCORE = 2500
+VICTIM_SCORE_MULTIPLIER = 2
+
+
+CHECK_SCORE = 1500
+HISTORY_SCORE = 2500
+VICTIM_SCORE_MULTIPLIER = 2
+
+
 OPENINGS_FILE = "src\chess\Carlsen_openings.json"
 
 def calculate_phase(board):
@@ -120,6 +130,7 @@ def evaluate_pawn_structure(board: Board):
 
     # more doubled pawns is bad
     doubled_pawn_eval = (black_doubled_pawns - white_doubled_pawns) * 13
+    doubled_pawn_eval = (black_doubled_pawns - white_doubled_pawns) * 12
 
     # more isolated pawns is bad
     isolated_pawn_eval = (black_iso_pawns - white_iso_pawns) * 11
@@ -155,7 +166,7 @@ NEGATIVE_INFINITY = -9999999
 POSITIVE_INFINITY = 9999999
 
 class Engine:
-    def __init__(self, board: Board, depth: int = 1, time_limit_ms: int = 50000):
+    def __init__(self, board: Board, depth: int = 1, time_limit_ms: int = 25000):
         self.board = board.__copy__()
         self.depth = depth
         self.time_limit_ms = time_limit_ms
@@ -207,7 +218,7 @@ class Engine:
 
         if victim_value == 0:
             return attacker_value + promotion_value
-        return victim_value - attacker_value + promotion_value
+        return victim_value * 2 - attacker_value + promotion_value
 
     def order_moves(self, unordered_moves):
         '''Order moves based on the history heuristic, MVV/LVA, and other factors.'''
@@ -223,7 +234,7 @@ class Engine:
             # TODO: add tactical evaluation
             # TODO: add static exchange evaluation
 
-            move_score = history_score(move)*2000 + mvv_lva_score + check_score * 1200
+            move_score = history_score(move)*HISTORY_SCORE + mvv_lva_score + check_score * CHECK_SCORE
 
             move_scores.append((move, move_score))
 
@@ -261,6 +272,7 @@ class Engine:
         evaluation += evaluate_king_safety(self.board)
 
         # TODO: add more evaluation terms
+        # Open file rooks and queens
 
         return evaluation
 
@@ -324,7 +336,7 @@ class Engine:
 
         if depth == 0 or self.board.is_game_over():
             # return self.quiescence_search(alpha, beta)
-            return self.evaluate()
+            return self.evaluate() 
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY

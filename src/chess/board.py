@@ -757,7 +757,7 @@ class Board:
 
         # identify pinned pieces and which squares they can move to (between the king and the attacker, including the attacker)
         # [square of pinned piece, square of attacker, [list of squares between the king and the attacker]]
-        pins = [] # TODO: pin[1] doesn"t seem to be used
+        pins = []
 
         # identify pieces that are attacking the king and squares that will stop the attack
         # sliding pieces -> squares between the king and the attacker
