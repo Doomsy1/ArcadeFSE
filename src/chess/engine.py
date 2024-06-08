@@ -252,6 +252,13 @@ class Engine:
         '''Evaluate the current board position. 
         Return a score where positive is good for white and negative is good for black.'''
         self.positions_evaluated += 1
+        # threefold repetition
+        if self.board.is_threefold_repetition():
+            return 0
+        # insufficient material
+        if self.board.is_insufficient_material():
+            return 0
+        
         evaluation = 0
         
         # material
@@ -339,6 +346,9 @@ class Engine:
             if self.board.is_check(self.board.white_to_move):
                 return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
             return 0 # stalemate
+        
+        if self.board.is_threefold_repetition():
+            return 0
         
         if depth == 0:
             # return self.quiescence_search(alpha, beta) # broken

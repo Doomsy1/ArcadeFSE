@@ -1,6 +1,6 @@
 import pygame
+from src.pacman.ghost import Ghost
 from src.pacman.map import PacmanMap
-from constants import PACMAN_VEL
 from src.pacman.player import PacmanPlayer
 
 # Constants
@@ -14,6 +14,8 @@ class PacmanGame:
         self.map = PacmanMap(screen)
 
         self.player = PacmanPlayer(screen, self.map)
+
+        self.test_ghost = Ghost(screen, self.map)
 
 
     def main_loop(self):
@@ -29,11 +31,14 @@ class PacmanGame:
                     return "main menu"
             
             self.mx, self.my = pygame.mouse.get_pos()
-
+        
             self.map.draw()
             self.player.handle_keys(events)
-            self.player.update()
+            pacman_rect = self.player.update()
             self.player.draw()
+
+            self.test_ghost.update(pacman_rect, self.player.powered_up)
+            self.test_ghost.draw()
 
 
             # set the caption as the fps

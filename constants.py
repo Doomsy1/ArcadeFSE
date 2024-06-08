@@ -41,3 +41,5 @@ PACMAN_VEL = 5  # Velocity of Pac-Man
 
 PACMAN_X_OFFSET, PACMAN_Y_OFFSET = 0, 20
 PACMAN_GRID_SIZE = 40
+
+GHOST_VEL = 2  # Velocity of the ghosts

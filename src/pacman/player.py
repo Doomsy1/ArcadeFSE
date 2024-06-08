@@ -86,3 +86,5 @@ class PacmanPlayer:
         if self.map.is_powerup(pacman_rect):
             self.map.remove_powerup(pacman_rect)
             self.powered_up = True
+
+        return pacman_rect

@@ -174,6 +174,8 @@ class Board:
 
         self.load_fen(fen)
 
+        self.state_stack = []
+
         # TODO: test this: "r2q3r/1N1pkpb1/5p2/1B5p/p7/8/PPP2PPP/RNBQR1K1 w - - 0 0"
 
     def hash_board(self):
@@ -416,6 +418,8 @@ class Board:
         # save the board for undoing the move
         self.add_to_stack(move)
 
+        self.state_stack.append(self.board.copy())
+
         # special moves
         if castling:
             self.handle_castling(end_square)
@@ -521,6 +525,7 @@ class Board:
         # TODO: check if this is faster than copying the board
         # TODO: capture promotion undo (test)
         move, castling_rights, en_passant_target_square = self.undo_stack.pop()
+        self.state_stack.pop()
 
         start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
 
@@ -1106,13 +1111,14 @@ class Board:
 
     def is_threefold_repetition(self):
         """Returns True if the game is a draw due to threefold repetition, False otherwise"""
-        if len(self.undo_stack) < 6: # TODO: move stack keeps track of moves not board states (this is checking if the same move has been made 3 times instead of the same board state)
+        if len(self.state_stack) < 6:
             return False
-        count = self.undo_stack.count(self.undo_stack[-1])
+        count = self.state_stack.count(self.state_stack[-1])
         return count >= 3
     
     def is_insufficient_material(self):
         """Returns True if the game is a draw due to insufficient material, False otherwise"""
+        return False
         if len(self.white_pieces) == 1 and len(self.black_pieces) == 1:
             return True
         

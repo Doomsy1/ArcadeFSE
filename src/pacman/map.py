@@ -134,3 +134,9 @@ class PacmanMap:
             if pygame.Rect(powerup_x, powerup_y, POWERUP_RADIUS * 2, POWERUP_RADIUS * 2).colliderect(rect):
                 self.powerups.remove(powerup)
                 return
+            
+    def get_pos(self, rect):
+        '''Get the index on the map grid of the center of the given rect'''
+        x = rect.centerx - PACMAN_X_OFFSET
+        y = rect.centery - PACMAN_Y_OFFSET
+        return x // PACMAN_GRID_SIZE, y // PACMAN_GRID_SIZE
