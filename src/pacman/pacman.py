@@ -15,8 +15,13 @@ class PacmanGame:
 
         self.player = PacmanPlayer(screen, self.map)
 
-        self.test_ghost = Ghost(screen, self.map)
+        self.test_ghost = Ghost(screen, self.map, self.player)
 
+        self.powerup_timer = 0
+
+    def update_powerup_timer(self):
+        self.powerup_timer -= 1
+        self.powerup_timer = max(self.powerup_timer, 0)
 
     def main_loop(self):
         running = True
@@ -34,11 +39,13 @@ class PacmanGame:
         
             self.map.draw()
             self.player.handle_keys(events)
-            pacman_rect = self.player.update()
+            self.player.update()
             self.player.draw()
 
-            self.test_ghost.update(pacman_rect, self.player.powered_up)
+            self.test_ghost.update(self.player.powered_up)
             self.test_ghost.draw()
+
+            self.update_powerup_timer()
 
 
             # set the caption as the fps

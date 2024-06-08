@@ -5,13 +5,15 @@ from src.pacman.map import map_grid
 
 
 class Ghost:
-    def __init__(self, screen, map):
+    def __init__(self, screen, map, pacman): # TODO: add color to differentiate ghosts
         self.screen = screen
         self.current_direction = 'stopped'
         self.map = map
 
         self.x = PACMAN_GRID_SIZE * 9 + PACMAN_X_OFFSET
-        self.y = PACMAN_GRID_SIZE * 9 + PACMAN_Y_OFFSET
+        self.y = PACMAN_GRID_SIZE * 7 + PACMAN_Y_OFFSET
+
+        self.pacman = pacman
 
     def draw(self, pacman_powered_up=False):
         if pacman_powered_up:
@@ -22,6 +24,15 @@ class Ghost:
     def get_possible_directions(self):
         possible_directions = []
         for direction in ['up', 'down', 'left', 'right']:
+            # the ghost can't move in the opposite direction
+            if direction == 'up' and self.current_direction == 'down':
+                continue
+            if direction == 'down' and self.current_direction == 'up':
+                continue
+            if direction == 'left' and self.current_direction == 'right':
+                continue
+            if direction == 'right' and self.current_direction == 'left':
+                continue
             if self.can_move(direction):
                 possible_directions.append(direction)
         return possible_directions
@@ -41,31 +52,67 @@ class Ghost:
         future_rect = pygame.Rect(future_x, future_y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
         return not self.map.is_wall(future_rect)
 
-    def update(self, pacman_rect=None, pacman_powered_up=False):
-        if pacman_rect:
-            self.move_towards_pacman(pacman_rect)
-        else:
-            self.move_randomly()
-
-    def move_randomly(self):
-        possible_directions = self.get_possible_directions()
-        if possible_directions:
-            self.current_direction = random.choice(possible_directions)
-            self.move()
-    
-    def move_towards_pacman(self, pacman_rect):
-        pacman_pos = self.map.get_pos(pacman_rect)
-        ghost_pos = self.map.get_pos(pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
-        next_move = self.breadth_first_search(ghost_pos, pacman_pos)
-        if next_move[0] > ghost_pos[0]:
-            self.current_direction = 'right'
-        if next_move[0] < ghost_pos[0]:
-            self.current_direction = 'left'
-        if next_move[1] > ghost_pos[1]:
-            self.current_direction = 'down'
-        if next_move[1] < ghost_pos[1]:
-            self.current_direction = 'up'
+    def update(self, pacman_powered_up=False):
+        if self.at_intersection():
+            if not pacman_powered_up:
+                self.current_direction = self.get_best_direction()
+            else:
+                # move randomly if the pacman is powered up (temporary solution)
+                self.current_direction = random.choice(self.get_possible_directions())
         self.move()
+
+    def get_best_direction(self):
+        '''Use bfs to find the best direction to move in'''
+        pacman_pos = self.map.get_pos(self.pacman.pacman_rect)
+        current_x = (self.x - PACMAN_X_OFFSET) // PACMAN_GRID_SIZE
+        current_y = (self.y - PACMAN_Y_OFFSET) // PACMAN_GRID_SIZE
+        visited = set()
+        queue = [(current_x, current_y)]
+        parent = {}
+
+        while queue:
+            x, y = queue.pop(0)
+            if (x, y) == pacman_pos:
+                break
+            visited.add((x, y))
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                new_x, new_y = x + dx, y + dy
+                if (new_x, new_y) in visited:
+                    continue
+                if self.map.is_wall_at_pos(new_x, new_y):
+                    continue
+                queue.append((new_x, new_y))
+                parent[(new_x, new_y)] = (x, y)
+
+        # find the best direction to move in
+        while (current_x, current_y) != pacman_pos:
+            dx, dy = pacman_pos[0] - current_x, pacman_pos[1] - current_y
+            pacman_pos = parent[pacman_pos]
+
+
+        print(dx, dy)
+        if dx == 1:
+            return 'right'
+        if dx == -1:
+            return 'left'
+        if dy == 1:
+            return 'down'
+        if dy == -1:
+            return 'up'
+
+    def at_intersection(self):
+        # check if the ghost is exactly on a grid
+        if (self.x - PACMAN_X_OFFSET) % PACMAN_GRID_SIZE != 0:
+            return False
+        if (self.y - PACMAN_Y_OFFSET) % PACMAN_GRID_SIZE != 0:
+            return False
+        
+        # check if the ghost is at an intersection (can't continue straight or 3 possible directions)
+        possible_directions = self.get_possible_directions()
+        if self.current_direction not in possible_directions:
+            return True
+        
+        return len(possible_directions) > 1
 
     def move(self):
         if self.current_direction == 'up':
@@ -76,44 +123,3 @@ class Ghost:
             self.x -= GHOST_VEL
         if self.current_direction == 'right':
             self.x += GHOST_VEL
-
-    def breadth_first_search(self, start, end):
-        '''Returns the first move of the shortest path'''
-        queue = [start]
-        visited = set()
-        visited.add(start)
-        parent = {}
-
-        while queue:
-            current = queue.pop(0)
-
-            if current == end:
-                break
-
-            for direction in ['up', 'down', 'left', 'right']:
-                if queue == []:
-                    if not self.can_move(direction):
-                        continue
-
-                x, y = current
-                if direction == 'up':
-                    new = (x, y - 1)
-                if direction == 'down':
-                    new = (x, y + 1)
-                if direction == 'left':
-                    new = (x - 1, y)
-                if direction == 'right':
-                    new = (x + 1, y)
-                
-
-                if new not in visited and not map_grid[new[0]][new[1]] == 1:
-                    queue.append(new)
-                    visited.add(new)
-                    parent[new] = current
-
-        # get the first move
-        current = end
-        while parent[current] != start:
-            current = parent[current]
-
-        return current

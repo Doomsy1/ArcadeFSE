@@ -99,6 +99,9 @@ class PacmanMap:
                 return True
         return False
     
+    def is_wall_at_pos(self, x, y):
+        return map_grid[y][x] == 1
+    
     def is_pellet(self, rect):
         '''Check if the given x, y coordinates are a pellet'''
         for pellet in self.pellets:
@@ -140,3 +143,8 @@ class PacmanMap:
         x = rect.centerx - PACMAN_X_OFFSET
         y = rect.centery - PACMAN_Y_OFFSET
         return x // PACMAN_GRID_SIZE, y // PACMAN_GRID_SIZE
+    
+    @staticmethod
+    def get_distance(p1, p2):
+        '''Get the distance between two points'''
+        return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5

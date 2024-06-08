@@ -76,15 +76,13 @@ class PacmanPlayer:
             self.current_direction = self.queue_direction
         if self.can_move(self.current_direction):
             self.move()
-        pacman_rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
+        self.pacman_rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
         # eat pellets if the player is on top of them
-        if self.map.is_pellet(pacman_rect):
-            self.map.remove_pellet(pacman_rect)
+        if self.map.is_pellet(self.pacman_rect):
+            self.map.remove_pellet(self.pacman_rect)
             self.score += 1
             print(self.score) 
         # eat powerups if the player is on top of them
-        if self.map.is_powerup(pacman_rect):
-            self.map.remove_powerup(pacman_rect)
+        if self.map.is_powerup(self.pacman_rect):
+            self.map.remove_powerup(self.pacman_rect)
             self.powered_up = True
-
-        return pacman_rect
