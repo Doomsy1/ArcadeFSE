@@ -15,13 +15,24 @@ class PacmanGame:
 
         self.player = PacmanPlayer(screen, self.map)
 
-        self.test_ghost = Ghost(screen, self.map, self.player)
+        self.ghosts = []
+        for ghost_type in ["blinky", "pinky", "inky", "clyde"]:
+            self.ghosts.append(Ghost(screen, self.map, self.player, ghost_type))
 
         self.powerup_timer = 0
 
     def update_powerup_timer(self):
         self.powerup_timer -= 1
         self.powerup_timer = max(self.powerup_timer, 0)
+
+    def handle_ghost_collision(self):
+        for ghost in self.ghosts:
+            if self.player.rect.colliderect(ghost.rect):
+                if self.powerup_timer > 0:
+                    ghost.reset()
+                    self.powerup_timer = 0
+                else:
+                    self.player.reset()
 
     def main_loop(self):
         running = True
@@ -42,8 +53,11 @@ class PacmanGame:
             self.player.update()
             self.player.draw()
 
-            self.test_ghost.update(self.player.powered_up)
-            self.test_ghost.draw()
+            for ghost in self.ghosts:
+                ghost.update()
+                ghost.draw()
+
+            self.handle_ghost_collision()
 
             self.update_powerup_timer()
 

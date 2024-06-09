@@ -6,7 +6,8 @@ from utils import write_centered_text
 FPS = 30
 game_rects = {
     "chess": pygame.Rect(300, 300, 200, 100),
-    "pacman": pygame.Rect(300, 500, 200, 100)
+    "pacman": pygame.Rect(300, 500, 200, 100),
+    "connect four": pygame.Rect(300, 700, 200, 100)
 }
 
 class MainMenu:

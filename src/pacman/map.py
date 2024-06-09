@@ -15,9 +15,9 @@ map_grid = [
     [1, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2, 1],
     [1, 1, 1, 1, 2, 1, 1, 1, 0, 1, 0, 1, 1, 1, 2, 1, 1, 1, 1],
     [0, 0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 0, 0],
-    [0, 0, 0, 1, 2, 1, 0, 1, 1, 4, 1, 1, 0, 1, 2, 1, 0, 0, 0],
+    [1, 1, 1, 1, 2, 1, 0, 1, 1, 4, 1, 1, 0, 1, 2, 1, 1, 1, 1],
     [0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2, 0, 0, 0, 0],
-    [0, 0, 0, 1, 2, 1, 0, 1, 1, 1, 1, 1, 0, 1, 2, 1, 0, 0, 0],
+    [1, 1, 1, 1, 2, 1, 0, 1, 1, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1],
     [0, 0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 0, 0],
     [1, 1, 1, 1, 2, 1, 0, 1, 1, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1],
     [1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
@@ -74,6 +74,10 @@ class PacmanMap:
                         powerup_pos = cell_rect.center
                         self.powerups.append(powerup_pos)
 
+                    # gate
+                    case 4:
+                        self.gate_rect = cell_rect
+
         return map_image
     
     def draw(self):
@@ -99,7 +103,14 @@ class PacmanMap:
                 return True
         return False
     
+    def is_gate(self, rect):
+        '''Check if the given x, y coordinates are a gate'''
+        rect = rect.move(-PACMAN_X_OFFSET, -PACMAN_Y_OFFSET)
+        return self.gate_rect.colliderect(rect)
+    
     def is_wall_at_pos(self, x, y):
+        if x < 0 or y < 0 or x >= len(map_grid[0]) or y >= len(map_grid):
+            return True
         return map_grid[y][x] == 1
     
     def is_pellet(self, rect):
@@ -142,7 +153,16 @@ class PacmanMap:
         '''Get the index on the map grid of the center of the given rect'''
         x = rect.centerx - PACMAN_X_OFFSET
         y = rect.centery - PACMAN_Y_OFFSET
-        return x // PACMAN_GRID_SIZE, y // PACMAN_GRID_SIZE
+        x_pos = x // PACMAN_GRID_SIZE
+        y_pos = y // PACMAN_GRID_SIZE
+
+        y_pos = min(len(map_grid) - 1, y_pos)
+        y_pos = max(0, y_pos)
+
+        x_pos = min(len(map_grid[0]) - 1, x_pos)
+        x_pos = max(0, x_pos)
+
+        return x_pos, y_pos
     
     @staticmethod
     def get_distance(p1, p2):

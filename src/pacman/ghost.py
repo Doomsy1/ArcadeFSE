@@ -1,23 +1,47 @@
 import random
 from constants import PACMAN_GRID_SIZE, PACMAN_X_OFFSET, PACMAN_Y_OFFSET, GHOST_VEL
 import pygame
-from src.pacman.map import map_grid
 
-
+START_POS = {
+    "blinky": (9, 8),
+    "pinky": (9, 9),
+    "inky": (8, 9),
+    "clyde": (10, 9)
+}
+START_TICK = {
+    "blinky": 0,
+    "pinky": 100,
+    "inky": 200,
+    "clyde": 300
+}
 class Ghost:
-    def __init__(self, screen, map, pacman): # TODO: add color to differentiate ghosts
+    def __init__(self, screen, map, pacman, ghost_type): # TODO: add color to differentiate ghosts
         self.screen = screen
         self.current_direction = 'stopped'
         self.map = map
+        self.ghost_type = ghost_type
 
-        self.x = PACMAN_GRID_SIZE * 9 + PACMAN_X_OFFSET
-        self.y = PACMAN_GRID_SIZE * 7 + PACMAN_Y_OFFSET
+        self.x = START_POS[self.ghost_type][0] * PACMAN_GRID_SIZE + PACMAN_X_OFFSET
+        self.y = START_POS[self.ghost_type][1] * PACMAN_GRID_SIZE + PACMAN_Y_OFFSET
+
+        self.tick = 0
 
         self.pacman = pacman
 
-    def draw(self, pacman_powered_up=False):
-        if pacman_powered_up:
-            pygame.draw.rect(self.screen, (0, 255, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+        self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
+
+    def reset(self):
+        self.x = START_POS[self.ghost_type][0] * PACMAN_GRID_SIZE + PACMAN_X_OFFSET
+        self.y = START_POS[self.ghost_type][1] * PACMAN_GRID_SIZE + PACMAN_Y_OFFSET
+        self.current_direction = 'stopped'
+        self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
+
+    def draw(self):
+        if self.pacman.powered_up:
+            if self.pacman.powered_up_timer % 12 < 4 and self.pacman.powered_up_timer < 250:
+                pygame.draw.rect(self.screen, (255, 255, 255), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+            else:
+                pygame.draw.rect(self.screen, (0, 255, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
         else:
             pygame.draw.rect(self.screen, (255, 0, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
 
@@ -50,22 +74,51 @@ class Ghost:
             future_x, future_y = self.x + GHOST_VEL, self.y
 
         future_rect = pygame.Rect(future_x, future_y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
+        if direction == 'down' and self.map.is_gate(future_rect):
+            return False
+        
         return not self.map.is_wall(future_rect)
 
-    def update(self, pacman_powered_up=False):
+    def update(self):
+        if self.tick < START_TICK[self.ghost_type]:
+            self.tick += 1
+            return
         if self.at_intersection():
-            if not pacman_powered_up:
-                self.current_direction = self.get_best_direction()
+            possible_directions = self.get_possible_directions()
+            if len(possible_directions) == 1:
+                self.current_direction = possible_directions[0]
+                self.move()
+                return
+
+            best_direction = self.get_best_direction()
+            if self.pacman.powered_up:
+                # weigh the best direction lower than the others but still allow the ghost to move randomly
+                if random.random() < 0.2: # 20% chance to move in the best direction
+                    print(f"{self.ghost_type} moving in best direction")
+                    self.current_direction = best_direction
+                else: # 20% chance to move randomly (excluding the best direction)
+                    print(f"{self.ghost_type} moving randomly")
+                    if possible_directions:
+                        if best_direction in possible_directions:
+                            possible_directions.remove(best_direction)
+                        self.current_direction = random.choice(possible_directions)
             else:
-                # move randomly if the pacman is powered up (temporary solution)
-                self.current_direction = random.choice(self.get_possible_directions())
+                # weigh the best direction higher than the others but still allow the ghost to move randomly
+                if random.random() < 0.8: # 80% chance to move in the best direction
+                    print(f"{self.ghost_type} moving in best direction - not powered up")
+                    self.current_direction = best_direction
+                else: # 80% chance to move randomly (including the best direction)
+                    print(f"{self.ghost_type} moving randomly - not powered up")
+                    if possible_directions:
+                        self.current_direction = random.choice(possible_directions)
+                
         self.move()
 
     def get_best_direction(self):
         '''Use bfs to find the best direction to move in'''
-        pacman_pos = self.map.get_pos(self.pacman.pacman_rect)
-        current_x = (self.x - PACMAN_X_OFFSET) // PACMAN_GRID_SIZE
-        current_y = (self.y - PACMAN_Y_OFFSET) // PACMAN_GRID_SIZE
+        pacman_pos = self.map.get_pos(self.pacman.rect)
+        current_x, current_y = self.map.get_pos(self.rect)
+
         visited = set()
         queue = [(current_x, current_y)]
         parent = {}
@@ -123,3 +176,12 @@ class Ghost:
             self.x -= GHOST_VEL
         if self.current_direction == 'right':
             self.x += GHOST_VEL
+
+        # if the ghost goes off the screen, wrap around
+        if self.x < PACMAN_X_OFFSET:
+            self.x = PACMAN_X_OFFSET + 19 * PACMAN_GRID_SIZE - GHOST_VEL
+
+        if self.x > PACMAN_X_OFFSET + 19 * PACMAN_GRID_SIZE:
+            self.x = PACMAN_X_OFFSET + GHOST_VEL
+
+        self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
