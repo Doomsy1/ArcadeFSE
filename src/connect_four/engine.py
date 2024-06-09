@@ -1,8 +1,27 @@
+from collections import OrderedDict
+
 POSITIVE_INFINITY = float("inf")
 NEGATIVE_INFINITY = float("-inf")
 
 from board import Board
 
+class TranspositionTable:
+    def __init__(self, capacity = 10e6):
+        self.table = OrderedDict()
+        self.capacity = capacity
+
+    def get(self, key):
+        if key in self.table:
+            self.table.move_to_end(key)
+            return self.table[key]
+        return None
+
+    def put(self, key, value):
+        if key in self.table:
+            self.table.move_to_end(key)
+        elif len(self.table) >= self.capacity:
+            self.table.popitem(last=False)
+        self.table[key] = value
 
 # player 1 is the maximizing player
 # player 2 is the minimizing player
@@ -10,23 +29,27 @@ class Engine:
     def __init__(self, board):
         self.board = board
 
-        self.transposition_table = {}
+        self.transposition_table = TranspositionTable(capacity=10e6)
 
-    def minimax(self, depth, alpha, beta):
-        key = self.board.hash_value
-        if (key, depth) in self.transposition_table:
-            return self.transposition_table[(key, depth)]
-        
+    def evaluate(self):
         winner = self.board.check_winner()
         if winner == 1:
             return POSITIVE_INFINITY
-        elif winner == 2:
+        if winner == 2:
             return NEGATIVE_INFINITY
-        elif self.board.is_full():
-            return 0
+        return 0
+
+    def minimax(self, depth, alpha, beta):
+        key = (self.board.hash_value, depth)
+        cached = self.transposition_table.get(key)
+        if cached is not None:
+            return cached
         
-        if depth == 0:
-            return 0
+        winner = self.board.check_winner()
+        if winner or self.board.is_full() or depth == 0:
+            score = self.evaluate()
+            self.transposition_table.put(key, score)
+            return score
         
         if self.board.turn == 1:
             best_score = NEGATIVE_INFINITY
@@ -49,7 +72,7 @@ class Engine:
                 if beta <= alpha:
                     break
 
-        self.transposition_table[(key, depth)] = best_score
+        self.transposition_table.put(key, best_score)
         return best_score
         
     def get_best_move(self, depth):
