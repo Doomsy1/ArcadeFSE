@@ -340,6 +340,9 @@ class Engine:
     def minimax(self, depth, alpha, beta):
         if self.time_exceeded():
             raise Exception("Time exceeded")
+        
+        if self.board.is_threefold_repetition():
+            return 0
 
         moves = self.get_ordered_moves()
         if len(moves) == 0: # no legal moves
@@ -351,8 +354,8 @@ class Engine:
             return 0
         
         if depth == 0:
-            # return self.quiescence_search(alpha, beta) # broken
-            return self.evaluate() 
+            return self.quiescence_search(alpha, beta) # broken
+            # return self.evaluate() 
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY

@@ -1,4 +1,4 @@
-# this board structure is inspired by Sebastian Lague"s video entitled "Coding Adventure: Chess"
+# this board structure is inspired by Sebastian Lague's video entitled 'Coding Adventure: Chess'
 # Link: https://www.youtube.com/watch?v=U4ogK0MIzqk
 
 
@@ -54,32 +54,32 @@ class Piece:
         return piece_values[piece]
 
 piece_to_char_map = {
-    "p": Piece.black | Piece.pawn,
-    "n": Piece.black | Piece.knight,
-    "b": Piece.black | Piece.bishop,
-    "r": Piece.black | Piece.rook,
-    "q": Piece.black | Piece.queen,
-    "k": Piece.black | Piece.king,
-    "P": Piece.white | Piece.pawn,
-    "N": Piece.white | Piece.knight,
-    "B": Piece.white | Piece.bishop,
-    "R": Piece.white | Piece.rook,
-    "Q": Piece.white | Piece.queen,
-    "K": Piece.white | Piece.king,
+    'p': Piece.black | Piece.pawn,
+    'n': Piece.black | Piece.knight,
+    'b': Piece.black | Piece.bishop,
+    'r': Piece.black | Piece.rook,
+    'q': Piece.black | Piece.queen,
+    'k': Piece.black | Piece.king,
+    'P': Piece.white | Piece.pawn,
+    'N': Piece.white | Piece.knight,
+    'B': Piece.white | Piece.bishop,
+    'R': Piece.white | Piece.rook,
+    'Q': Piece.white | Piece.queen,
+    'K': Piece.white | Piece.king,
 }
 char_to_piece_map = {
-    Piece.black | Piece.pawn: "p",
-    Piece.black | Piece.knight: "n",
-    Piece.black | Piece.bishop: "b",
-    Piece.black | Piece.rook: "r",
-    Piece.black | Piece.queen: "q",
-    Piece.black | Piece.king: "k",
-    Piece.white | Piece.pawn: "P",
-    Piece.white | Piece.knight: "N",
-    Piece.white | Piece.bishop: "B",
-    Piece.white | Piece.rook: "R",
-    Piece.white | Piece.queen: "Q",
-    Piece.white | Piece.king: "K",
+    Piece.black | Piece.pawn: 'p',
+    Piece.black | Piece.knight: 'n',
+    Piece.black | Piece.bishop: 'b',
+    Piece.black | Piece.rook: 'r',
+    Piece.black | Piece.queen: 'q',
+    Piece.black | Piece.king: 'k',
+    Piece.white | Piece.pawn: 'P',
+    Piece.white | Piece.knight: 'N',
+    Piece.white | Piece.bishop: 'B',
+    Piece.white | Piece.rook: 'R',
+    Piece.white | Piece.queen: 'Q',
+    Piece.white | Piece.king: 'K',
 }
 
 piece_values = {
@@ -151,7 +151,7 @@ for square in range(64):
 # moves will be represented as a tuple
 # (start, end, start_piece, captured_piece, promotion_piece, castling, en_passant)
 
-STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 class Board:
     def __init__(self, fen=STARTING_FEN):
@@ -164,7 +164,7 @@ class Board:
         self.white_pieces = set()               # set of white piece squares
         self.black_pieces = set()               # set of black piece squares
 
-        self.white_to_move = True               # True if it"s white"s turn
+        self.white_to_move = True               # True if it's white's turn
         self.castling_rights = 0                # 4 bits for each side (KQkq)
         self.en_passant_target_square = 0       # square where en passant is possible (0 if not possible)
 
@@ -176,12 +176,12 @@ class Board:
 
         self.state_stack = []
 
-        # TODO: test this: "r2q3r/1N1pkpb1/5p2/1B5p/p7/8/PPP2PPP/RNBQR1K1 w - - 0 0"
+        # TODO: test this: 'r2q3r/1N1pkpb1/5p2/1B5p/p7/8/PPP2PPP/RNBQR1K1 w - - 0 0'
 
     def hash_board(self):
-        """Returns a hash of the board state"""
+        '''Returns a hash of the board state'''
         # TODO: implement Zobrist hashing
-        # for now, use python"s built-in hash function
+        # for now, use python's built-in hash function
         return hash((tuple(self.board), self.castling_rights, self.en_passant_target_square))
 
     def __copy__(self):
@@ -202,19 +202,19 @@ class Board:
         return new_board
 
     def is_piece(self, square):
-        """Returns True if there is a piece on the square, False otherwise"""
+        '''Returns True if there is a piece on the square, False otherwise'''
         return self.board[square] != 0 # bool?
     
     def is_empty(self, square):
-        """Returns True if the square is empty, False otherwise"""
+        '''Returns True if the square is empty, False otherwise'''
         return self.board[square] == 0
     
     def get_piece(self, square):
-        """Returns the piece on the square"""
+        '''Returns the piece on the square'''
         return self.board[square]
     
     def set_piece(self, square, piece):
-        """Sets the piece on the square"""
+        '''Sets the piece on the square'''
         self.board[square] = piece
         piece_color = Piece.get_color(piece)
         piece_type = Piece.get_type(piece)
@@ -229,7 +229,7 @@ class Board:
                 self.black_king_square = square
 
     def clear_piece(self, square, piece):
-        """Clears the piece on the square"""
+        '''Clears the piece on the square'''
         self.board[square] = 0
         piece_color = Piece.get_color(piece)
 
@@ -239,7 +239,7 @@ class Board:
             self.black_pieces.discard(square)
 
     def move_piece(self, start_square, end_square, piece):
-        """Moves the piece from start_square to end_square, optimized for performance"""
+        '''Moves the piece from start_square to end_square, optimized for performance'''
         self.board[end_square] = piece
         self.board[start_square] = 0
 
@@ -257,9 +257,9 @@ class Board:
                 self.black_king_square = end_square
 
     def load_fen(self, fen):
-        """Sets the state of the board to the given FEN string"""
+        '''Sets the state of the board to the given FEN string'''
 
-        # example fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        # example fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
         # reset board
         self.board = [0] * 64
@@ -270,7 +270,7 @@ class Board:
         self.white_pieces = set()
         self.black_pieces = set()
         
-        fen_data = fen.split(" ")
+        fen_data = fen.split(' ')
         piece_placement = fen_data[0]
         turn = fen_data[1]
         castling_rights = fen_data[2]
@@ -281,7 +281,7 @@ class Board:
         file = 0
         for char in piece_placement:
             # new rank
-            if char == "/":
+            if char == '/':
                 rank -= 1
                 file = 0
 
@@ -297,24 +297,24 @@ class Board:
                 file += 1
 
         # set the turn
-        self.white_to_move = turn == "w"
+        self.white_to_move = turn == 'w'
 
         # set the castling rights
         self.castling_rights = 0
         for char in castling_rights:
-            if char == "K":
+            if char == 'K':
                 self.castling_rights |= 8 # 1000
-            elif char == "Q":
+            elif char == 'Q':
                 self.castling_rights |= 4 # 0100
-            elif char == "k":
+            elif char == 'k':
                 self.castling_rights |= 2 # 0010
-            elif char == "q":
+            elif char == 'q':
                 self.castling_rights |= 1 # 0001
 
         # set the en passant square
         self.en_passant_target_square = 0
-        if en_passant_square != "-":
-            file = ord(en_passant_square[0]) - ord("a")
+        if en_passant_square != '-':
+            file = ord(en_passant_square[0]) - ord('a')
             rank = int(en_passant_square[1]) - 1
             self.en_passant_target_square = rank * 8 + file
 
@@ -322,10 +322,10 @@ class Board:
         # nahhhhhh
 
     def create_fen(self, ignore_en_passant=False):
-        """Returns the FEN string representing the state of the board"""
+        '''Returns the FEN string representing the state of the board'''
 
         # piece placement
-        fen = ""
+        fen = ''
         empty_counter = 0
         for rank in range(7, -1, -1):
             for file in range(8):
@@ -348,46 +348,46 @@ class Board:
                 empty_counter = 0
 
             if rank != 0:
-                fen += "/"
-        fen += " "
+                fen += '/'
+        fen += ' '
 
         # turn
-        fen += "w" if self.white_to_move else "b"
-        fen += " "
+        fen += 'w' if self.white_to_move else 'b'
+        fen += ' '
 
         # castling rights
-        castling = ""
+        castling = ''
         if self.castling_rights & 8: # 1000
-            castling += "K"
+            castling += 'K'
         if self.castling_rights & 4: # 0100
-            castling += "Q"
+            castling += 'Q'
         if self.castling_rights & 2: # 0010
-            castling += "k"
+            castling += 'k'
         if self.castling_rights & 1: # 0001
-            castling += "q"
+            castling += 'q'
 
-        fen += castling if castling else "-"
-        fen += " "
+        fen += castling if castling else '-'
+        fen += ' '
 
         if ignore_en_passant:
-            fen += "- "
+            fen += '- '
         else:
             # en passant target square
             if self.en_passant_target_square:
-                file = chr(self.en_passant_target_square % 8 + ord("a"))
+                file = chr(self.en_passant_target_square % 8 + ord('a'))
                 rank = str(self.en_passant_target_square // 8 + 1)
                 fen += file + rank
             else:
-                fen += "-"
-            fen += " "
+                fen += '-'
+            fen += ' '
 
         # halfmove clock and fullmove number
-        fen += "0 1"
+        fen += '0 1'
 
         return fen
     
     def generate_moves(self):
-        """Generates all possible moves for the given turn"""
+        '''Generates all possible moves for the given turn'''
         # key = self.hash_board()
         # if key in self.generated_moves:
         #     return self.generated_moves[key]
@@ -412,7 +412,7 @@ class Board:
         return moves
 
     def make_move(self, move):
-        """Makes the given move on the board"""
+        '''Makes the given move on the board'''
         start_square, end_square, start_piece, captured_piece, promotion_piece, castling, en_passant = move
 
         # save the board for undoing the move
@@ -446,7 +446,7 @@ class Board:
         self.white_to_move = not self.white_to_move
 
     def add_to_stack(self, move):
-        """Adds info needed to undo the move to the undo stack"""
+        '''Adds info needed to undo the move to the undo stack'''
         self.undo_stack.append((
             move,
             self.castling_rights,
@@ -454,7 +454,7 @@ class Board:
         ))
 
     def handle_castling(self, end_square):
-        """Handles castling moves"""
+        '''Handles castling moves'''
         if self.white_to_move:
             if end_square == 6:
                 self.move_piece(7, 5, Piece.white | Piece.rook)
@@ -467,7 +467,7 @@ class Board:
                 self.move_piece(56, 59, Piece.black | Piece.rook)
 
     def handle_en_passant(self, end_square, captured_piece):
-        """Handles en passant moves"""
+        '''Handles en passant moves'''
         if self.white_to_move:
             self.clear_piece(end_square-8, captured_piece)
         else:
@@ -521,7 +521,7 @@ class Board:
             self.en_passant_target_square = 0
 
     def undo_move(self):
-        """Undoes the last move made on the board"""
+        '''Undoes the last move made on the board'''
         # TODO: check if this is faster than copying the board
         # TODO: capture promotion undo (test)
         move, castling_rights, en_passant_target_square = self.undo_stack.pop()
@@ -583,7 +583,7 @@ class Board:
 
 
     def is_check(self, color):
-        """Returns True if the given color is in check, False otherwise"""
+        '''Returns True if the given color is in check, False otherwise'''
         ally_king_square = self.white_king_square if color else self.black_king_square
         ally_king_rank, ally_king_file = divmod(ally_king_square, 8)
 
@@ -659,7 +659,7 @@ class Board:
             attack_map[target_square] += 1
 
     def generate_attack_map(self, color):
-        """Generates a map of attacked squares for the given color"""
+        '''Generates a map of attacked squares for the given color'''
         attack_map = [0] * 64
 
         for square in (self.white_pieces if color else self.black_pieces):
@@ -679,7 +679,7 @@ class Board:
         return attack_map
 
     def generate_capture_moves(self):
-        """Generates all possible capture moves for the given turn"""
+        '''Generates all possible capture moves for the given turn'''
         moves = []
 
         for square in (self.white_pieces if self.white_to_move else self.black_pieces):
@@ -754,7 +754,7 @@ class Board:
                     break
 
     def find_pins_and_checks(self, king_square):
-        """Finds pinned pieces and checks for the given king square"""
+        '''Finds pinned pieces and checks for the given king square'''
 
         king_color = Piece.white if self.white_to_move else Piece.black
         enemy_color = Piece.black if self.white_to_move else Piece.white
@@ -847,7 +847,7 @@ class Board:
         return pins, checks
 
     def generate_legal_moves(self, capture_only=False):
-        """Optimized legal move generation"""
+        '''Optimized legal move generation'''
         if capture_only:
             pseudo_legal_moves = self.generate_capture_moves()
         else:
@@ -880,7 +880,7 @@ class Board:
         elif enemy_attack_map[king_square] == 1:
             legal_moves = []
             for move in pseudo_legal_moves:
-                # move king to a square that is not attacked (king can"t castle out of check)
+                # move king to a square that is not attacked (king can't castle out of check)
                 if move[0] == king_square and enemy_attack_map[move[1]] == 0 and not move[5]:
                     # perform the move and check if the king is still in check
                     # TODO: see if there is a cleaner way to do this
@@ -918,7 +918,23 @@ class Board:
             # if the piece is not pinned, it can move freely
             else:
                 if move[0] == king_square:
-                    if enemy_attack_map[move[1]] == 0:
+                    # king can't castle through check
+                    if move[5]:
+                        match move[1]:
+                            case 6:
+                                if enemy_attack_map[5] == 0 and enemy_attack_map[6] == 0:
+                                    legal_moves.append(move)
+                            case 2:
+                                if enemy_attack_map[3] == 0 and enemy_attack_map[2] == 0:
+                                    legal_moves.append(move)
+                            case 62:
+                                if enemy_attack_map[61] == 0 and enemy_attack_map[62] == 0:
+                                    legal_moves.append(move)
+                            case 58:
+                                if enemy_attack_map[59] == 0 and enemy_attack_map[58] == 0:
+                                    legal_moves.append(move)
+
+                    elif enemy_attack_map[move[1]] == 0:
                         legal_moves.append(move)
                 else:
                     legal_moves.append(move)
@@ -926,7 +942,7 @@ class Board:
         return legal_moves
 
     def known_generate_legal_moves(self):
-        """Generates all legal moves for the given turn"""
+        '''Generates all legal moves for the given turn'''
         pseudo_legal_moves = self.generate_moves()
 
         legal_moves = []
@@ -1007,7 +1023,7 @@ class Board:
         return False
     
     def has_legal_moves(self):
-        """Returns True if the current player has legal moves, False otherwise"""
+        '''Returns True if the current player has legal moves, False otherwise'''
         return bool(self.generate_legal_moves())
         
         # exit as early as possible
@@ -1036,7 +1052,7 @@ class Board:
         # if the king is single checked
         elif enemy_attack_map[king_square] == 1:
             for move in pseudo_legal_moves:
-                # move king to a square that is not attacked (king can"t castle out of check)
+                # move king to a square that is not attacked (king can't castle out of check)
                 if move[0] == king_square and enemy_attack_map[move[1]] == 0 and not move[5]:
                     self.make_move(move)
                     if not self.is_check(not self.white_to_move):
@@ -1096,28 +1112,28 @@ class Board:
 
 
     def is_checkmate(self):
-        """Returns True if the current player is in checkmate, False otherwise"""
+        '''Returns True if the current player is in checkmate, False otherwise'''
         if self.is_check(self.white_to_move):
             if not self.has_legal_moves():
                 return True
         return False
     
     def is_stalemate(self):
-        """Returns True if the current player is in stalemate, False otherwise"""
+        '''Returns True if the current player is in stalemate, False otherwise'''
         if not self.is_check(self.white_to_move):
             if not self.has_legal_moves():
                 return True
         return False
 
     def is_threefold_repetition(self):
-        """Returns True if the game is a draw due to threefold repetition, False otherwise"""
+        '''Returns True if the game is a draw due to threefold repetition, False otherwise'''
         if len(self.state_stack) < 6:
             return False
         count = self.state_stack.count(self.state_stack[-1])
         return count >= 3
     
     def is_insufficient_material(self):
-        """Returns True if the game is a draw due to insufficient material, False otherwise"""
+        '''Returns True if the game is a draw due to insufficient material, False otherwise'''
         return False
         if len(self.white_pieces) == 1 and len(self.black_pieces) == 1:
             return True
@@ -1134,12 +1150,12 @@ class Board:
 
 
     def is_draw(self):
-        """Returns True if the game is a draw, False otherwise"""
+        '''Returns True if the game is a draw, False otherwise'''
         # 50 move rule - nope
         return self.is_stalemate() or self.is_insufficient_material() or self.is_threefold_repetition()
     
     def is_game_over(self):
-        """Returns True if the game is over, False otherwise"""
+        '''Returns True if the game is over, False otherwise'''
         return self.is_checkmate() or self.is_draw()
 
 

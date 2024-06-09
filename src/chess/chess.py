@@ -1,13 +1,7 @@
-import sys
-import pygame
-
 from src.chess.gamemodes.player_vs_computer import PlayerVsComputer
 from src.chess.menus.main_chess_menu import ChessMainMenu
 from src.chess.menus.chess_settings_menu import ChessSettingsMenu
 from src.chess.gamemodes.player_vs_player import PlayerVsPlayer
-# from src.chess.player_vs_computer import PlayerVsComputer
-
-FPS = 9999
 
 class ChessGame:
     def __init__(self, screen):
@@ -52,10 +46,3 @@ class ChessGame:
     def player_vs_computer(self):
         player_vs_computer = PlayerVsComputer(self.screen)
         return player_vs_computer.main_loop()
-
-if __name__ == "__main__":
-    WIDTH, HEIGHT = 800, 800
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    game = ChessGame(screen)
-    game.main_loop()
-    pygame.quit()
