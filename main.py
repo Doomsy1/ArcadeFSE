@@ -2,6 +2,7 @@ import pygame
 from src.chess.chess import ChessGame
 from src.pacman.pacman import PacmanGame
 from src.main_menu.main_menu import MainMenu
+from src.connect_four.connect_four import ConnectFourGame
 
 class Arcade:
     def __init__(self, menu):
@@ -20,6 +21,8 @@ class Arcade:
                     game = ChessGame(self.screen)
                 case "pacman":
                     game = PacmanGame(self.screen)
+                case "connect four":
+                    game = ConnectFourGame(self.screen)
                 case "exit":
                     pygame.quit()
                     return
