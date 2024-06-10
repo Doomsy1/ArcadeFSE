@@ -47,7 +47,7 @@ GHOST_VEL = 2  # velocity of the ghosts
 
 # constants for the connect four game
 BOARD_COLOR = (0, 0, 255)
-TRANSPARENT_COLOR = (0, 0, 0)
+TRANSPARENT_COLOR = (0, 0, 0, 0)
 
 CONNECT_FOUR_GRID_SIZE = 100
 CONNECT_FOUR_RADIUS = 40

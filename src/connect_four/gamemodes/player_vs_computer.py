@@ -3,9 +3,10 @@ from src.connect_four.board import Board
 from src.connect_four.engine import Engine
 import pygame
 from constants import BOARD_COLOR, TRANSPARENT_COLOR, CONNECT_FOUR_GRID_SIZE, CONNECT_FOUR_RADIUS, CONNECT_FOUR_X_OFFSET, CONNECT_FOUR_Y_OFFSET
+from utils import write_centered_text
 
 GRAVITY_ACCELERATION = 5
-ENERGY_LOSS = 0.9
+ENERGY_RETAINED = 0.75
 STOP_BOUNCING_THRESHOLD = 5
 
 FPS = 60
@@ -24,7 +25,7 @@ class Piece:
             return
 
         if self.y + self.y_velocity > self.desired_y:
-            self.y_velocity*= -ENERGY_LOSS # flip the velocity and lose some energy
+            self.y_velocity*= -ENERGY_RETAINED # flip the velocity and lose some energy
 
         self.y_velocity += GRAVITY_ACCELERATION
 
@@ -41,7 +42,7 @@ class PlayerVsComputer:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
         self.board = Board()
-        self.engine = Engine(self.board)
+        self.engine = Engine(self.board, time_limit_ms=1000)
 
         self.pieces = []
 
@@ -55,7 +56,7 @@ class PlayerVsComputer:
         # 7 columns, 6 rows
         # rectangle with 42 empty circles (transparent)
 
-        board_image = pygame.Surface((CONNECT_FOUR_GRID_SIZE * 7, CONNECT_FOUR_GRID_SIZE * 6))
+        board_image = pygame.Surface((CONNECT_FOUR_GRID_SIZE * 7, CONNECT_FOUR_GRID_SIZE * 6), pygame.SRCALPHA)
         board_image.fill(TRANSPARENT_COLOR)
 
         # draw the board
@@ -106,10 +107,10 @@ class PlayerVsComputer:
     def draw(self):
         self.draw_background()
 
-        self.draw_board()
-
         self.update_pieces()
         self.draw_pieces()
+
+        self.draw_board()
 
     def request_engine_move(self):
         if not self.result_container:

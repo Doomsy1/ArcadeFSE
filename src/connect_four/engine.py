@@ -146,11 +146,11 @@ class Engine:
         while time.time() - start_time < self.time_limit_ms / 1000:
             best_move = self.get_best_move(depth)
             result_container.append((best_move, False))
-            print(f"Depth reached: {depth} in {time.time() - start_time:.2f} seconds, best move: {best_move}")
+            # print(f"Depth reached: {depth} in {time.time() - start_time:.2f} seconds, best move: {best_move}")
             depth += 1
 
-        print(f"Depth reached: {depth - 1} in {time.time() - start_time:.2f} seconds")
-        print(f"Best move: {best_move}")
+        # print(f"Depth reached: {depth - 1} in {time.time() - start_time:.2f} seconds")
+        # print(f"Best move: {best_move}")
         result_container.append((best_move, True))
         
 
