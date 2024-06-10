@@ -1,4 +1,4 @@
-# Constants for the chess game
+# constants for the chess game
 WHITE, BLACK = (255, 255, 255), (0, 0, 0)
 LIGHT_SQUARE = (240, 217, 181)
 DARK_SQUARE = (181, 136, 99)
@@ -35,11 +35,21 @@ PREVIOUS_MOVE_COLOR = (50, 50, 100)
 PREVIOUS_MOVE_ALPHA = 128
 
 
-# Constants for the pacman game
-
-PACMAN_VEL = 5  # Velocity of Pac-Man
+# constants for the pacman game
+PACMAN_VEL = 5  # velocity of Pac-Man
 
 PACMAN_X_OFFSET, PACMAN_Y_OFFSET = 0, 20
 PACMAN_GRID_SIZE = 40
 
-GHOST_VEL = 2  # Velocity of the ghosts
+GHOST_VEL = 2  # velocity of the ghosts
+
+
+
+# constants for the connect four game
+BOARD_COLOR = (0, 0, 255)
+TRANSPARENT_COLOR = (0, 0, 0)
+
+CONNECT_FOUR_GRID_SIZE = 100
+CONNECT_FOUR_RADIUS = 40
+
+CONNECT_FOUR_X_OFFSET, CONNECT_FOUR_Y_OFFSET = 50, 100
