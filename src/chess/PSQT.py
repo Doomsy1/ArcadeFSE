@@ -29,8 +29,8 @@ PHASE_WEIGHTS = {
     Piece.pawn: 0,
     Piece.knight: 1,
     Piece.bishop: 1,
-    Piece.rook: 2,
-    Piece.queen: 4,
+    Piece.rook: 3,
+    Piece.queen: 5,
     Piece.king: 0
 }
 
