@@ -354,8 +354,8 @@ class Engine:
             return 0
         
         if depth == 0:
-            return self.quiescence_search(alpha, beta) # broken
-            # return self.evaluate() 
+            # return self.quiescence_search(alpha, beta) # broken
+            return self.evaluate() 
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY

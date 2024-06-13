@@ -48,6 +48,14 @@ class Engine:
         # score = center_column.count(1) - center_column.count(2)
         # return score * CENTER_CONTROL_VALUE
 
+    def get_ordered_moves(self):
+        moves = self.board.get_legal_moves()
+        # center moves first
+        center_moves = [3, 2, 4, 1, 5, 0, 6]
+        moves = sorted(moves, key=lambda x: center_moves.index(x))
+
+        return moves
+
     def evaluate(self):
         winner = self.board.check_winner()
         if winner == 1:
@@ -149,8 +157,8 @@ class Engine:
             # print(f"Depth reached: {depth} in {time.time() - start_time:.2f} seconds, best move: {best_move}")
             depth += 1
 
-        # print(f"Depth reached: {depth - 1} in {time.time() - start_time:.2f} seconds")
-        # print(f"Best move: {best_move}")
+        print(f"Depth reached: {depth - 1} in {time.time() - start_time:.2f} seconds")
+        print(f"Best move: {best_move}")
         result_container.append((best_move, True))
         
 

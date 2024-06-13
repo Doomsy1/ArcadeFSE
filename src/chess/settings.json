@@ -1,1 +1,1 @@
-{"difficulty": 10, "volume": 100, "dark_square_color": {"r": 115, "g": 70, "b": 115}, "light_square_color": {"r": 195, "g": 170, "b": 200}, "time_per_side": 180, "time_increment": 5, "human_player": true}
+{"difficulty": 10, "volume": 100, "dark_square_color": {"r": 115, "g": 70, "b": 185}, "light_square_color": {"r": 195, "g": 155, "b": 250}, "time_per_side": 180, "time_increment": 5, "human_player": true}
