@@ -7,7 +7,7 @@ from src.connect_four.connect_four import ConnectFourGame
 class Arcade:
     def __init__(self, menu):
         pygame.init()
-        WIDTH, HEIGHT = 760, 880
+        WIDTH, HEIGHT = 760, 1000
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.menu = menu
 
