@@ -71,7 +71,10 @@ class PacmanPlayer:
             future_x, future_y = self.x + PACMAN_VEL, self.y
 
         future_rect = pygame.Rect(future_x, future_y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
-        return self.map.is_wall(future_rect) == False
+        if direction == 'down' and self.map.is_gate(future_rect):
+            return False
+        
+        return not self.map.is_wall(future_rect)
 
     def move(self):
         if self.current_direction == 'up':
@@ -104,7 +107,6 @@ class PacmanPlayer:
         if self.map.is_pellet(self.rect):
             self.map.remove_pellet(self.rect)
             self.score += 1
-            print(self.score) 
         # eat powerups if the player is on top of them
         if self.map.is_powerup(self.rect):
             self.map.remove_powerup(self.rect)

@@ -164,6 +164,10 @@ class PacmanMap:
 
         return x_pos, y_pos
     
+    def is_level_complete(self):
+        '''Check if the level is complete'''
+        return len(self.pellets) == 0
+
     @staticmethod
     def get_distance(p1, p2):
         '''Get the distance between two points'''

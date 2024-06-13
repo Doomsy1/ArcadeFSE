@@ -38,7 +38,7 @@ class Ghost:
 
     def draw(self):
         if self.pacman.powered_up:
-            if self.pacman.powered_up_timer % 12 < 4 and self.pacman.powered_up_timer < 250:
+            if self.pacman.powered_up_timer % 12 < 4 and self.pacman.powered_up_timer < 100:
                 pygame.draw.rect(self.screen, (255, 255, 255), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
             else:
                 pygame.draw.rect(self.screen, (0, 255, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
@@ -48,7 +48,17 @@ class Ghost:
     def get_possible_directions(self):
         possible_directions = []
         for direction in ['up', 'down', 'left', 'right']:
-            # the ghost can't move in the opposite direction
+            if self.can_move(direction):
+                possible_directions.append(direction)
+        
+        # if there is only one possible direction, return it
+        if len(possible_directions) == 1:
+            print(f'{self.ghost_type} can only move {possible_directions[0]}')
+            return possible_directions
+
+        legal_directions = []
+        # the ghost can't move in the opposite direction
+        for direction in possible_directions:
             if direction == 'up' and self.current_direction == 'down':
                 continue
             if direction == 'down' and self.current_direction == 'up':
@@ -57,9 +67,9 @@ class Ghost:
                 continue
             if direction == 'right' and self.current_direction == 'left':
                 continue
-            if self.can_move(direction):
-                possible_directions.append(direction)
-        return possible_directions
+
+            legal_directions.append(direction)
+        return legal_directions
 
     def can_move(self, direction):
         if direction == 'stopped':
@@ -78,7 +88,7 @@ class Ghost:
             return False
         
         return not self.map.is_wall(future_rect)
-
+    
     def update(self):
         if self.tick < START_TICK[self.ghost_type]:
             self.tick += 1
@@ -94,10 +104,8 @@ class Ghost:
             if self.pacman.powered_up:
                 # weigh the best direction lower than the others but still allow the ghost to move randomly
                 if random.random() < 0.2: # 20% chance to move in the best direction
-                    print(f"{self.ghost_type} moving in best direction")
                     self.current_direction = best_direction
                 else: # 20% chance to move randomly (excluding the best direction)
-                    print(f"{self.ghost_type} moving randomly")
                     if possible_directions:
                         if best_direction in possible_directions:
                             possible_directions.remove(best_direction)
@@ -105,10 +113,8 @@ class Ghost:
             else:
                 # weigh the best direction higher than the others but still allow the ghost to move randomly
                 if random.random() < 0.8: # 80% chance to move in the best direction
-                    print(f"{self.ghost_type} moving in best direction - not powered up")
                     self.current_direction = best_direction
                 else: # 80% chance to move randomly (including the best direction)
-                    print(f"{self.ghost_type} moving randomly - not powered up")
                     if possible_directions:
                         self.current_direction = random.choice(possible_directions)
                 
@@ -143,7 +149,6 @@ class Ghost:
             pacman_pos = parent[pacman_pos]
 
 
-        print(dx, dy)
         if dx == 1:
             return 'right'
         if dx == -1:
