@@ -23,11 +23,8 @@ def calculate_phase(board):
 
 def get_piece_square_table_value(piece, square, phase):
 
-    opening_table = PSQT["Opening"][piece]
-    endgame_table = PSQT["Endgame"][piece]
-
-    opening_value = opening_table[square]
-    endgame_value = endgame_table[square]
+    opening_value = PSQT["Opening"][piece][square]
+    endgame_value = PSQT["Endgame"][piece][square]
 
     return opening_value * phase + endgame_value * (1 - phase)
 
@@ -171,11 +168,11 @@ class Engine:
         self.transposition_table = {}
         self.start_time = 0
 
-        self.load_openings()
+    #     self.load_openings()
 
-    def load_openings(self):
-        with open(OPENINGS_FILE, "r") as file:
-            self.openings = json.load(file)
+    # def load_openings(self):
+    #     with open(OPENINGS_FILE, "r") as file:
+    #         self.openings = json.load(file)
 
     def update_board(self, board: Board):
         '''Used to sync the engine's board with the actual board.'''
@@ -340,7 +337,7 @@ class Engine:
     def minimax(self, depth, alpha, beta):
         if self.time_exceeded():
             raise Exception("Time exceeded")
-        
+
         if self.board.is_threefold_repetition():
             return 0
 
@@ -349,13 +346,10 @@ class Engine:
             if self.board.is_check(self.board.white_to_move):
                 return NEGATIVE_INFINITY if self.board.white_to_move else POSITIVE_INFINITY
             return 0 # stalemate
-        
-        if self.board.is_threefold_repetition():
-            return 0
-        
+
         if depth == 0:
             # return self.quiescence_search(alpha, beta) # broken
-            return self.evaluate() 
+            return self.evaluate()
 
         if self.board.white_to_move:
             max_eval = NEGATIVE_INFINITY

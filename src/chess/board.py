@@ -182,7 +182,7 @@ class Board:
         '''Returns a hash of the board state'''
         # TODO: implement Zobrist hashing
         # for now, use python's built-in hash function
-        return hash((tuple(self.board), self.castling_rights, self.en_passant_target_square))
+        return (tuple(self.board), self.castling_rights, self.en_passant_target_square, self.white_to_move)
 
     def __copy__(self):
         new_board = Board()
@@ -388,9 +388,9 @@ class Board:
     
     def generate_moves(self):
         '''Generates all possible moves for the given turn'''
-        # key = self.hash_board()
-        # if key in self.generated_moves:
-        #     return self.generated_moves[key]
+        key = self.hash_board()
+        if key in self.generated_moves:
+            return self.generated_moves[key]
 
         moves = []
 
@@ -408,7 +408,7 @@ class Board:
                 case Piece.king:
                     generate_king_moves(self, piece, square, moves)
 
-        # self.generated_moves[key] = moves
+        self.generated_moves[key] = moves
         return moves
 
     def make_move(self, move):
@@ -436,7 +436,6 @@ class Board:
         # normal move
         elif not promotion_piece:
             self.move_piece(start_square, end_square, start_piece)
-
 
         # update states
         self.update_castling_rights(start_square, end_square, start_piece, captured_piece)

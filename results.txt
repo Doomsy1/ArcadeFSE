@@ -1,0 +1,42 @@
+Positions: 20, Duration: 0 ns, Positions per ns: 20
+Positions: 400, Duration: 0.0080 seconds, Positions per second: 50003
+Positions: 8902, Duration: 0.1280 seconds, Positions per second: 69534
+Positions: 197281, Duration: 1.8487 seconds, Positions per second: 106714
+Positions: 4865609, Duration: 44.8777 seconds, Positions per second: 108419
+Positions: 20, Duration: 0 ns, Positions per ns: 20
+Positions: 400, Duration: 0.0040 seconds, Positions per second: 99990
+Positions: 8902, Duration: 0.0835 seconds, Positions per second: 106594
+Positions: 197403, Duration: 2.0284 seconds, Positions per second: 97320
+Positions: 4860550, Duration: 41.4089 seconds, Positions per second: 117379
+Positions: 20, Duration: 0 ns, Positions per ns: 20
+Positions: 400, Duration: 0.0050 seconds, Positions per second: 79994
+Positions: 8902, Duration: 0.2075 seconds, Positions per second: 42897
+Positions: 197281, Duration: 2.0049 seconds, Positions per second: 98400
+Positions: 20, Duration: 0 ns, Positions per ns: 20
+Positions: 400, Duration: 0.0060 seconds, Positions per second: 66687
+Positions: 8902, Duration: 0.1380 seconds, Positions per second: 64507
+Positions: 197403, Duration: 2.0216 seconds, Positions per second: 97645
+An error occurred at depth 1: tuple expected at most 1 argument, got 3
+An error occurred at depth 2: tuple expected at most 1 argument, got 3
+An error occurred at depth 3: tuple expected at most 1 argument, got 3
+An error occurred at depth 4: tuple expected at most 1 argument, got 3
+An error occurred at depth 1: tuple expected at most 1 argument, got 3
+An error occurred at depth 2: tuple expected at most 1 argument, got 3
+An error occurred at depth 3: tuple expected at most 1 argument, got 3
+An error occurred at depth 4: tuple expected at most 1 argument, got 3
+Positions: 20, Duration: 0.0010 seconds, Positions per second: 20004
+Positions: 400, Duration: 0.0060 seconds, Positions per second: 66650
+Positions: 8902, Duration: 0.1430 seconds, Positions per second: 62237
+Positions: 197403, Duration: 2.3332 seconds, Positions per second: 84606
+Positions: 20, Duration: 0.0010 seconds, Positions per second: 19998
+Positions: 400, Duration: 0.0070 seconds, Positions per second: 57146
+Positions: 8902, Duration: 0.1290 seconds, Positions per second: 69008
+Positions: 197281, Duration: 2.1456 seconds, Positions per second: 91947
+Positions: 20, Duration: 0 ns, Positions per ns: 20
+Positions: 400, Duration: 0.0120 seconds, Positions per second: 33328
+Positions: 8902, Duration: 0.2630 seconds, Positions per second: 33848
+Positions: 197281, Duration: 2.5126 seconds, Positions per second: 78517
+Positions: 20, Duration: 0 ns, Positions per ns: 20
+Positions: 400, Duration: 0.0040 seconds, Positions per second: 99948
+Positions: 8902, Duration: 0.2360 seconds, Positions per second: 37720
+Positions: 197281, Duration: 2.4486 seconds, Positions per second: 80567
