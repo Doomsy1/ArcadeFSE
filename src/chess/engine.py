@@ -411,45 +411,14 @@ class Engine:
     def iterative_deepening(self, result_container: list):
         """Perform an iterative deepening search."""
         # TODO: thinking during opponent's turn (necessary)
-        # TODO: time management (necessary)
-        # TODO: quiescence search (necessary)
         # TODO: transposition table (necessary)
         # TODO: killer moves (necessary)
         # TODO: parallel search (necessary)
-
-        # TODO: opening book (maybe)
-        # TODO: endgame tablebases (maybe)
 
         # TODO: null move pruning (maybe)
         # TODO: aspiration windows (maybe)
         # TODO: late move reduction (maybe)
         # TODO: futility pruning (maybe)
-
-        fen = self.board.create_fen(ignore_en_passant=True)
-        turn = self.board.white_to_move
-        if fen in self.openings:
-            opening_moves = self.openings[fen]
-            # sort opening moves by score
-            # they are formatted like this: move: score
-            opening_moves = sorted(opening_moves.items(), key=lambda x: x[1], reverse=turn) # position is good for white
-            opening_moves = [move[0].split(", ") for move in opening_moves]
-            valid_moves = self.board.generate_legal_moves()
-            move_found = False
-            for opening_move in opening_moves:
-                if move_found:
-                    break
-
-                for valid_move in valid_moves:
-                    
-                    if valid_move[0] == int(opening_move[0]) and valid_move[1] == int(opening_move[1]):
-                        best_opening_move = valid_move
-                        move_found = True
-                        break
-            if move_found:
-                result_container.append((best_opening_move, None, True))
-                return
-            
-
         
         self.start_time = time.time()
         self.positions_evaluated = 0
