@@ -101,7 +101,7 @@ class PacmanPlayer:
         # eat pellets if the player is on top of them
         if self.map.is_pellet(self.rect):
             self.map.remove_pellet(self.rect)
-            self.score += 1
+            self.score += 10
         # eat powerups if the player is on top of them
         if self.map.is_powerup(self.rect):
             self.map.remove_powerup(self.rect)

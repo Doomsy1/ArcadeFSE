@@ -76,7 +76,7 @@ class PacmanGame:
 
             if self.map.is_level_complete():
                 self.new_level()
-        
+            
             self.map.draw()
             self.player.handle_keys(events)
             self.player.update()
@@ -92,9 +92,10 @@ class PacmanGame:
 
             self.draw_ui()
 
-
+            cur_fps = FPS + self.player.score // 250
             # set the caption as the fps
             pygame.display.set_caption(f'Pacman | FPS: {int(self.clock.get_fps())}')
-            self.clock.tick(FPS)
+            self.clock.tick(cur_fps)
+            print(cur_fps)
             pygame.display.flip()
         return 'exit'
