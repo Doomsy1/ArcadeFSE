@@ -5,10 +5,11 @@ from collections import OrderedDict
 import random
 import time
 
-POSITIVE_INFINITY = float("inf")
-NEGATIVE_INFINITY = float("-inf")
+POSITIVE_INFINITY = 999999
+NEGATIVE_INFINITY = -999999
 
-THREAT_VALUE = 100
+STRONG_THREAT_VALUE = 1000
+WEAK_THREAT_VALUE = 100
 CENTER_CONTROL_VALUE = 10
 
 
@@ -18,6 +19,7 @@ class TranspositionTable:
         self.capacity = capacity
 
     def get(self, key):
+        return None
         if key in self.table:
             self.table.move_to_end(key)
             return self.table[key]
@@ -40,13 +42,12 @@ class Engine:
         self.transposition_table = TranspositionTable(capacity=10e6)
 
     def update_board(self, board: Board):
-        self.board = board
+        self.board.board = board.board.copy()
 
     def evaluate_center_control(self):
-        return 0
-        # center_column = [self.board[3][row] for row in range(6)]
-        # score = center_column.count(1) - center_column.count(2)
-        # return score * CENTER_CONTROL_VALUE
+        # count num 
+
+        pass
 
     def get_ordered_moves(self):
         moves = self.board.get_legal_moves()
@@ -56,21 +57,37 @@ class Engine:
 
         return moves
 
+    def evaluate_threats(self):
+        # player 1 threats are strong on rows that are odd
+        # player 2 threats are strong on rows that are even
+
+        threat_value = 0
+        threat_map = self.board.create_threat_map()
+
+        # go through the threat map and evaluate the threats
+        for column in range(7):
+            for row in range(6):
+                if threat_map[column][row][0]: # player 1 threat
+                    parity = row % 2
+                    if parity == 0:
+                        threat_value += STRONG_THREAT_VALUE
+                    else:
+                        threat_value += WEAK_THREAT_VALUE
+
+                if threat_map[column][row][1]: # player 2 threat
+                    parity = row % 2
+                    if parity == 1:
+                        threat_value -= STRONG_THREAT_VALUE
+                    else:
+                        threat_value -= WEAK_THREAT_VALUE
+
+        return threat_value
+
     def evaluate(self):
-        winner = self.board.check_winner()
-        if winner == 1:
-            return POSITIVE_INFINITY
-        if winner == 2:
-            return NEGATIVE_INFINITY
-        
         score = 0
 
-        # check threats
-        threat_counts = self.board.count_threats()
-        score = (threat_counts[1] - threat_counts[2]) * THREAT_VALUE
-
-        # check center control
-        score += self.evaluate_center_control()
+        # threats
+        score += self.evaluate_threats()
         
         return score
 
@@ -81,14 +98,26 @@ class Engine:
             return cached
         
         winner = self.board.check_winner()
-        if winner or self.board.is_full() or depth == 0:
+        if winner == 1:
+            score = POSITIVE_INFINITY
+            self.transposition_table.put(key, score)
+            return score
+        elif winner == 2:
+            score = NEGATIVE_INFINITY
+            self.transposition_table.put(key, score)
+            return score
+        elif self.board.is_full():
+            score = 0
+            self.transposition_table.put(key, score)
+            return score
+        elif depth == 0:
             score = self.evaluate()
             self.transposition_table.put(key, score)
             return score
         
         if self.board.turn == 1:
             best_score = NEGATIVE_INFINITY
-            for move in self.board.get_legal_moves():
+            for move in self.get_ordered_moves():
                 self.board.drop_piece(move)
                 score = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -98,7 +127,7 @@ class Engine:
                     break
         else:
             best_score = POSITIVE_INFINITY
-            for move in self.board.get_legal_moves():
+            for move in self.get_ordered_moves():
                 self.board.drop_piece(move)
                 score = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -117,7 +146,7 @@ class Engine:
 
         if self.board.turn == 1:
             best_score = NEGATIVE_INFINITY
-            for move in self.board.get_legal_moves():
+            for move in self.get_ordered_moves():
                 self.board.drop_piece(move)
                 score = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -128,7 +157,7 @@ class Engine:
 
         else:
             best_score = POSITIVE_INFINITY
-            for move in self.board.get_legal_moves():
+            for move in self.get_ordered_moves():
                 self.board.drop_piece(move)
                 score = self.minimax(depth - 1, alpha, beta)
                 self.board.undo_move()
@@ -142,9 +171,11 @@ class Engine:
     # result_container = [move, Final] 
     # Final: search finished or not
     def iterative_deepening(self, result_container: list):
+        print(f"What engine sees:\n{self.board}")
+
         start_time = time.time()
 
-        moves = self.board.get_legal_moves()
+        moves = self.get_ordered_moves()
         if len(moves) == 1:
             result_container.append((moves[0], True))
             return

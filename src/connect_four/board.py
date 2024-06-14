@@ -20,45 +20,80 @@ class Board:
                     hash_value ^= self.zobrist_table[column][row][piece]
         return hash_value
     
-    def count_threats(self):
+    def create_threat_map(self):
+        # threat map will be a 7x6x2 array where the first layer is for player 1 and the second layer is for player 2 (both can be True or False)
+        threat_map = [[[False, False] for _ in range(6)] for _ in range(7)]
 
-        threats = {1: 0, 2: 0}
-
-        def check_line(segment, player):
-            count = segment.count(player)
-            if count == 3 and segment.count(0) == 1:
+        def check_line(line):
+            if line.count(0) != 1:
+                return 0
+            if line.count(1) == 3:
                 return 1
+            if line.count(2) == 3:
+                return 2
             return 0
-
-        # check horizontal threats
+        
+        # check rows
         for row in range(6):
-            for col in range(4):
-                segment = [self.board[c][row] for c in range(col, col + 4)]
-                threats[1] += check_line(segment, 1)
-                threats[2] += check_line(segment, 2)
+            for column in range(4):
+                line = [self.board[column + i][row] for i in range(4)]
+                player = check_line(line)
 
-        # check vertical threats
-        for col in range(7):
+                # if there is a threat in the row
+                if player:
+                    for i in range(4):
+                        # find the empty cell (threatened cell)
+                        if line[i] == 0:
+                            # set the threat map
+                            threat_map[column + i][row][player - 1] = True
+                            break
+                
+        # check columns
+        for column in range(7):
             for row in range(3):
-                segment = [self.board[col][r] for r in range(row, row + 4)]
-                threats[1] += check_line(segment, 1)
-                threats[2] += check_line(segment, 2)
+                line = [self.board[column][row + i] for i in range(4)]
+                player = check_line(line)
 
-        # check diagonal threats (top-left to bottom-right)
-        for col in range(4):
+                # if there is a threat in the column
+                if player:
+                    for i in range(4):
+                        # find the empty cell (threatened cell)
+                        if line[i] == 0:
+                            # set the threat map
+                            threat_map[column][row + i][player - 1] = True
+                            break
+
+        # check diagonal (top-left to bottom-right)
+        for column in range(4):
             for row in range(3):
-                segment = [self.board[col + i][row + i] for i in range(4)]
-                threats[1] += check_line(segment, 1)
-                threats[2] += check_line(segment, 2)
+                line = [self.board[column + i][row + i] for i in range(4)]
+                player = check_line(line)
 
-        # check diagonal threats (bottom-left to top-right)
-        for col in range(4):
+                # if there is a threat in the diagonal
+                if player:
+                    for i in range(4):
+                        # find the empty cell (threatened cell)
+                        if line[i] == 0:
+                            # set the threat map
+                            threat_map[column + i][row + i][player - 1] = True
+                            break
+
+        # check diagonal (bottom-left to top-right)
+        for column in range(4):
             for row in range(3, 6):
-                segment = [self.board[col + i][row - i] for i in range(4)]
-                threats[1] += check_line(segment, 1)
-                threats[2] += check_line(segment, 2)
+                line = [self.board[column + i][row - i] for i in range(4)]
+                player = check_line(line)
 
-        return threats
+                # if there is a threat in the diagonal
+                if player:
+                    for i in range(4):
+                        # find the empty cell (threatened cell)
+                        if line[i] == 0:
+                            # set the threat map
+                            threat_map[column + i][row - i][player - 1] = True
+                            break
+
+        return threat_map
 
     def is_valid_move(self, column):
         return 0 in self.board[column]

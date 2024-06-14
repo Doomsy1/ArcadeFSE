@@ -153,6 +153,15 @@ class PlayerVsComputer:
             # draw
             self.draw()
 
+            winner = self.board.check_winner()
+            if winner:
+                text = f"Player {winner} wins!"
+                winner_rect = pygame.Rect(0, 0, 200, 50)
+                # draw background
+                pygame.draw.rect(self.screen, (255, 255, 255), winner_rect)
+                # draw text
+                write_centered_text(self.screen, text, winner_rect, (0, 0, 0))
+
             pygame.display.flip()
             pygame.time.Clock().tick(FPS)
 
