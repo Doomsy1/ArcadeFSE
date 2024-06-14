@@ -5,7 +5,7 @@ START_POS = (9, 11)
 
 
 class PacmanPlayer:
-    def __init__(self, screen, map):
+    def __init__(self, screen, map, score=0):
         self.screen = screen
         self.current_direction = 'stopped'
         self.queue_direction = 'stopped'
@@ -15,9 +15,8 @@ class PacmanPlayer:
         self.y = PACMAN_GRID_SIZE * START_POS[1] + PACMAN_Y_OFFSET
 
         self.powered_up = False
-        self.powered_up_timer = 0 # counts down from 500
 
-        self.score = 0
+        self.score = score
 
         self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
 
@@ -93,10 +92,6 @@ class PacmanPlayer:
             self.x = PACMAN_X_OFFSET - PACMAN_GRID_SIZE + PACMAN_VEL
 
     def update(self):
-        self.powered_up_timer -= 1
-        self.powered_up_timer = max(self.powered_up_timer, 0)
-        if self.powered_up_timer == 0:
-            self.powered_up = False
         # if the player is able to move in the queue direction then update the current direction
         if self.can_move(self.queue_direction):
             self.current_direction = self.queue_direction
@@ -111,4 +106,3 @@ class PacmanPlayer:
         if self.map.is_powerup(self.rect):
             self.map.remove_powerup(self.rect)
             self.powered_up = True
-            self.powered_up_timer = 500

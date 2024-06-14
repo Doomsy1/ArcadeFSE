@@ -26,6 +26,8 @@ class Ghost:
 
         self.tick = 0
 
+        self.fear_timer = 0
+
         self.pacman = pacman
 
         self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
@@ -34,11 +36,13 @@ class Ghost:
         self.x = START_POS[self.ghost_type][0] * PACMAN_GRID_SIZE + PACMAN_X_OFFSET
         self.y = START_POS[self.ghost_type][1] * PACMAN_GRID_SIZE + PACMAN_Y_OFFSET
         self.current_direction = 'stopped'
+        self.tick = START_TICK[self.ghost_type] - 100 # wait 100 ticks before moving
+        self.fear_timer = 0
         self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
 
     def draw(self):
-        if self.pacman.powered_up:
-            if self.pacman.powered_up_timer % 12 < 4 and self.pacman.powered_up_timer < 100:
+        if self.fear_timer > 0:
+            if self.fear_timer % 12 < 4 and self.fear_timer < 100:
                 pygame.draw.rect(self.screen, (255, 255, 255), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
             else:
                 pygame.draw.rect(self.screen, (0, 255, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
@@ -90,6 +94,11 @@ class Ghost:
         return not self.map.is_wall(future_rect)
     
     def update(self):
+        if self.fear_timer > 0:
+            self.fear_timer -= 1
+        if self.pacman.powered_up:
+            self.fear_timer = 300 # 300 ticks
+
         if self.tick < START_TICK[self.ghost_type]:
             self.tick += 1
             return
@@ -101,7 +110,7 @@ class Ghost:
                 return
 
             best_direction = self.get_best_direction()
-            if self.pacman.powered_up:
+            if self.fear_timer:
                 # weigh the best direction lower than the others but still allow the ghost to move randomly
                 if random.random() < 0.2: # 20% chance to move in the best direction
                     self.current_direction = best_direction
@@ -146,7 +155,10 @@ class Ghost:
         # find the best direction to move in
         while (current_x, current_y) != pacman_pos:
             dx, dy = pacman_pos[0] - current_x, pacman_pos[1] - current_y
-            pacman_pos = parent[pacman_pos]
+            try:
+                pacman_pos = parent[pacman_pos]
+            except:
+                print(parent)
 
 
         if dx == 1:

@@ -5,7 +5,7 @@ from src.pacman.player import PacmanPlayer
 from utils import write_centered_text
 
 # Constants
-FPS = 30
+FPS = 60
 
 class PacmanGame:
     def __init__(self, screen):
@@ -23,8 +23,9 @@ class PacmanGame:
     def handle_ghost_collision(self):
         for ghost in self.ghosts:
             if self.player.rect.colliderect(ghost.rect):
-                if self.player.powered_up_timer > 0:
-                    ghost.reset() # TODO: make it so that the ghost is not killable with the same power pellet
+                if ghost.fear_timer > 0:
+                    ghost.reset()
+                    self.player.score += 200 # TODO: add scaling for multiple ghosts
                 else:
                     self.player.reset()
                     for ghost in self.ghosts:
@@ -33,7 +34,9 @@ class PacmanGame:
 
     def new_level(self):
         self.map = PacmanMap(self.screen)
-        self.player = PacmanPlayer(self.screen, self.map) # TODO: keep the score
+
+        score = self.player.score
+        self.player = PacmanPlayer(self.screen, self.map, score=score)
 
         self.ghosts = []
         for ghost_type in ['blinky', 'pinky', 'inky', 'clyde']:
@@ -49,13 +52,6 @@ class PacmanGame:
         pygame.draw.rect(self.screen, (0, 0, 0), score_rect)
         score_text = f'Score: {self.player.score}'
         write_centered_text(self.screen, score_text, score_rect, (255, 255, 255))
-
-        # draw powered up timer
-        if self.player.powered_up_timer > 0:
-            powerup_rect = pygame.Rect(100, 0, 100, 50)
-            pygame.draw.rect(self.screen, (0, 0, 0), powerup_rect)
-            powerup_text = f'Powerup: {self.player.powered_up_timer}'
-            write_centered_text(self.screen, powerup_text, powerup_rect, (255, 255, 255))
 
         # draw level TODO
         # level_rect = pygame.Rect(200, 0, 100, 50)
@@ -89,6 +85,8 @@ class PacmanGame:
             for ghost in self.ghosts:
                 ghost.update()
                 ghost.draw()
+            
+            self.player.powered_up = False
 
             self.handle_ghost_collision()
 
