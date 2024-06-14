@@ -1,5 +1,4 @@
 # from src.chess.engine.PSQT import PSQT
-import json
 import random
 import time
 from src.chess.PSQT import PSQT, PHASE_WEIGHTS, TOTAL_PHASE
@@ -206,7 +205,6 @@ class Engine:
         victim_value = Piece.get_value(victim_piece)
         attacker_value = Piece.get_value(attacker_piece)
         promotion_value = Piece.get_value(promotion_piece)
-
 
         if victim_value == 0:
             return attacker_value + promotion_value
