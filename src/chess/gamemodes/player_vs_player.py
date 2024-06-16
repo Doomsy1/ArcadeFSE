@@ -11,7 +11,7 @@ from src.chess.engine import Engine
 FPS = 9999
 
 
-class PlayerVsPlayer:
+class PlayerVsPlayer: # TODO: UI
     def __init__(self, screen):
         self.screen = screen
 

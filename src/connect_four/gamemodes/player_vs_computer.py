@@ -129,12 +129,10 @@ class PlayerVsComputer:
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
                 return 'connect four main menu'
             # escape key
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
                     return 'connect four main menu'
 
             if event.type == pygame.MOUSEBUTTONDOWN:

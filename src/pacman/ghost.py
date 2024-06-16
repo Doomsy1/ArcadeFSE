@@ -15,7 +15,7 @@ START_TICK = {
     "clyde": 300
 }
 class Ghost:
-    def __init__(self, screen, map, pacman, ghost_type): # TODO: add color to differentiate ghosts
+    def __init__(self, screen, map, pacman, ghost_type):
         self.screen = screen
         self.current_direction = 'stopped'
         self.map = map

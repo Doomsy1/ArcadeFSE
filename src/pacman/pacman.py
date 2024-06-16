@@ -1,6 +1,6 @@
 from src.pacman.gamemodes.pacman import Pacman
 from src.pacman.menus.leaderboard import Leaderboard
-from src.pacman.menus.pacman_main_menu import PacmanMainMenu
+from src.pacman.menus.pacman_menu import PacmanMenu
 
 class PacmanGame:
     def __init__(self, screen):
@@ -28,7 +28,7 @@ class PacmanGame:
         return 'main menu'
     
     def pacman_main_menu(self):
-        pacman_main_menu = PacmanMainMenu(self.screen)
+        pacman_main_menu = PacmanMenu(self.screen)
         return pacman_main_menu.main_loop()
     
     def pacman(self):

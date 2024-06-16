@@ -1,19 +1,47 @@
 import pygame
-from utils import write_centered_text
+from utils import Button
 
 
 buttons = {
     'player vs player': {
-        'rect': pygame.Rect(300, 200, 200, 100),
-        'action': 'player vs player'
+        'text': 'Player vs Player',
+        'rect': pygame.Rect(300, 300, 200, 100),
+        'action': 'player vs player',
+        'base_color': (0, 206, 209),
+        'hover_color': (64, 224, 208),
+        'clicked_color': (0, 139, 139),
+        'text_color': (255, 255, 255),
+        'description': 'Play Chess against another player'
     },
     'player vs computer': {
-        'rect': pygame.Rect(300, 400, 200, 100),
-        'action': 'player vs computer'
+        'text': 'Player vs Computer',
+        'rect': pygame.Rect(300, 460, 200, 100),
+        'action': 'player vs computer',
+        'base_color': (0, 206, 209),
+        'hover_color': (64, 224, 208),
+        'clicked_color': (0, 139, 139),
+        'text_color': (255, 255, 255),
+        'description': 'Play Chess against the computer'
     },
     'chess settings': {
-        'rect': pygame.Rect(300, 600, 200, 100),
-        'action': 'chess settings menu'
+        'text': 'Chess Settings',
+        'rect': pygame.Rect(300, 620, 200, 100),
+        'action': 'chess settings menu',
+        'base_color': (0, 206, 209),
+        'hover_color': (64, 224, 208),
+        'clicked_color': (0, 139, 139),
+        'text_color': (255, 255, 255),
+        'description': 'Change Chess settings'
+    },
+    'back': {
+        'text': 'Back',
+        'rect': pygame.Rect(300, 860, 200, 100),
+        'action': 'exit',
+        'base_color': (0, 206, 209),
+        'hover_color': (64, 224, 208),
+        'clicked_color': (0, 139, 139),
+        'text_color': (255, 255, 255),
+        'description': 'Return to the main menu'
     }
 }
 
@@ -22,30 +50,73 @@ class ChessMainMenu:
     def __init__(self, screen):
         self.screen = screen
 
+        self.load_background()
+
+        self.create_buttons()
+
+    def create_buttons(self):
+        self.buttons = []
+        for button in buttons:
+            button = Button(
+                screen = self.screen,
+                text = buttons[button]['text'],
+                rect = buttons[button]['rect'],
+                action = buttons[button]['action'],
+                base_color = buttons[button]['base_color'],
+                hover_color = buttons[button]['hover_color'],
+                clicked_color = buttons[button]['clicked_color'],
+                text_color = buttons[button]['text_color'],
+                descriptive_text = buttons[button]['description']
+            )
+            self.buttons.append(button)
+
+    def load_background(self):
+        background_path = "assets\ChessBackground.png"
+
+        self.background = pygame.image.load(background_path)
+
+        # scale the image to fit the screen (760x1000)
+        # scale to 1000x1000
+        self.background = pygame.transform.scale(self.background, (1000, 1000))
+
+    def draw_background(self):
+        # center the background on the center of the screen
+        screen_width, screen_height = self.screen.get_width(), self.screen.get_height()
+
+        background_width, background_height = self.background.get_width(), self.background.get_height()
+
+        x = (screen_width - background_width) / 2
+        y = (screen_height - background_height) / 2
+
+        self.screen.blit(self.background, (x, y))
+
     def main_loop(self):
         running = True
 
         while running:
+            L_mouse_up = False
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
-                    break
-                # if the player presses escape, return to the main menu
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        return 'exit'
+                    return "exit"
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        L_mouse_up = True
 
-            self.screen.fill((0, 0, 0)) # replace this with a background image
+            mx, my = pygame.mouse.get_pos()
+            mb = pygame.mouse.get_pressed()
 
-            for button in buttons:
-                pygame.draw.rect(self.screen, (255, 255, 255), buttons[button]['rect'])
-                write_centered_text(self.screen, button, buttons[button]['rect'], (0, 0, 0))
+            # draw the background
+            self.draw_background()
 
-            # check if the player clicked on a button
-            if pygame.mouse.get_pressed()[0]:
-                for button in buttons:
-                    if buttons[button]['rect'].collidepoint(pygame.mouse.get_pos()):
-                        return buttons[button]['action']
+            # draw the game buttons
+            for button in self.buttons:
+                button.draw(mx, my, mb)
+
+            # check if the left mouse button is released
+            for button in self.buttons:
+                action = button.check_click(mx, my, L_mouse_up)
+                if action:
+                    return action
 
             pygame.display.flip()
 

@@ -65,33 +65,33 @@ class Slider:
         return self.value
 
 def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, head_height, color, alpha, cache={}):
-    # Check if the arrow has already been rendered with the same parameters
+    # check if the arrow has already been rendered with the same parameters
     key = (start, end, tail_start_offset, tail_width, head_width, head_height, color, alpha)
     if key in cache:
         screen.blit(cache[key], (0, 0))
         return
 
-    # Vector from start to end
+    # vector from start to end
     dx, dy = end[0] - start[0], end[1] - start[1]
     length = np.hypot(dx, dy)
     if length == 0:
         return  # Cannot draw an arrow if length is 0
 
-    # Normalize the direction vector
+    # normalize the direction vector
     dx, dy = dx / length, dy / length
 
-    # Calculate new start point for the tail with the offset
+    # calculate new start point for the tail with the offset
     tail_start_x = start[0] + dx * tail_start_offset
     tail_start_y = start[1] + dy * tail_start_offset
 
-    # Perpendicular vector for width calculations
+    # perpendicular vector for width calculations
     perpx, perpy = -dy, dx
 
-    # Adjusted end point for the tail to stop before the head starts
+    # adjusted end point for the tail to stop before the head starts
     tail_end_x = end[0] - dx * head_height
     tail_end_y = end[1] - dy * head_height
 
-    # Points for the tail rectangle
+    # points for the tail rectangle
     tail_rect_points = [
         (tail_start_x + perpx * tail_width / 2, tail_start_y + perpy * tail_width / 2),
         (tail_start_x - perpx * tail_width / 2, tail_start_y - perpy * tail_width / 2),
@@ -99,57 +99,61 @@ def draw_arrow(screen, start, end, tail_start_offset, tail_width, head_width, he
         (tail_end_x + perpx * tail_width / 2, tail_end_y + perpy * tail_width / 2)
     ]
 
-    # Points for the arrow head
+    # points for the arrow head
     head_points = [
         (end[0], end[1]),
         (end[0] - perpx * head_width / 2 - dx * head_height, end[1] - perpy * head_width / 2 - dy * head_height),
         (end[0] + perpx * head_width / 2 - dx * head_height, end[1] + perpy * head_width / 2 - dy * head_height)
     ]
 
-    # Create a temporary surface to draw the semi-transparent arrow
+    # create a temporary surface to draw the semi-transparent arrow
     temp_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
     rgba_color = color + (alpha,)  # Adding the alpha value to the color tuple
 
-    # Draw the tail rectangle with transparency
+    # draw the tail rectangle with transparency
     pygame.draw.polygon(temp_surface, rgba_color, tail_rect_points)
-    # Draw the head polygon with transparency
+    # draw the head polygon with transparency
     pygame.draw.polygon(temp_surface, rgba_color, head_points)
-    # Blit this surface onto the main screen surface
+    # blit this surface onto the main screen surface
     screen.blit(temp_surface, (0, 0))
 
-    # Cache the rendered arrow
+    # cache the rendered arrow
     cache[key] = temp_surface.copy()
 
 def draw_transparent_circle(screen, center, radius, color, alpha, thickness=0, cache={}):
-    # Check if the circle has already been rendered with the same parameters
+    # check if the circle has already been rendered with the same parameters
     key = (center, radius, color, alpha, thickness)
     if key in cache:
         screen.blit(cache[key], (0, 0))
         return
 
-    # Create a temporary surface to handle transparency
+    # create a temporary surface to handle transparency
     temp_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
     rgba_color = color + (alpha,)  # Create RGBA color tuple
 
-    # Draw the circle on the temporary surface
+    # draw the circle on the temporary surface
     pygame.draw.circle(temp_surface, rgba_color, center, radius, thickness)
 
-    # Blit the temporary surface onto the main screen surface
+    # blit the temporary surface onto the main screen surface
     screen.blit(temp_surface, (0, 0))
 
-    # Cache the rendered circle
+    # cache the rendered circle
     cache[key] = temp_surface.copy()
 
 def write_centered_text(screen, text, rect, colour, cache={}):
-    rect_tuple = (rect.x, rect.y, rect.width, rect.height) # Convert rect to a tuple
-    key = (text, rect_tuple, colour) # Use the tuple as the key
-    if key in cache: # If the text has already been rendered, use the cached version
+    # convert rect to a tuple to use it as a key in the cache
+    rect_tuple = (rect.x, rect.y, rect.width, rect.height)
+
+    # check if the text has already been rendered with the same parameters
+    key = (text, rect_tuple, colour)
+    if key in cache:
         for text_surface, x, y in cache[key]:
             screen.blit(text_surface, (x, y))
         return
 
-    # Split the text into lines and calculate the size of the text
+    # split the text into lines and calculate the size of the text
     lines = text.split("\n")
+
     font_size = 1
     font_obj = pygame_font.Font(None, font_size)
     line_sizes = [(line, font_obj.size(line)) for line in lines]
@@ -160,50 +164,106 @@ def write_centered_text(screen, text, rect, colour, cache={}):
     # binary search for the maximum font size
     low, high = font_size, max(rect.width, rect.height)
     while low < high:
+        # calculate the mid font size
         mid = (low + high + 1) // 2
+        
+        # check if the text fits in the rect with the current font size
         font_obj = pygame_font.Font(None, mid)
         line_sizes = [(line, font_obj.size(line)) for line in lines]
         text_height = sum(size[1] for _, size in line_sizes)
         text_width = max(size[0] for _, size in line_sizes)
 
+        # update the bounds of the binary search
         if text_height <= rect.height and text_width <= rect.width:
             low = mid
         else:
             high = mid - 1
 
-    # Render the text with the maximum font size
+    # render the text with the maximum font size
     font_size = low
     font_obj = pygame_font.Font(None, font_size)
     line_sizes = [(line, font_obj.size(line)) for line in lines]
     text_height = sum(size[1] for _, size in line_sizes)
     text_width = max(size[0] for _, size in line_sizes)
 
+    # cache the rendered text
     cache[key] = []
     y = rect.y + (rect.height - text_height) // 2
-    for i, (line, size) in enumerate(line_sizes): # Render each line of text
+    for i, (line, size) in enumerate(line_sizes):
+
+        # render the text
         text_surface = font_obj.render(line, True, colour)
         x = rect.x + (rect.width - size[0]) // 2
         screen.blit(text_surface, (x, y + i * size[1]))
 
-        # Cache the rendered text
+        # cache the rendered text
         cache[key].append((text_surface, x, y + i * size[1]))
 
 def draw_transparent_rect(screen, rect, color, alpha, thickness=0, cache={}):
-    # Check if the rectangle has already been rendered with the same parameters
+    # check if the rectangle has already been rendered with the same parameters
     key = (rect, color, alpha, thickness)
     if key in cache:
         screen.blit(cache[key], (0, 0))
         return
 
-    # Create a temporary surface to handle transparency
+    # create a temporary surface to handle transparency
     temp_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-    rgba_color = color + (alpha,)  # Create RGBA color tuple
+    rgba_color = color + (alpha,)  # create RGBA color tuple
 
-    # Draw the rectangle on the temporary surface
+    # draw the rectangle on the temporary surface
     pygame.draw.rect(temp_surface, rgba_color, rect, thickness)
 
-    # Blit the temporary surface onto the main screen surface
+    # blit the temporary surface onto the main screen surface
     screen.blit(temp_surface, (0, 0))
 
-    # Cache the rendered rectangle
+    # cache the rendered rectangle
     cache[key] = temp_surface.copy()
+
+class Button:
+    def __init__(self, screen, text, rect, action, base_color, hover_color, clicked_color, text_color, descriptive_text=None):
+        self.screen = screen
+        self.text = text
+        self.rect = rect
+        self.action = action
+        self.base_color = base_color
+        self.hover_color = hover_color
+        self.clicked_color = clicked_color
+        self.text_color = text_color
+        self.descriptive_text = descriptive_text
+
+    def draw(self, mx, my, mb):
+        if self.rect.collidepoint(mx, my):
+            # hover color
+            pygame.draw.rect(self.screen, self.hover_color, self.rect)
+
+            if mb[0]:
+                # clicked color
+                pygame.draw.rect(self.screen, self.clicked_color, self.rect)
+            
+            # draw the descriptive text above the button
+            if self.descriptive_text:
+                offset = 50
+                descriptive_text_rect = pygame.Rect(self.rect.x, self.rect.y - offset, self.rect.width, offset)
+                
+                # draw a rectangle for the descriptive text
+                pygame.draw.rect(self.screen, self.clicked_color, descriptive_text_rect)
+
+                # write the descriptive text
+                write_centered_text(self.screen, self.descriptive_text, descriptive_text_rect, self.hover_color)
+        else:
+            # base color
+            pygame.draw.rect(self.screen, self.base_color, self.rect)
+
+        # write the text on the button
+        write_centered_text(self.screen, self.text, self.rect, self.text_color)
+
+        # draw an outline around the button (bigger rectangle)
+        outline_rect = pygame.Rect(self.rect.x - 5, self.rect.y - 5, self.rect.width + 10, self.rect.height + 10)
+        pygame.draw.rect(self.screen, (0, 0, 0), outline_rect, 5)
+
+
+    def check_click(self, mx, my, L_mouse_up):
+        # check if the button was clicked
+        if self.rect.collidepoint(mx, my) and L_mouse_up:
+            return self.action
+        return None

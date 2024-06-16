@@ -160,10 +160,10 @@ class Pacman:
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.QUIT:
-                    return 'main menu'
+                    return 'pacman main menu'
                 # escape key
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    return 'main menu'
+                    return 'pacman main menu'
             
             self.mx, self.my = pygame.mouse.get_pos()
 

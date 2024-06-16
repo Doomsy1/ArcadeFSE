@@ -1,47 +1,43 @@
 import pygame
+from utils import Button
 
-from utils import write_centered_text, Button
 
-# Constants
-FPS = 30
 buttons = {
-    'chess': {
-        'text': 'Chess',
-        'rect': pygame.Rect(300, 250, 200, 100),
-        'action': 'chess',
-        'base_color': (0, 206, 209),
-        'hover_color': (64, 224, 208),
-        'clicked_color': (0, 139, 139),
-        'text_color': (255, 255, 255),
-        'description': 'Play Chess'
-    },
-    'connect four': {
-        'text': 'Connect Four',
-        'rect': pygame.Rect(300, 410, 200, 100),
-        'action': 'connect four',
-        'base_color': (0, 206, 209),
-        'hover_color': (64, 224, 208),
-        'clicked_color': (0, 139, 139),
-        'text_color': (255, 255, 255),
-        'description': 'Play Connect Four'
-    },
     'pacman': {
         'text': 'Pacman',
-        'rect': pygame.Rect(300, 570, 200, 100),
+        'rect': pygame.Rect(300, 300, 200, 100),
         'action': 'pacman',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),
         'clicked_color': (0, 139, 139),
         'text_color': (255, 255, 255),
         'description': 'Play Pacman'
+    },
+    'leaderboard': {
+        'text': 'Leaderboard',
+        'rect': pygame.Rect(300, 480, 200, 100),
+        'action': 'pacman leaderboard',
+        'base_color': (0, 206, 209),
+        'hover_color': (64, 224, 208),
+        'clicked_color': (0, 139, 139),
+        'text_color': (255, 255, 255),
+        'description': 'View the Pacman leaderboard'
+    },
+    'back': {
+        'text': 'Back',
+        'rect': pygame.Rect(300, 860, 200, 100),
+        'action': 'exit',
+        'base_color': (0, 206, 209),
+        'hover_color': (64, 224, 208),
+        'clicked_color': (0, 139, 139),
+        'text_color': (255, 255, 255),
+        'description': 'Return to the main menu'
     }
 }
 
-class MainMenu:
+class PacmanMenu:
     def __init__(self, screen):
         self.screen = screen
-        pygame.display.set_caption("Main Menu")
-        self.clock = pygame.time.Clock()
 
         self.load_background()
 
@@ -64,7 +60,7 @@ class MainMenu:
             self.buttons.append(button)
 
     def load_background(self):
-        background_path = "assets\ArcadeBackground.png"
+        background_path = "assets\PacmanBackground.png"
 
         self.background = pygame.image.load(background_path)
 
@@ -85,6 +81,7 @@ class MainMenu:
 
     def main_loop(self):
         running = True
+
         while running:
             L_mouse_up = False
             for event in pygame.event.get():
@@ -93,10 +90,10 @@ class MainMenu:
                 if event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:
                         L_mouse_up = True
-            
+
             mx, my = pygame.mouse.get_pos()
             mb = pygame.mouse.get_pressed()
-            
+
             # draw the background
             self.draw_background()
 
@@ -109,7 +106,7 @@ class MainMenu:
                 action = button.check_click(mx, my, L_mouse_up)
                 if action:
                     return action
-
+                    
             pygame.display.flip()
-            self.clock.tick(FPS)
-        return "exit"
+
+        return 'exit'
