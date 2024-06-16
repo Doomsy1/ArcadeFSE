@@ -7,19 +7,17 @@ class Board:
         self.turn = 1
 
         self.move_list = []
-
-        self.zobrist_table = [[[random.randint(1, 2**64 - 1) for _ in range(3)] for _ in range(6)] for _ in range(7)]
-        self.hash_value = self.compute_hash()
-
-    def compute_hash(self):
-        hash_value = 0
-        for column in range(7):
-            for row in range(6):
-                if self.board[column][row] != 0:
-                    piece = self.board[column][row]
-                    hash_value ^= self.zobrist_table[column][row][piece]
-        return hash_value
     
+    def hash_board(self, depth):
+        return hash((tuple(tuple(column) for column in self.board), self.turn, depth))
+
+    def copy(self):
+        board_copy = Board()
+        board_copy.board = [column.copy() for column in self.board]
+        board_copy.turn = self.turn
+        board_copy.move_list = self.move_list.copy()
+        return board_copy
+
     def create_threat_map(self):
         # threat map will be a 7x6x2 array where the first layer is for player 1 and the second layer is for player 2 (both can be True or False)
         threat_map = [[[False, False] for _ in range(6)] for _ in range(7)]
@@ -108,7 +106,6 @@ class Board:
         for row in range(6):
             if self.board[column][row] == 0:
                 self.board[column][row] = self.turn
-                self.hash_value ^= self.zobrist_table[column][row][self.turn]
                 break
 
         self.move_list.append((column, row))
@@ -116,7 +113,6 @@ class Board:
 
     def undo_move(self):
         column, row = self.move_list.pop()
-        self.hash_value ^= self.zobrist_table[column][row][self.board[column][row]]
         self.board[column][row] = 0
 
         self.turn = 1 if self.turn == 2 else 2

@@ -24,6 +24,8 @@ class Ghost:
         self.x = START_POS[self.ghost_type][0] * PACMAN_GRID_SIZE + PACMAN_X_OFFSET
         self.y = START_POS[self.ghost_type][1] * PACMAN_GRID_SIZE + PACMAN_Y_OFFSET
 
+        self.start_tick = 0
+
         self.tick = 0
 
         self.fear_timer = 0
@@ -32,22 +34,63 @@ class Ghost:
 
         self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
 
+        self.load_animations()
+
+    def load_animations(self):
+        self.animations = {
+            'up': [],
+            'down': [],
+            'left': [],
+            'right': [],
+
+            'feared': [],
+            'semi_feared': []
+        }
+
+        for direction in ['up', 'down', 'right']:
+            for i in range(2):
+                image = pygame.image.load(f'src\pacman\\assets\{self.ghost_type}\{direction}{i}.png')
+                image = pygame.transform.scale(image, (PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+                self.animations[direction].append(image)
+        
+        for fear_type in ['feared', 'semi_feared']:
+            for i in range(2):
+                image = pygame.image.load(f'src\pacman\\assets\\feared\{fear_type}{i}.png')
+                image = pygame.transform.scale(image, (PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+                self.animations[fear_type].append(image)
+
+        # left animation is the same as the right animation (just flipped horizontally)
+        for i in range(2):
+            image = pygame.image.load(f'src\pacman\\assets\{self.ghost_type}\\right{i}.png')
+            image = pygame.transform.scale(image, (PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+            image = pygame.transform.flip(image, True, False)
+            self.animations['left'].append(image)
+
     def reset(self):
         self.x = START_POS[self.ghost_type][0] * PACMAN_GRID_SIZE + PACMAN_X_OFFSET
         self.y = START_POS[self.ghost_type][1] * PACMAN_GRID_SIZE + PACMAN_Y_OFFSET
         self.current_direction = 'stopped'
-        self.tick = START_TICK[self.ghost_type] - 100 # wait 100 ticks before moving
+        self.start_tick = START_TICK[self.ghost_type] - 100 # wait 100 ticks before moving
         self.fear_timer = 0
         self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
 
     def draw(self):
+        if self.current_direction == 'stopped':
+            self.screen.blit(self.animations['right'][0], (self.x, self.y))
+            return
+        
+        frame = self.tick // 10
+        
         if self.fear_timer > 0:
-            if self.fear_timer % 12 < 4 and self.fear_timer < 100:
-                pygame.draw.rect(self.screen, (255, 255, 255), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+            if self.fear_timer < 100 and self.fear_timer % 10 < 5:
+                self.screen.blit(self.animations['semi_feared'][frame], (self.x, self.y))
             else:
-                pygame.draw.rect(self.screen, (0, 255, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+                self.screen.blit(self.animations['feared'][frame], (self.x, self.y))
         else:
-            pygame.draw.rect(self.screen, (255, 0, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+            self.screen.blit(self.animations[self.current_direction][frame], (self.x, self.y))
+
+        self.tick = (self.tick + 1) % 20
+            
 
     def get_possible_directions(self):
         possible_directions = []
@@ -99,8 +142,8 @@ class Ghost:
         if self.pacman.powered_up:
             self.fear_timer = 300 # 300 ticks
 
-        if self.tick < START_TICK[self.ghost_type]:
-            self.tick += 1
+        if self.start_tick < START_TICK[self.ghost_type]:
+            self.start_tick += 1
             return
         if self.at_intersection():
             possible_directions = self.get_possible_directions()
@@ -142,6 +185,7 @@ class Ghost:
             x, y = queue.pop(0)
             if (x, y) == pacman_pos:
                 break
+
             visited.add((x, y))
             for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
                 new_x, new_y = x + dx, y + dy

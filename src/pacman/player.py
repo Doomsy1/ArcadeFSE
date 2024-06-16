@@ -1,7 +1,7 @@
 from constants import PACMAN_VEL, PACMAN_GRID_SIZE, PACMAN_X_OFFSET, PACMAN_Y_OFFSET
 import pygame
 
-START_POS = (9, 11)
+START_POS = (9, 15)
 
 
 class PacmanPlayer:
@@ -19,6 +19,40 @@ class PacmanPlayer:
         self.score = score
 
         self.rect = pygame.Rect(self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE)
+
+        self.load_animations()
+
+        self.tick = 0
+
+    def load_animations(self):
+        self.animations = {
+            'up': [],
+            'down': [],
+            'left': [],
+            'right': []
+        }
+
+        for i in range(3):
+            # load the images
+            image = pygame.image.load(f'src\pacman\\assets\pacman\pacman{i}.png')
+
+            # scale the image
+            image = pygame.transform.scale(image, (PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
+
+            # the image is facing right
+            self.animations['right'].append(image)
+
+            # rotate the image to face up
+            image = pygame.transform.rotate(image, 90)
+            self.animations['up'].append(image)
+
+            # rotate the image to face left
+            image = pygame.transform.rotate(image, 90)
+            self.animations['left'].append(image)
+
+            # rotate the image to face down
+            image = pygame.transform.rotate(image, 90)
+            self.animations['down'].append(image)
 
     def reset(self):
         self.x = PACMAN_GRID_SIZE * START_POS[0] + PACMAN_X_OFFSET
@@ -53,9 +87,18 @@ class PacmanPlayer:
         if self.queue_direction == 'right':
             pygame.draw.rect(self.screen, (0, 255, 0), (self.x + PACMAN_GRID_SIZE, self.y, 10, PACMAN_GRID_SIZE))
 
+    def draw_death(self, index):
+        self.screen.blit(self.animations['up'][index], (self.x, self.y))
+
     def draw(self):
-        pygame.draw.rect(self.screen, (255, 255, 0), (self.x, self.y, PACMAN_GRID_SIZE, PACMAN_GRID_SIZE))
-        # self.draw_queued_direction() # debug
+        if self.current_direction == 'stopped':
+            self.screen.blit(self.animations['right'][1], (self.x, self.y))
+        else:
+            if self.can_move(self.queue_direction):
+                self.screen.blit(self.animations[self.current_direction][self.tick // 5], (self.x, self.y))
+                self.tick = (self.tick + 1) % 15
+            else:
+                self.screen.blit(self.animations[self.current_direction][1], (self.x, self.y))
 
     def can_move(self, direction):
         if direction == 'stopped':

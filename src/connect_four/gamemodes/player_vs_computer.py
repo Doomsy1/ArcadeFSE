@@ -126,16 +126,16 @@ class PlayerVsComputer:
             self.pieces.append(piece)
             self.human_turn = True
 
-    def handle_input(self):
+    def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return "exit"
+                return 'connect four main menu'
             # escape key
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
-                    return "exit"
+                    return 'connect four main menu'
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 col = (event.pos[0] - CONNECT_FOUR_X_OFFSET) // CONNECT_FOUR_GRID_SIZE
@@ -145,7 +145,9 @@ class PlayerVsComputer:
         running = True
 
         while running:
-            self.handle_input()
+            menu_change = self.handle_events()
+            if menu_change:
+                return menu_change
 
             if not self.human_turn:
                 self.request_engine_move()
@@ -155,7 +157,7 @@ class PlayerVsComputer:
 
             winner = self.board.check_winner()
             if winner:
-                text = f"Player {winner} wins!"
+                text = f'Player {winner} wins!'
                 winner_rect = pygame.Rect(0, 0, 200, 50)
                 # draw background
                 pygame.draw.rect(self.screen, (255, 255, 255), winner_rect)
@@ -165,4 +167,4 @@ class PlayerVsComputer:
             pygame.display.flip()
             pygame.time.Clock().tick(FPS)
 
-        return "connect four main menu"
+        return 'connect four main menu'

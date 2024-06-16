@@ -1,8 +1,8 @@
 from src.connect_four.board import Board
 # from board import Board
+from concurrent.futures import ThreadPoolExecutor
 
 from collections import OrderedDict
-import random
 import time
 
 POSITIVE_INFINITY = 999999
@@ -19,7 +19,6 @@ class TranspositionTable:
         self.capacity = capacity
 
     def get(self, key):
-        return None
         if key in self.table:
             self.table.move_to_end(key)
             return self.table[key]
@@ -42,7 +41,7 @@ class Engine:
         self.transposition_table = TranspositionTable(capacity=10e6)
 
     def update_board(self, board: Board):
-        self.board.board = board.board.copy()
+        self.board = board.copy()
 
     def evaluate_center_control(self):
         # count num 
@@ -92,7 +91,7 @@ class Engine:
         return score
 
     def minimax(self, depth, alpha, beta):
-        key = (self.board.hash_value, depth)
+        key = self.board.hash_board(depth)
         cached = self.transposition_table.get(key)
         if cached is not None:
             return cached
