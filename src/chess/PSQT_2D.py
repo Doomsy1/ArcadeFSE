@@ -1,6 +1,13 @@
 from src.chess.board import Piece
 # from board import Piece
 
+'''
+PSQTS are piece-square tables. They are used to evaluate the position of a piece on the board.
+Each piece has a different table for the opening and endgame phases of the game.
+These values are statistically determined and are used to evaluate the position of a piece on the board.
+The values are positive for white pieces and negative for black pieces.
+'''
+
 PSQT_2D = {
     "Opening": {
         Piece.white | Piece.pawn: [

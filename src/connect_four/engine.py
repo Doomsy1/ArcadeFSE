@@ -5,8 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import OrderedDict
 import time
 
-POSITIVE_INFINITY = 999999
-NEGATIVE_INFINITY = -999999
+POSITIVE_INFINITY = 9999999
+NEGATIVE_INFINITY = -9999999
 
 STRONG_THREAT_VALUE = 1000
 WEAK_THREAT_VALUE = 100

@@ -156,7 +156,7 @@ class Board:
             for column in range(7):
                 board += "X " if self.board[column][row - 1] == 1 else "O " if self.board[column][row - 1] == 2 else ". "
             board += "\n"
-        # print column numbers
+
         for column in range(7):
             board += str(column) + " "
             

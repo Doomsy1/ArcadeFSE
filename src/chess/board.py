@@ -398,6 +398,7 @@ class Board:
             piece = self.get_piece(square)
             piece_type = Piece.get_type(piece)
 
+            # generate moves based on piece type
             match piece_type:
                 case Piece.pawn:
                     generate_pawn_moves(self, piece, square, moves)
@@ -473,16 +474,19 @@ class Board:
             self.clear_piece(end_square+8, captured_piece)
 
     def handle_capture(self, start_square, end_square, start_piece, captured_piece, promotion_piece):
+        '''Handles capture moves'''
         if promotion_piece:
             self.promote_pawn(start_square, end_square, start_piece, promotion_piece)
         else:
             self.clear_piece(end_square, captured_piece)
 
     def promote_pawn(self, start_square, end_square, start_piece, promotion_piece):
+        '''Promotes a pawn to the given piece'''
         self.clear_piece(start_square, start_piece)
         self.set_piece(end_square, promotion_piece)
 
     def update_castling_rights(self, start_square, end_square, start_piece, captured_piece):
+        '''Updates the castling rights after a move'''
         # king move
         if start_piece == Piece.white | Piece.king:
             self.castling_rights &= 0b0011
@@ -631,6 +635,7 @@ class Board:
         return False
 
     def generate_pawn_attacks(self, piece, square, attack_map):
+        '''Generates pawn attacks for the given piece and square'''
         color = Piece.get_color(piece)
         move_direction = 1 if color == Piece.white else -1
 
@@ -642,10 +647,12 @@ class Board:
                 attack_map[attack_square] += 1
 
     def generate_knight_attacks(self, square, attack_map):
+        '''Generates knight attacks for the given square'''
         for target_square in knight_moves[square]:
             attack_map[target_square] += 1
 
     def generate_sliding_attacks(self, piece, square, attack_map):
+        '''Generates sliding attacks for the given piece and square'''
         piece_type = Piece.get_type(piece)
         for direction in sliding_moves[piece_type][square]:
             for target_square in direction:
@@ -654,6 +661,7 @@ class Board:
                     break
 
     def generate_king_attacks(self, square, attack_map):
+        '''Generates king attacks for the given square'''
         for target_square in king_moves[square]:
             attack_map[target_square] += 1
 
@@ -698,6 +706,7 @@ class Board:
         return moves
     
     def generate_pawn_capture_moves(self, piece, square, moves):
+        '''Generates pawn capture moves for the given piece and square'''
         color = Piece.get_color(piece)
         move_direction = 1 if color == Piece.white else -1
 
@@ -716,6 +725,7 @@ class Board:
                         0, 0, 0))
                     
     def generate_knight_capture_moves(self, square, moves):
+        '''Generates knight capture moves for the given square'''
         for target_square in knight_moves[square]:
             target_piece = self.get_piece(target_square)
             if target_piece and Piece.get_color(target_piece) != self.white_to_move:
@@ -727,6 +737,7 @@ class Board:
                     0, 0, 0))
 
     def generate_king_capture_moves(self, square, moves):
+        '''Generates king capture moves for the given square'''
         for target_square in king_moves[square]:
             target_piece = self.get_piece(target_square)
             if target_piece and Piece.get_color(target_piece) != self.white_to_move:
@@ -738,6 +749,7 @@ class Board:
                     0, 0, 0))
 
     def generate_sliding_capture_moves(self, piece, square, moves):
+        '''Generates sliding capture moves for the given piece and square'''
         piece_type = Piece.get_type(piece)
         for direction in sliding_moves[piece_type][square]:
             for target_square in direction:
@@ -954,6 +966,7 @@ class Board:
         return legal_moves
     
     def old_generate_legal_moves(self):
+        '''Generates all legal moves for the given turn'''
         pseudo_legal_mpves = self.generate_moves()
 
         ally_king_square = self.white_king_square if self.white_to_move else self.black_king_square
@@ -975,6 +988,7 @@ class Board:
         return legal_moves
     
     def is_checking_move(self, move):
+        '''Returns True if the move puts the enemy king in check, False otherwise'''
         enemy_king_square = self.black_king_square if self.white_to_move else self.white_king_square
 
         future_square = move[1]
@@ -992,6 +1006,7 @@ class Board:
                 return False
 
     def is_pawn_check(self, square, enemy_king_square, piece):
+        '''Returns True if the pawn move puts the enemy king in check, False otherwise'''
         move_direction = 1 if Piece.get_color(piece) == Piece.white else -1
 
         for offset in [-1, 1]:
@@ -1005,12 +1020,14 @@ class Board:
         return False
     
     def is_knight_check(self, square, enemy_king_square):
+        '''Returns True if the knight move puts the enemy king in check, False otherwise'''
         for target_square in knight_moves[square]:
             if target_square == enemy_king_square:
                 return True
         return False
     
     def is_sliding_check(self, square, enemy_king_square, piece):
+        '''Returns True if the sliding move puts the enemy king in check, False otherwise'''
         piece_type = Piece.get_type(piece)
 
         for direction in sliding_moves[piece_type][square]:
@@ -1160,60 +1177,65 @@ class Board:
 
 
 def is_within_board(rank, file):
+    '''Returns True if the given rank and file are within the board, False otherwise'''
     return 0 <= rank < 8 and 0 <= file < 8
 
 
 # TODO: bring these functions into the class
 def generate_sliding_moves(board: Board, piece, square, moves):
-        color = Piece.get_color(piece)
+    '''Generates sliding moves for the given piece and square'''
+    color = Piece.get_color(piece)
 
-        for direction in sliding_moves[Piece.get_type(piece)][square]:
-            for target_square in direction:
-                target_piece = board.get_piece(target_square)
+    for direction in sliding_moves[Piece.get_type(piece)][square]:
+        for target_square in direction:
+            target_piece = board.get_piece(target_square)
 
-                # capture or stop if there is a piece on the target square
-                if target_piece:
-                    if Piece.get_color(target_piece) != color:
-                        moves.append((
-                            square,             # start
-                            target_square,      # end
-                            piece,              # start piece
-                            target_piece,       # captured piece
-                            0, 0, 0))
-                    break
+            # capture or stop if there is a piece on the target square
+            if target_piece:
+                if Piece.get_color(target_piece) != color:
+                    moves.append((
+                        square,             # start
+                        target_square,      # end
+                        piece,              # start piece
+                        target_piece,       # captured piece
+                        0, 0, 0))
+                break
 
-                else:
-                    moves.append((square, target_square, piece, 0, 0, 0, 0))
+            else:
+                moves.append((square, target_square, piece, 0, 0, 0, 0))
 
 def generate_knight_moves(board: Board, piece, square, moves):
-        color = Piece.get_color(piece)
+    '''Generates knight moves for the given piece and square'''
+    color = Piece.get_color(piece)
 
-        for target_square in knight_moves[square]:
-            target_piece = board.get_piece(target_square)
-            if target_piece == 0 or Piece.get_color(target_piece) != color:
-                moves.append((
-                    square,         # start
-                    target_square,  # end
-                    piece,          # start piece
-                    target_piece,   # captured piece (0 if empty)
-                    0, 0, 0))
+    for target_square in knight_moves[square]:
+        target_piece = board.get_piece(target_square)
+        if target_piece == 0 or Piece.get_color(target_piece) != color:
+            moves.append((
+                square,         # start
+                target_square,  # end
+                piece,          # start piece
+                target_piece,   # captured piece (0 if empty)
+                0, 0, 0))
 
 def generate_king_moves(board: Board, piece, square, moves):
-        color = Piece.get_color(piece)
+    '''Generates king moves for the given piece and square'''
+    color = Piece.get_color(piece)
 
-        for target_square in king_moves[square]:
-            target_piece = board.board[target_square]
-            if target_piece == 0 or Piece.get_color(target_piece) != color:
-                moves.append((
-                    square,         # start
-                    target_square,  # end
-                    piece,          # start piece
-                    target_piece,   # captured piece (0 if empty)
-                    0, 0, 0))
+    for target_square in king_moves[square]:
+        target_piece = board.board[target_square]
+        if target_piece == 0 or Piece.get_color(target_piece) != color:
+            moves.append((
+                square,         # start
+                target_square,  # end
+                piece,          # start piece
+                target_piece,   # captured piece (0 if empty)
+                0, 0, 0))
 
-        handle_castling_moves(board, piece, moves, color)
+    handle_castling_moves(board, piece, moves, color)
 
 def handle_castling_moves(board: Board, piece, moves, color):
+    '''Handles castling moves for the given piece'''
     if color == Piece.white:
         check_castling(board, 4, (5, 6), moves, piece, 8)
         check_castling(board, 4, (3, 2, 1), moves, piece, 4)
@@ -1222,6 +1244,7 @@ def handle_castling_moves(board: Board, piece, moves, color):
         check_castling(board, 60, (59, 58, 57), moves, piece, 1)
 
 def check_castling(board: Board, king_initial, squares, moves, piece, rights_bit):
+    '''Checks if castling is possible and adds it to the list of moves'''
     if board.castling_rights & rights_bit:
         if all(board.is_empty(sq) for sq in squares):
             end_square = squares[1] # king moves 2 squares
@@ -1244,6 +1267,7 @@ pawn_ranks = {
 }
 
 def generate_pawn_moves(board: Board, piece, square, moves):
+    '''Generates pawn moves for the given piece and square'''
     color = Piece.get_color(piece)
     move_direction, start_rank, promotion_rank = pawn_ranks[color]
     single_step = square + move_direction * 8
@@ -1257,6 +1281,7 @@ def generate_pawn_moves(board: Board, piece, square, moves):
     handle_pawn_captures(board, piece, square, move_direction, moves, promotion_rank)
 
 def handle_pawn_promotion(piece, start_square, end_square, moves, promotion_rank):
+    '''Handles pawn promotion for the given piece and square'''
     if end_square // 8 == promotion_rank:
         for promotion_piece in [Piece.knight, Piece.bishop, Piece.rook, Piece.queen]:
             moves.append((
@@ -1274,6 +1299,7 @@ def handle_pawn_promotion(piece, start_square, end_square, moves, promotion_rank
             0, 0, 0, 0))
         
 def handle_pawn_double_move(board: Board, piece, start_square, single_step, move_direction, start_rank, moves):
+    '''Handles pawn double moves for the given piece and square'''
     if start_square // 8 == start_rank and board.is_empty(single_step + move_direction * 8):
         moves.append((
             start_square,           # start
@@ -1282,6 +1308,7 @@ def handle_pawn_double_move(board: Board, piece, start_square, single_step, move
             0, 0, 0, 0))
         
 def handle_pawn_captures(board: Board, piece, square, move_direction, moves, promotion_rank):
+    '''Handles pawn captures for the given piece and square'''
     for offset in [-1, 1]:
         capture_rank = square // 8 + move_direction
         capture_file = square % 8 + offset
@@ -1296,6 +1323,7 @@ def handle_pawn_captures(board: Board, piece, square, move_direction, moves, pro
             process_en_passant(board, piece, square, capture_square, moves)
 
 def handle_pawn_capture(board: Board, piece, start_square, capture_square, moves, promotion_rank):
+    '''Handles pawn captures for the given piece and square'''
     if capture_square // 8 == promotion_rank:
         for promotion_piece in [Piece.knight, Piece.bishop, Piece.rook, Piece.queen]:
             moves.append((
@@ -1316,6 +1344,7 @@ def handle_pawn_capture(board: Board, piece, start_square, capture_square, moves
 
 
 def process_en_passant(board: Board, piece, start_square, capture_square, moves):
+    '''Processes en passant moves for the given piece and square'''
     moves.append((
         start_square,           # start
         capture_square,         # end

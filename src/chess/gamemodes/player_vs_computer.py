@@ -14,23 +14,28 @@ import json
 FPS = 60
 
 def file_rank_to_square(file, rank):
+    '''Convert a file and rank to a square number'''
     return 8*rank + file
 
 def square_to_file_rank(square):
-    if square is None: # TOFIX: placeholder
+    '''Convert a square number to a file and rank'''
+    if square is None:
         return 0, 0
     return square % 8, square // 8
 
 def square_to_pixel(square):
+    '''Convert a square number to a pixel position on the screen'''
     file, rank = square_to_file_rank(square)
     return (file*CHESS_GRID_SIZE + BOARD_OFFSET_X, (7-rank)*CHESS_GRID_SIZE + BOARD_OFFSET_Y)
 
 def pixel_to_square(x, y):
+    '''Convert a pixel position on the screen to a square number'''
     file = (x - BOARD_OFFSET_X) // CHESS_GRID_SIZE
     rank = 7 - (y - BOARD_OFFSET_Y) // CHESS_GRID_SIZE
     return file_rank_to_square(file, rank)
 
 def pixel_on_board(x, y):
+    '''Check if a pixel position is on the board'''
     file_on_board = BOARD_OFFSET_X <= x <= BOARD_OFFSET_X + 8*CHESS_GRID_SIZE
     rank_on_board = BOARD_OFFSET_Y <= y <= BOARD_OFFSET_Y + 8*CHESS_GRID_SIZE
     return file_on_board and rank_on_board
@@ -50,6 +55,7 @@ class ChessClock:
         self.start_time = time()
 
     def update(self):
+        # update the time of the player whose turn it is
         current_time = time()
         elapsed_time = current_time - self.start_time
 
@@ -58,9 +64,11 @@ class ChessClock:
         else:
             self.black_time -= elapsed_time
 
+        # update the start time
         self.start_time = current_time
 
     def switch_turn(self):
+        # switch the turn and add the increment to the time of the player whose turn it is
         if self.white_turn:
             self.white_time += self.increment
         else:
@@ -71,6 +79,7 @@ class ChessClock:
         pygame.draw.rect(screen, (255, 255, 255), chess_clock_white_rect)
         pygame.draw.rect(screen, (0, 0, 0), chess_clock_black_rect)
 
+        # draw the time of the player whose turn it is
         if self.white_time <= 0:
             white_time_text = '0:00'
         else:
@@ -81,9 +90,11 @@ class ChessClock:
         else:
             black_time_text = f'{int(self.black_time//60)}:{int(self.black_time%60):02}'
 
+        # set the color of the time text depending on whose turn it is
         white_time_color = (0, 0, 0) if self.white_turn else (128, 128, 128)
         black_time_color = (255, 255, 255) if not self.white_turn else (128, 128, 128)
 
+        # draw the time text
         write_centered_text(screen, white_time_text, chess_clock_white_rect, white_time_color)
         write_centered_text(screen, black_time_text, chess_clock_black_rect, black_time_color)
 
@@ -109,9 +120,6 @@ class EvalBar:
         eval_rect = pygame.Rect(eval_bar_rect.x, eval_bar_rect.y, eval_bar_rect.width, rect_height)
         pygame.draw.rect(screen, (32, 32, 32), eval_rect)
 
-        # draw a border around the eval bar
-        # pygame.draw.rect(screen, (64, 128, 64), eval_bar_rect, 5)
-
 
 class PlayerVsComputer:
     def __init__(self, screen):
@@ -136,6 +144,7 @@ class PlayerVsComputer:
         self.preview_annotation_start_square = None
         self.preview_annotation_end_square = None
 
+        # initialize the engine
         self.allocated_engine_time = self.start_time_per_side*1000//50 + self.increment*900
         self.engine = Engine(
             self.board, 
@@ -268,7 +277,6 @@ class PlayerVsComputer:
 
     def draw_pieces(self):
         '''Draw the chess pieces'''
-        # TODO: check if there is a better way to draw the pieces
         for square, piece in enumerate(self.board.board):
             if piece == 0:
                 continue
@@ -276,6 +284,7 @@ class PlayerVsComputer:
             if square == self.selected_square and self.mb[0]:
                 continue
 
+            # draw the piece on the square
             piece_image = self.piece_images[piece]
             x, y = square_to_pixel(square)
             self.screen.blit(piece_image, (x, y))
@@ -289,7 +298,7 @@ class PlayerVsComputer:
             draw_transparent_rect(self.screen, (x, y, CHESS_GRID_SIZE, CHESS_GRID_SIZE), SELECTED_SQUARE_COLOR, SELECTED_SQUARE_ALPHA)
 
     def get_square_legal_moves(self, square):
-        '''Draw the legal moves of the selected piece'''
+        '''Get the legal moves of a piece on a square'''
         moves = self.board.generate_legal_moves()
         piece_moves = []
         for move in moves:
@@ -301,9 +310,11 @@ class PlayerVsComputer:
     
     def draw_move_squares(self):
         '''Draw the squares where the selected piece can move to'''
+        # if it is not the human player's turn, return
         if self.turn != self.human_player:
             return
         
+        # if no piece is selected, return
         if self.selected_square is None:
             return
         
@@ -311,7 +322,10 @@ class PlayerVsComputer:
         for move in moves:
             end = move[1]
             capture = move[3]
-            if capture:
+            en_passant = move[6]
+
+            # draw a transparent square on the end square
+            if capture or en_passant:
                 color = CAPTURE_SQUARE_COLOR
                 alpha = CAPTURE_SQUARE_ALPHA
             else:
@@ -323,14 +337,15 @@ class PlayerVsComputer:
 
     def handle_piece_selection(self):
         '''Handle the selection of a piece'''
-        if self.selected_square == None:
-            if self.left_mouse_down and pixel_on_board(self.mx, self.my):
-                if not self.board.is_empty(pixel_to_square(self.mx, self.my)):
+        if self.selected_square == None: # no piece is selected
+            if self.left_mouse_down and pixel_on_board(self.mx, self.my): # if the left mouse button is down and the mouse is on the board
+                if not self.board.is_empty(pixel_to_square(self.mx, self.my)): # if there is a piece on the square
                     self.selected_square = pixel_to_square(self.mx, self.my)
 
         else: # a piece is already selected
-            if self.left_mouse_down and pixel_on_board(self.mx, self.my):
+            if self.left_mouse_down and pixel_on_board(self.mx, self.my): # if the left mouse button is down and the mouse is on the board
                 square = pixel_to_square(self.mx, self.my)
+                # if the selected square is the same as the square the mouse is on, deselect the piece
                 if self.board.is_empty(square):
                     self.selected_square = None
                 else:
@@ -338,6 +353,7 @@ class PlayerVsComputer:
 
     def draw_selected_piece(self):
         '''Draw the selected piece on the cursor'''
+        # if a piece is selected, draw the piece on the cursor
         if self.selected_square != None:
             piece = self.board.get_piece(self.selected_square)
             piece_image = self.piece_images[piece]
@@ -375,7 +391,7 @@ class PlayerVsComputer:
 
         promotion_box_rect = pygame.Rect(200, 200, 200, 200)
 
-        promotion_piece = 0b0000
+        promotion_piece = 0b0000 # the piece to promote to
         while promotion_piece == 0b0000:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -395,10 +411,12 @@ class PlayerVsComputer:
                 if promotion_choices[choice]['rect'].collidepoint(mx, my):
                     pygame.draw.rect(self.screen, (255, 0, 0), promotion_choices[choice]['rect'], 5)
 
+                    # if the left mouse button is clicked, return the promotion piece
                     if mb[0]:
                         promotion_piece = promotion_choices[choice]['white'] if self.turn else promotion_choices[choice]['black']
                         return promotion_piece
                     
+                # draw the piece on the promotion choice
                 if self.turn:
                     piece = promotion_choices[choice]['white']
                 else:
@@ -412,17 +430,21 @@ class PlayerVsComputer:
         '''Draw the game over screen'''
         full_game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2+BOARD_OFFSET_X, CHESS_GRID_SIZE*3+BOARD_OFFSET_Y, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE*2)
 
+        # draw a white rectangle on the full game over rect
         game_over_rect = pygame.Rect(CHESS_GRID_SIZE*2+BOARD_OFFSET_X, CHESS_GRID_SIZE*3+BOARD_OFFSET_Y, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
         game_over_rect_color = (255, 255, 255)
         pygame.draw.rect(self.screen, game_over_rect_color, game_over_rect)
 
+        # draw the game over text
         game_over_text_color = (255, 128, 128)
         write_centered_text(self.screen, "Game Over", game_over_rect, game_over_text_color)
 
+        # draw the description rect
         description_rect = pygame.Rect(CHESS_GRID_SIZE*2+BOARD_OFFSET_X, CHESS_GRID_SIZE*4+BOARD_OFFSET_Y, CHESS_GRID_SIZE*4, CHESS_GRID_SIZE)
         description_rect_color = (255, 255, 255)
         pygame.draw.rect(self.screen, description_rect_color, description_rect)
 
+        # draw the description text
         description_color = (128, 128, 128)
         if self.board.is_checkmate():
             if self.turn:
@@ -451,6 +473,10 @@ class PlayerVsComputer:
 
         pygame.display.flip()
 
+        # save the game to a json file
+        self.export_move_list()
+
+        # wait for the user to click
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -463,20 +489,24 @@ class PlayerVsComputer:
                 
     def handle_move(self):
         '''Handle the move of a piece'''
+        # if it is not the human player's turn, return
         if self.turn != self.human_player:
             return
         
+        # if the left mouse button is up or down and the mouse is on the board
         if (self.left_mouse_up or self.left_mouse_down) and pixel_on_board(self.mx, self.my):
             square = pixel_to_square(self.mx, self.my)
             if self.selected_square == None:
                 return
             
+            # if the selected square is the same as the square the mouse is on, return
             moves = self.get_square_legal_moves(self.selected_square)
             for move in moves:
                 start, end, start_piece, captured_piece, promotion_piece, castling, en_passant = move
                 if end != square:
                     continue
 
+                # if the move is a promotion, show a popup to choose the promotion piece
                 if promotion_piece == 0b0000:
                     if castling != 0b0000:
                         self.sfx['castle'].play()
@@ -485,15 +515,18 @@ class PlayerVsComputer:
                     else:
                         self.sfx['move'].play()
 
+                # if the move is a promotion, show a popup to choose the promotion piece
                 else:
                     chosen_promotion_piece = self.promotion_popup()
                     move = (start, end, start_piece, captured_piece, chosen_promotion_piece, castling, en_passant)
                     self.sfx['promotion'].play()
 
+                # make the move
                 self.board.make_move(move)
                 self.engine.update_board(self.board)
                 self.move_list.append(move)
 
+                # switch the turn
                 self.selected_square = None
                 self.turn = not self.turn
                 self.chess_clock.switch_turn()
@@ -501,10 +534,12 @@ class PlayerVsComputer:
                 
     def handle_annotations(self):
         '''Handle the annotations of the game (circles, arrows)'''
+        # if the left mouse button is down, clear the annotations
         if self.left_mouse_down:
             self.annotation_circles = []
             self.annotation_arrows = []
 
+        # if the right mouse button is down, set the start square of the preview annotation
         if self.mb[2]:
             if pixel_on_board(self.rmx, self.rmy):
                 start_square = pixel_to_square(self.rmx, self.rmy)
@@ -514,6 +549,7 @@ class PlayerVsComputer:
                 end_square = pixel_to_square(self.mx, self.my)
                 self.preview_annotation_end_square = end_square
 
+        # if the right mouse button is up, add the preview annotation to the annotations
         if self.right_mouse_up:
             if pixel_on_board(self.rmx, self.rmy) and pixel_on_board(self.mx, self.my):
                 start_square = self.preview_annotation_start_square
@@ -537,6 +573,7 @@ class PlayerVsComputer:
             self.preview_annotation_end_square = None
 
     def draw_arrow(self, start, end, color, alpha):
+        '''Draw an arrow from the start square to the end square'''
         start_x, start_y = square_to_pixel(start)
         end_x, end_y = square_to_pixel(end)
         draw_arrow(
@@ -552,6 +589,7 @@ class PlayerVsComputer:
         )
 
     def draw_circle(self, square, color, alpha):
+        '''Draw a circle on a square'''
         x, y = square_to_pixel(square)
         draw_transparent_circle(
             screen=self.screen,
@@ -564,7 +602,6 @@ class PlayerVsComputer:
 
     def draw_annotations(self):
         '''Draw the annotations of the game (circles, arrows)'''
-
         # draw the circles
         for square in self.annotation_circles:
             self.draw_circle(square, CIRCLE_COLOR, CIRCLE_ALPHA)
@@ -599,6 +636,7 @@ class PlayerVsComputer:
     def export_move_list(self):
         '''Export the move list to a json file'''
 
+        # create a folder to store the move lists if it does not exist
         file_name = f'src/chess/debug_data/move_lists/{len(self.move_list)}_ID{self.board.hash_board()}.json'
         with open(file_name, 'w') as file:
             json.dump(self.move_list, file)
@@ -606,6 +644,7 @@ class PlayerVsComputer:
     def request_engine_move(self):
         '''Request a move from the engine'''
 
+        # set the time limit of the engine
         if self.human_player:
             self.engine.set_time_limit(min(self.chess_clock.black_time*1000//4, self.allocated_engine_time))
         else:
@@ -613,21 +652,24 @@ class PlayerVsComputer:
 
         self.engine_move_container = []
         threading.Thread(target=self.engine.iterative_deepening, args=(self.engine_move_container,)).start()
-        # self.engine.find_best_move(self.engine_move_container) # for debugging purposes
 
     def draw_latest_engine_move(self):
         '''Draw the latest move of the engine'''
 
+        # if it is the human player's turn, return
         if self.turn == self.human_player:
             return
 
+        # if the engine has not made a move, return
         if len(self.engine_move_container) == 0:
             return
         
+        # if the engine is still thinking, return
         move = self.engine_move_container[-1][0]
         if move is None:
             return
         
+        # get the move
         start = move[0]
         end = move[1]
 
@@ -775,6 +817,8 @@ class PlayerVsComputer:
             if len(self.engine_move_container) > self.previous_depth:
                 self.previous_depth = len(self.engine_move_container)
                 move_confirmation = self.engine_move_container[-1][2]
+
+                # if the engine has made a move, make the move
                 if move_confirmation:
                     move = self.engine_move_container[-1][0]
                     self.board.make_move(move)
@@ -788,7 +832,6 @@ class PlayerVsComputer:
 
     def update_eval_bar(self):
         '''Update the eval bar'''
-        # print(self.engine_move_container)
         if self.turn == self.human_player:
             return
         
@@ -803,8 +846,11 @@ class PlayerVsComputer:
 
     def is_game_over(self):
         '''Check if the game is over from the board or the chess clock'''
+        # if the game is over, return True
         if self.board.is_game_over():
             return True
+        
+        # if the time of a player is less than or equal to 0, return True
         if self.chess_clock.white_time <= 0 or self.chess_clock.black_time <= 0:
             return True
 
@@ -826,16 +872,17 @@ class PlayerVsComputer:
 
             self.chess_clock.update()
 
+            # handle the events
             self.handle_annotations()
             self.handle_move()
             self.handle_piece_selection()
-
 
             self.update_eval_bar()
             self.handle_engine()
 
             self.draw_game()
 
+            # if the game is over, draw the game over screen
             if self.is_game_over():
                 self.sfx['game_over'].play()
                 return self.draw_game_over()

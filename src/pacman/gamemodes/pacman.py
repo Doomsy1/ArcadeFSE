@@ -73,7 +73,7 @@ class Pacman:
 
         # set volume
         for sound in self.sfx:
-            self.sfx[sound].set_volume(0.5)
+            self.sfx[sound].set_volume(0.1)
 
     def start_animation(self):
         # reset background
@@ -216,9 +216,9 @@ class Pacman:
         while tick > 0:
             tick -= 1
 
-            if highscore:
+            if highscore: # new highscore
                 text = 'New Highscore!'
-            else:
+            else: # new personal best
                 text = 'New Personal Best!'
 
             color = (255, 165, 0)
@@ -274,7 +274,6 @@ class Pacman:
         for i in range(self.lives):
             life_rect = pygame.Rect(self.screen.get_width() - 50 * (i + 1), 100, 50, 50)
             self.screen.blit(self.images['life'], life_rect)
-        print(self.lives)
 
         # draw highscore (top center)
         highscore_width = 400
@@ -289,6 +288,22 @@ class Pacman:
         level_rect = pygame.Rect(self.screen.get_width()//2 - level_width//2, highscore_height, level_width, level_height)
         level_text = f'Level {self.level}'
         write_centered_text(self.screen, level_text, level_rect, (255, 255, 255))
+
+    def play_ghost_siren(self):
+        return
+    
+        # if there are any fearred ghosts, play the fearred ghost sound, otherwise play the siren sound
+        feared = False
+        for ghost in self.ghosts:
+            if ghost.fear_timer > 0:
+                feared = True
+                break
+        
+        if feared:
+            self.sfx['retreat'].play()
+        else:
+            self.sfx['siren'].play()
+            
 
     def draw_game(self):
         # reset background
@@ -328,6 +343,8 @@ class Pacman:
             # if pellet_eaten and not self.eat_channel.get_busy():
             #     self.eat_channel.play(self.sfx['eat'])
             self.player.draw()
+
+            self.play_ghost_siren()
 
             for ghost in self.ghosts:
                 ghost.update()

@@ -82,7 +82,7 @@ class Ghost:
         frame = self.tick // 10
         
         if self.fear_timer > 0:
-            if self.fear_timer < 100 and self.fear_timer % 10 < 5:
+            if self.fear_timer < 100 and self.fear_timer % 20 < 10:
                 self.screen.blit(self.animations['semi_feared'][frame], (self.x, self.y))
             else:
                 self.screen.blit(self.animations['feared'][frame], (self.x, self.y))

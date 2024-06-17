@@ -4,7 +4,7 @@ from src.chess.board import Piece
 
 
 PSQT = {}
-
+# convert the 2d PSQT into a 1d PSQT for faster access
 for phase in PSQT_2D:
     PSQT[phase] = {}
     for piece in PSQT_2D[phase]:

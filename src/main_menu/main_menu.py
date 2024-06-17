@@ -7,7 +7,7 @@ FPS = 30
 buttons = {
     'chess': {
         'text': 'Chess',
-        'rect': pygame.Rect(300, 250, 200, 100),
+        'rect': pygame.Rect(300, 320, 200, 75),
         'action': 'chess',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),
@@ -15,25 +15,25 @@ buttons = {
         'text_color': (255, 255, 255),
         'description': 'Play Chess'
     },
-    'connect four': {
-        'text': 'Connect Four',
-        'rect': pygame.Rect(300, 570, 200, 100),
-        'action': 'connect four',
-        'base_color': (0, 206, 209),
-        'hover_color': (64, 224, 208),
-        'clicked_color': (0, 139, 139),
-        'text_color': (255, 255, 255),
-        'description': 'Play Connect Four'
-    },
     'pacman': {
         'text': 'Pacman',
-        'rect': pygame.Rect(300, 410, 200, 100),
+        'rect': pygame.Rect(300, 460, 200, 75),
         'action': 'pacman',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),
         'clicked_color': (0, 139, 139),
         'text_color': (255, 255, 255),
         'description': 'Play Pacman'
+    },
+    'connect four': {
+        'text': 'Connect Four',
+        'rect': pygame.Rect(300, 600, 200, 75),
+        'action': 'connect four',
+        'base_color': (0, 206, 209),
+        'hover_color': (64, 224, 208),
+        'clicked_color': (0, 139, 139),
+        'text_color': (255, 255, 255),
+        'description': 'Play Connect Four'
     }
 }
 
