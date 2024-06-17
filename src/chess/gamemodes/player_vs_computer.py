@@ -495,7 +495,7 @@ class PlayerVsComputer:
         pygame.display.flip()
 
         # save the game to a json file
-        self.export_move_list()
+        # self.export_move_list()
 
         # wait for the user to click
         while True:
