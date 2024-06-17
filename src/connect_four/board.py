@@ -1,5 +1,3 @@
-import random
-
 class Board:
     def __init__(self):
         # 7 columns, 6 rows

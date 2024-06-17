@@ -1,5 +1,6 @@
 from src.connect_four.menus.connect_four_menu import ConnectFourMenu
 from src.connect_four.gamemodes.player_vs_computer import PlayerVsComputer
+from src.connect_four.gamemodes.player_vs_player import PlayerVsPlayer
 
 
 class ConnectFourGame:
@@ -32,9 +33,8 @@ class ConnectFourGame:
         return main_menu.main_loop()
     
     def player_vs_player(self):
-        # player_vs_player = PlayerVsPlayer(self.screen)
-        # return player_vs_player.main_loop()
-        pass
+        player_vs_player = PlayerVsPlayer(self.screen)
+        return player_vs_player.main_loop()
     
     def player_vs_computer(self):
         player_vs_computer = PlayerVsComputer(self.screen)

@@ -67,6 +67,8 @@ class PlayerVsComputer:
 
         self.board_image = self.create_board_image()
 
+        self.end_counter = 0
+
         self.result_container = []
         self.human_turn = True
 
@@ -106,6 +108,9 @@ class PlayerVsComputer:
 
     def drop_piece(self, col):
         '''Drop a piece in the specified column'''
+        if self.end_counter > 0:
+            return
+
         if self.human_turn:
             if self.board.is_valid_move(col):
                 
@@ -125,12 +130,10 @@ class PlayerVsComputer:
                 self.pieces.append(piece)
                 self.human_turn = False
 
-
-
     def draw_background(self):
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((32, 32, 32))
 
-    def draw(self):
+    def draw_game(self):
         self.draw_background()
 
         self.update_pieces()
@@ -180,16 +183,36 @@ class PlayerVsComputer:
                 self.request_engine_move()
 
             # draw
-            self.draw()
+            self.draw_game()
 
             winner = self.board.check_winner()
-            if winner:
-                text = f'Player {winner} wins!'
-                winner_rect = pygame.Rect(0, 0, 200, 50)
-                # draw background
-                pygame.draw.rect(self.screen, (255, 255, 255), winner_rect)
+            tie = self.board.is_full()
+            if winner or tie:
+                self.end_counter += 1
+                if winner:
+                    text = f'Player {winner} wins!'
+                else:
+                    text = 'It\'s a tie!'
+                winner_rect = pygame.Rect(0, 0, 760, 300)
                 # draw text
-                write_centered_text(self.screen, text, winner_rect, (0, 0, 0))
+                write_centered_text(self.screen, text, winner_rect, (196, 196, 196))
+
+                while self.end_counter > 120:
+                    end_text = 'click to return to the menu'
+                    end_rect = pygame.Rect(0, 225, 760, 100)
+                    write_centered_text(self.screen, end_text, end_rect, (196, 64, 64))
+
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            return 'connect four main menu'
+                        if event.type == pygame.KEYDOWN:
+                            return 'connect four main menu'
+                        if event.type == pygame.MOUSEBUTTONUP:
+                            return 'connect four main menu'
+
+                        
+                    pygame.display.flip()
+                    pygame.time.Clock().tick(FPS)
 
             pygame.display.flip()
             pygame.time.Clock().tick(FPS)
