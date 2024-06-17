@@ -100,7 +100,6 @@ class Ghost:
         
         # if there is only one possible direction, return it
         if len(possible_directions) == 1:
-            print(f'{self.ghost_type} can only move {possible_directions[0]}')
             return possible_directions
 
         legal_directions = []
@@ -196,6 +195,9 @@ class Ghost:
                 queue.append((new_x, new_y))
                 parent[(new_x, new_y)] = (x, y)
 
+        # TOFIX: dx, dy is not defined
+        dx, dy = 0, 0
+
         # find the best direction to move in
         while (current_x, current_y) != pacman_pos:
             dx, dy = pacman_pos[0] - current_x, pacman_pos[1] - current_y
@@ -213,6 +215,7 @@ class Ghost:
             return 'down'
         if dy == -1:
             return 'up'
+        return self.current_direction
 
     def at_intersection(self):
         # check if the ghost is exactly on a grid

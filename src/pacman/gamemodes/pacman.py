@@ -16,43 +16,107 @@ class Pacman:
         self.screen = screen
         self.clock = pygame.time.Clock()
 
+        # hide the root window
         self.root = tk.Tk()
         self.root.withdraw()
 
+        # load map
         self.map = PacmanMap(screen)
 
+        # load player
         self.player = PacmanPlayer(screen, self.map)
 
+        # load ghosts
         self.ghosts = []
         for ghost_type in ['blinky', 'pinky', 'inky', 'clyde']:
             self.ghosts.append(Ghost(screen, self.map, self.player, ghost_type))
 
         self.lives = 3
+        self.level = 1
 
-    def eating_ghost_animation(self, ghost):
-        pass # TODO: animation for eating ghost (flashing ghost, score, etc.)
+        self.load_highscore()
 
-    def dying_animation(self):
-        # TODO: add full death animation
+        self.load_images()
 
-        # clear ghosts
-        for ghost in self.ghosts:
-            ghost.reset() 
+        self.load_sfx()
 
-        tick = 60
+        self.start_animation()
+
+    def load_highscore(self):
+        with open('src\pacman\leaderboard.json', 'r') as f:
+            leaderboard = json.load(f)
+
+        highscore = 0
+        for user in leaderboard:
+            user_highscore = max([score for _, score in leaderboard[user]])
+            highscore = max(highscore, user_highscore)
+
+        self.highscore = highscore
+
+    def load_images(self):
+        self.images = {}
+        life = pygame.image.load('src\pacman\\assets\misc\life.png')
+        # scale to be 50x50
+        life = pygame.transform.scale(life, (50, 50))
+        self.images['life'] = life
+
+    def load_sfx(self):
+        pygame.mixer.init()
+
+        self.sfx = {}
+        self.sfx['eat'] = pygame.mixer.Sound('src\pacman\\assets\sfx\chomp.mp3')
+        self.sfx['eat_ghost'] = pygame.mixer.Sound('src\pacman\\assets\sfx\eating_ghost.mp3')
+        self.sfx['death'] = pygame.mixer.Sound('src\pacman\\assets\sfx\death.mp3')
+        self.sfx['retreat'] = pygame.mixer.Sound('src\pacman\\assets\sfx\\retreating.mp3')
+        self.sfx['siren'] = pygame.mixer.Sound('src\pacman\\assets\sfx\siren.mp3')
+        self.sfx['start'] = pygame.mixer.Sound('src\pacman\\assets\sfx\start.mp3')
+
+        # set volume
+        for sound in self.sfx:
+            self.sfx[sound].set_volume(0.5)
+
+    def start_animation(self):
+        # reset background
+        self.screen.fill((0, 0, 0))
+
+        # play start sound
+        self.sfx['start'].play()
+
+        # draw basic things
+        self.draw_game()
+
+        tick = 270
         while tick > 0:
             tick -= 1
 
-            # draw pacman with open mouth
+            pygame.display.flip()
+            self.clock.tick(60)
+
+    def dying_animation(self):
+        # play death sound
+        self.sfx['death'].play()
+        self.lives -= 1
+
+        tick = 90
+        while tick > 0:
+            tick -= 1
+
+            # draw basic things (not including player)
             self.map.draw()
+            self.draw_ui()
+            for ghost in self.ghosts:
+                ghost.draw()
             
-            frame = tick // 20
+            frame = tick // 30
             self.player.draw_death(frame)
 
             pygame.display.flip()
             self.clock.tick(60)
 
-        self.lives -= 1
+        # clear ghosts
+        for ghost in self.ghosts:
+            ghost.reset() 
+
         if self.lives == 0:
             self.draw_game_over()
             return 'game over'
@@ -74,12 +138,44 @@ class Pacman:
             pygame.display.flip()
             self.clock.tick(60)
 
+    def eat_ghost(self, ghost):
+        # play sound effect
+        self.sfx['eat_ghost'].play()
+
+        # draw score above the ghost
+        g_rect = ghost.rect
+        score_rect = pygame.Rect(g_rect.centerx - 25, g_rect.centery - 25, 50, 50)
+        
+        # reset ghost
+        ghost.reset()
+
+        # calculate score (200, 400, 800, 1600)
+        feared_ghosts = 0
+        for ghost in self.ghosts:
+            if ghost.fear_timer > 0:
+                feared_ghosts += 1
+
+        bonus = 200 * 2 ** (3 - feared_ghosts)
+        score_text = str(bonus)
+        self.player.score += bonus
+        
+        tick = 30
+        while tick > 0:
+            tick -= 1
+
+            # draw basic things
+            self.draw_game()
+
+            write_centered_text(self.screen, score_text, score_rect, (255, 255, 255))
+
+            pygame.display.flip()
+            self.clock.tick(60)
+        
     def handle_ghost_collision(self):
         for ghost in self.ghosts:
             if self.player.rect.colliderect(ghost.rect):
                 if ghost.fear_timer > 0:
-                    ghost.reset()
-                    self.player.score += 200 # TODO: add scaling for multiple ghosts
+                    self.eat_ghost(ghost)
                 else:
                     return self.dying_animation()
                 
@@ -98,28 +194,44 @@ class Pacman:
             leaderboard = json.load(f)
 
         if user not in leaderboard:
-            previous_highscore = 0
+            previous_best = 0
             leaderboard[user] = []
         else:
-            previous_highscore = max([score for _, score in leaderboard[user]])
+            previous_best = max([score for _, score in leaderboard[user]])
 
-        if score > previous_highscore:
-            self.new_highscore()
+        if score > previous_best:
+            if score > self.highscore:
+                self.new_personal_best(highscore=True)
+            else:
+                self.new_personal_best()
 
         leaderboard[user].append((current_time, score))
         
         with open('src\pacman\leaderboard.json', 'w') as f:
             json.dump(leaderboard, f)
         
-    def new_highscore(self):
+    def new_personal_best(self, highscore=False):
         # write new highscore
         tick = 60
         while tick > 0:
             tick -= 1
 
-            text = 'New Personal Best!'
+            if highscore:
+                text = 'New Highscore!'
+            else:
+                text = 'New Personal Best!'
+
             color = (255, 165, 0)
             rect = pygame.Rect(0, 0, self.screen.get_width(), self.screen.get_height()//5)
+
+            # clear background
+            self.screen.fill((0, 0, 0))
+
+            # draw basic things
+            self.map.draw()
+            self.player.draw()
+            for ghost in self.ghosts:
+                ghost.draw()
 
             write_centered_text(self.screen, text, rect, color)
 
@@ -127,6 +239,11 @@ class Pacman:
             self.clock.tick(60)
 
     def new_level(self):
+        self.level += 1
+
+        # play start sound
+        self.sfx['start'].play()
+
         self.map = PacmanMap(self.screen)
 
         score = self.player.score
@@ -137,21 +254,52 @@ class Pacman:
             self.ghosts.append(Ghost(self.screen, self.map, self.player, ghost_type))
 
         # add animation for new level
-        while True:
-            break # TODO: animation
+        tick = 270
+        while tick > 0:
+            tick -= 1
+
+            # draw basic things
+            self.draw_game()
+
+            pygame.display.flip()
+            self.clock.tick(60)
 
     def draw_ui(self):
         # draw score
-        score_rect = pygame.Rect(0, 0, 100, 50)
-        pygame.draw.rect(self.screen, (0, 0, 0), score_rect)
+        score_rect = pygame.Rect(0, 125, 200, 25)
         score_text = f'Score: {self.player.score}'
         write_centered_text(self.screen, score_text, score_rect, (255, 255, 255))
 
-        # draw level TODO
-        # level_rect = pygame.Rect(200, 0, 100, 50)
-        # pygame.draw.rect(self.screen, (0, 0, 0), level_rect)
-        # level_text = f'Level: {self.map.level}'
-        # write_centered_text(self.screen, level_text, level_rect, (255, 255, 255))
+        # draw lives
+        for i in range(self.lives):
+            life_rect = pygame.Rect(self.screen.get_width() - 50 * (i + 1), 100, 50, 50)
+            self.screen.blit(self.images['life'], life_rect)
+        print(self.lives)
+
+        # draw highscore (top center)
+        highscore_width = 400
+        highscore_height = 100
+        highscore_rect = pygame.Rect(self.screen.get_width()//2 - highscore_width//2, 0, highscore_width, highscore_height)
+        highscore_text = f'Highscore: {self.highscore}'
+        write_centered_text(self.screen, highscore_text, highscore_rect, (255, 255, 255))
+
+        # draw level (centered below highscore)
+        level_width = 200
+        level_height = 50
+        level_rect = pygame.Rect(self.screen.get_width()//2 - level_width//2, highscore_height, level_width, level_height)
+        level_text = f'Level {self.level}'
+        write_centered_text(self.screen, level_text, level_rect, (255, 255, 255))
+
+    def draw_game(self):
+        # reset background
+        self.screen.fill((0, 0, 0))
+
+        # draw basic things
+        self.map.draw()
+        self.player.draw()
+        self.draw_ui()
+        for ghost in self.ghosts:
+            ghost.draw()
 
     def main_loop(self):
         running = True
@@ -165,6 +313,9 @@ class Pacman:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return 'pacman main menu'
             
+            # reset background
+            self.screen.fill((0, 0, 0))
+
             self.mx, self.my = pygame.mouse.get_pos()
 
             if self.map.is_level_complete():
@@ -172,7 +323,10 @@ class Pacman:
             
             self.map.draw()
             self.player.handle_keys(events)
-            self.player.update()
+            pellet_eaten = self.player.update()
+            # TODO: play sound effect for eating pellet
+            # if pellet_eaten and not self.eat_channel.get_busy():
+            #     self.eat_channel.play(self.sfx['eat'])
             self.player.draw()
 
             for ghost in self.ghosts:

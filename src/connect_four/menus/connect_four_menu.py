@@ -4,23 +4,23 @@ from utils import Button
 buttons = {
     'player vs player': {
         'text': 'Player vs Player',
-        'rect': pygame.Rect(300, 250, 200, 100),
+        'rect': pygame.Rect(300, 300, 200, 100),
         'action': 'player vs player',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),
         'clicked_color': (0, 139, 139),
         'text_color': (255, 255, 255),
-        'description': 'Play connect four against another player'
+        'description': 'Play Connect Four\nagainst another player'
     },
     'player vs computer': {
         'text': 'Player vs Computer',
-        'rect': pygame.Rect(300, 410, 200, 100),
+        'rect': pygame.Rect(300, 460, 200, 100),
         'action': 'player vs computer',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),
         'clicked_color': (0, 139, 139),
         'text_color': (255, 255, 255),
-        'description': 'Play connect four against the computer'
+        'description': 'Play Connect Four\nagainst the computer'
     },
     'back': {
         'text': 'Back',

@@ -17,7 +17,7 @@ buttons = {
     },
     'connect four': {
         'text': 'Connect Four',
-        'rect': pygame.Rect(300, 410, 200, 100),
+        'rect': pygame.Rect(300, 570, 200, 100),
         'action': 'connect four',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),
@@ -27,7 +27,7 @@ buttons = {
     },
     'pacman': {
         'text': 'Pacman',
-        'rect': pygame.Rect(300, 570, 200, 100),
+        'rect': pygame.Rect(300, 410, 200, 100),
         'action': 'pacman',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),

@@ -15,7 +15,7 @@ buttons = {
     },
     'leaderboard': {
         'text': 'Leaderboard',
-        'rect': pygame.Rect(300, 480, 200, 100),
+        'rect': pygame.Rect(300, 460, 200, 100),
         'action': 'pacman leaderboard',
         'base_color': (0, 206, 209),
         'hover_color': (64, 224, 208),

@@ -11,7 +11,7 @@ buttons = {
         'hover_color': (64, 224, 208),
         'clicked_color': (0, 139, 139),
         'text_color': (255, 255, 255),
-        'description': 'Play Chess against another player'
+        'description': 'Play Chess\nagainst another player'
     },
     'player vs computer': {
         'text': 'Player vs Computer',
@@ -21,7 +21,7 @@ buttons = {
         'hover_color': (64, 224, 208),
         'clicked_color': (0, 139, 139),
         'text_color': (255, 255, 255),
-        'description': 'Play Chess against the computer'
+        'description': 'Play Chess\nagainst the computer'
     },
     'chess settings': {
         'text': 'Chess Settings',
