@@ -1,8 +1,7 @@
-import threading
 from src.connect_four.board import Board
 import pygame
 from constants import BOARD_COLOR, TRANSPARENT_COLOR, CONNECT_FOUR_GRID_SIZE, CONNECT_FOUR_RADIUS, CONNECT_FOUR_X_OFFSET, CONNECT_FOUR_Y_OFFSET
-from utils import write_centered_text
+from utils import write_centered_text, Button
 
 GRAVITY_ACCELERATION = 5
 ENERGY_RETAINED = 0.75
@@ -12,6 +11,17 @@ FPS = 60
 
 pygame.mixer.init()
 drop_sound = pygame.mixer.Sound('src\connect_four\\assets\coin_drop.mp3')
+
+back_button = {
+    'text': 'Back',
+    'rect': pygame.Rect(0, 0, 150, 50),
+    'action': 'connect four main menu',
+    'base_color': (0, 206, 209),
+    'hover_color': (64, 224, 208),
+    'clicked_color': (0, 139, 139),
+    'text_color': (255, 255, 255),
+    'description': 'Return to the main menu'
+}
 
 class Piece:
     def __init__(self, x, desired_y, color):
@@ -57,7 +67,7 @@ class Piece:
         
 
 class PlayerVsPlayer:
-    def __init__(self, screen: pygame.Surface):
+    def __init__(self, screen):
         self.screen = screen
         self.board = Board()
 
@@ -68,6 +78,18 @@ class PlayerVsPlayer:
         self.end_counter = 0
 
         self.board_image = self.create_board_image()
+
+        self.back_button = Button(
+            screen = self.screen,
+            text = back_button['text'],
+            rect = back_button['rect'],
+            action = back_button['action'],
+            base_color = back_button['base_color'],
+            hover_color = back_button['hover_color'],
+            clicked_color = back_button['clicked_color'],
+            text_color = back_button['text_color'],
+            descriptive_text = back_button['description']
+        )
 
     def create_board_image(self):
         '''Create an image of the board'''
@@ -136,6 +158,9 @@ class PlayerVsPlayer:
         self.draw_board()
 
     def handle_events(self):
+        self.mx, self.my = pygame.mouse.get_pos()
+        self.L_mouse_up = False
+        self.mb = pygame.mouse.get_pressed()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return 'connect four main menu'
@@ -143,6 +168,9 @@ class PlayerVsPlayer:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return 'connect four main menu'
+            if event.type == pygame.MOUSEBUTTONUP:
+                self.L_mouse_up = True
+                    
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 col = (event.pos[0] - CONNECT_FOUR_X_OFFSET) // CONNECT_FOUR_GRID_SIZE
@@ -158,6 +186,14 @@ class PlayerVsPlayer:
 
             # draw
             self.draw_game()
+
+            # draw the back button
+            self.back_button.draw(self.mx, self.my, self.mb)
+
+            # check if the back button is clicked
+            action = self.back_button.check_click(self.mx, self.my, self.L_mouse_up)
+            if action:
+                return action
 
             winner = self.board.check_winner()
             tie = self.board.is_full()

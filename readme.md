@@ -1,2 +1,2 @@
-## Background art
-created by DALL-E, OpenAI
+## Background Art
+Created by DALL-E, OpenAI

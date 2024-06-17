@@ -1,11 +1,6 @@
 import json
 import pygame
-from utils import write_centered_text, Slider, Button
-
-
-
-    
-
+from utils import Slider, Button
 
 save_button = {
     'text': 'Save',
@@ -16,6 +11,17 @@ save_button = {
     'clicked_color': (0, 139, 139),
     'text_color': (255, 255, 255),
     'description': 'Save the settings'
+}
+
+back_button = {
+    'text': 'Back',
+    'rect': pygame.Rect(300, 880, 200, 100),
+    'action': 'chess main menu',
+    'base_color': (0, 206, 209),
+    'hover_color': (64, 224, 208),
+    'clicked_color': (0, 139, 139),
+    'text_color': (255, 255, 255),
+    'description': 'Return to the main menu'
 }
 
 dark_square_preview_rect = pygame.Rect(300, 400, 200, 200)
@@ -43,6 +49,9 @@ class ChessSettingsMenu:
             ))
 
         self.load_save_button()
+        self.load_back_button()
+
+        
 
     def load_save_button(self):
         self.save_button = Button(
@@ -55,6 +64,19 @@ class ChessSettingsMenu:
             clicked_color=save_button['clicked_color'],
             text_color=save_button['text_color'],
             descriptive_text=save_button['description']
+        )
+
+    def load_back_button(self):
+        self.back_button = Button(
+            screen = self.screen,
+            text = back_button['text'],
+            rect = back_button['rect'],
+            action = back_button['action'],
+            base_color = back_button['base_color'],
+            hover_color = back_button['hover_color'],
+            clicked_color = back_button['clicked_color'],
+            text_color = back_button['text_color'],
+            descriptive_text = back_button['description']
         )
 
     def init_sliders(self):
@@ -253,6 +275,14 @@ class ChessSettingsMenu:
 
             
             self.draw_square_color_preview()
+
+            # draw the back button
+            self.back_button.draw(self.mx, self.my, mb)
+
+            # check if the back button is clicked
+            action = self.back_button.check_click(self.mx, self.my, L_mouse_up)
+            if action:
+                return action
 
             pygame.display.flip()
 

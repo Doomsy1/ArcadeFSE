@@ -1,5 +1,4 @@
 from src.chess.board import Board, Piece
-from src.chess.engine import Engine
 from tkinter import simpledialog
 from constants import *
 from time import time
@@ -8,7 +7,16 @@ from utils import *
 import pygame
 import json
 
-
+back_button = {
+    'text': 'Back',
+    'rect': pygame.Rect(300, 880, 200, 100),
+    'action': 'chess main menu',
+    'base_color': (0, 206, 209),
+    'hover_color': (64, 224, 208),
+    'clicked_color': (0, 139, 139),
+    'text_color': (255, 255, 255),
+    'description': 'Return to the main menu'
+}
 
 FPS = 60
 
@@ -128,6 +136,18 @@ class PlayerVsPlayer:
         self.root.withdraw()
 
         self.sfx['game_start'].play()
+
+        self.back_button = Button(
+            screen = self.screen,
+            text = back_button['text'],
+            rect = back_button['rect'],
+            action = back_button['action'],
+            base_color = back_button['base_color'],
+            hover_color = back_button['hover_color'],
+            clicked_color = back_button['clicked_color'],
+            text_color = back_button['text_color'],
+            descriptive_text = back_button['description']
+        )
 
     def load_start_time_per_side(self):
         '''Load the start time per side'''
@@ -742,6 +762,14 @@ class PlayerVsPlayer:
             self.handle_piece_selection()
 
             self.draw_game()
+
+            # draw the back button
+            self.back_button.draw(self.mx, self.my, self.mb)
+
+            # check if the back button is clicked
+            action = self.back_button.check_click(self.mx, self.my, self.left_mouse_up)
+            if action:
+                return action
 
             # if the game is over, draw the game over screen
             if self.is_game_over():
