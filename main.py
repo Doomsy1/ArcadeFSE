@@ -28,7 +28,7 @@ class Arcade:
                     return
             self.menu = game.main_loop()
 
-# Run the game
+# run the game
 if __name__ == "__main__":
     
     menu = "main menu"

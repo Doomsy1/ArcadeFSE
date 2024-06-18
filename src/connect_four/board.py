@@ -6,8 +6,8 @@ class Board:
 
         self.move_list = []
     
-    def hash_board(self, depth):
-        return hash((tuple(tuple(column) for column in self.board), self.turn, depth))
+    def hash_board(self):
+        return hash((tuple(tuple(column) for column in self.board), self.turn))
 
     def copy(self):
         board_copy = Board()

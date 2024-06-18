@@ -182,9 +182,11 @@ class Pacman:
         return 'continue'
 
     def add_leaderboard_entry(self):
-        user = simpledialog.askstring('Leaderboard', 'Enter your name:').title()
+        user = simpledialog.askstring('Leaderboard', 'Enter your name:')
         if user is None:
             return
+        
+        user = user.title()
 
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         score = self.player.score

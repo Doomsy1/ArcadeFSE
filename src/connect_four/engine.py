@@ -14,7 +14,7 @@ CENTER_CONTROL_VALUE = 10
 
 
 class TranspositionTable:
-    def __init__(self, capacity = 10e6):
+    def __init__(self, capacity = 10e3):
         self.table = OrderedDict()
         self.capacity = capacity
 
@@ -91,27 +91,28 @@ class Engine:
         return score
 
     def minimax(self, depth, alpha, beta):
-        key = self.board.hash_board(depth)
-        cached = self.transposition_table.get(key)
-        if cached is not None:
-            return cached
+        # TOFIX: interference
+        # key = (self.board.hash_board(), depth)
+        # cached = self.transposition_table.get(key)
+        # if cached is not None:
+        #     return cached
         
         winner = self.board.check_winner()
         if winner == 1:
             score = POSITIVE_INFINITY
-            self.transposition_table.put(key, score)
+            # self.transposition_table.put(key, score)
             return score
         elif winner == 2:
             score = NEGATIVE_INFINITY
-            self.transposition_table.put(key, score)
+            # self.transposition_table.put(key, score)
             return score
         elif self.board.is_full():
             score = 0
-            self.transposition_table.put(key, score)
+            # self.transposition_table.put(key, score)
             return score
         elif depth == 0:
             score = self.evaluate()
-            self.transposition_table.put(key, score)
+            # self.transposition_table.put(key, score)
             return score
         
         if self.board.turn == 1:
@@ -135,7 +136,7 @@ class Engine:
                 if beta <= alpha:
                     break
 
-        self.transposition_table.put(key, best_score)
+        # self.transposition_table.put(key, best_score)
         return best_score
         
     def get_best_move(self, depth):
@@ -165,7 +166,7 @@ class Engine:
                     best_score = score
                     best_move = move
 
-        return best_move
+        return best_move, best_score
     
     # result_container = [move, Final] 
     # Final: search finished or not
@@ -182,13 +183,16 @@ class Engine:
         best_move = None
         depth = 1
         while time.time() - start_time < self.time_limit_ms / 1000:
-            best_move = self.get_best_move(depth)
+            if depth > 40:
+                break
+            
+            best_move, score = self.get_best_move(depth)
             result_container.append((best_move, False))
-            # print(f"Depth reached: {depth} in {time.time() - start_time:.2f} seconds, best move: {best_move}")
+            print(f"Depth reached: {depth} in {time.time() - start_time:.2f} seconds, best move: {best_move}, score: {score}")
             depth += 1
 
         print(f"Depth reached: {depth - 1} in {time.time() - start_time:.2f} seconds")
-        print(f"Best move: {best_move}")
+        print(f"Best move: {best_move} with score {score}")
         result_container.append((best_move, True))
         
 

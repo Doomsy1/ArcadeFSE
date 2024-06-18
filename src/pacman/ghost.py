@@ -205,6 +205,7 @@ class Ghost:
                 pacman_pos = parent[pacman_pos]
             except:
                 print(parent)
+                return self.current_direction # TOFIX
 
 
         if dx == 1:

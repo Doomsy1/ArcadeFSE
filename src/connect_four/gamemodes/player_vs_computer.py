@@ -72,7 +72,7 @@ class PlayerVsComputer:
     def __init__(self, screen):
         self.screen = screen
         self.board = Board()
-        self.engine = Engine(self.board, time_limit_ms=1000)
+        self.engine = Engine(self.board, time_limit_ms=1500)
 
         self.pieces = []
 
