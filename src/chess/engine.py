@@ -232,7 +232,7 @@ class Engine:
             move_scores.append((move, move_score))
 
         move_scores.sort(key=lambda x: x[1], reverse=True)
-        return [move[0] for move in move_scores]
+        return [move for move, _ in move_scores]
 
 
 

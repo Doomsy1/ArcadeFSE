@@ -10,7 +10,9 @@ NEGATIVE_INFINITY = -9999999
 
 STRONG_THREAT_VALUE = 1000
 WEAK_THREAT_VALUE = 100
-CENTER_CONTROL_VALUE = 10
+
+
+CENTER_HEURISTIC_WEIGHT = 2
 
 
 class TranspositionTable:
@@ -38,6 +40,8 @@ class Engine:
         self.board = board
         self.time_limit_ms = time_limit_ms
 
+        self.history_table = {}
+
         self.transposition_table = TranspositionTable(capacity=10e6)
 
     def update_board(self, board: Board):
@@ -50,11 +54,28 @@ class Engine:
 
     def get_ordered_moves(self):
         moves = self.board.get_legal_moves()
-        # center moves first
-        center_moves = [3, 2, 4, 1, 5, 0, 6]
-        moves = sorted(moves, key=lambda x: center_moves.index(x))
 
-        return moves
+        move_scores = []
+
+        for move in moves:
+            history_score = lambda move: self.history_table.get(move, 0)
+
+            # center moves first (3, 2, 4, 1, 5, 0, 6)
+            center_score = 3 - abs(move - 3)
+
+            move_score = history_score(move) + CENTER_HEURISTIC_WEIGHT * center_score
+
+            move_scores.append((move, move_score))
+
+        move_scores.sort(key=lambda x: x[1], reverse=True)
+
+    
+        return [move for move, _ in move_scores]
+
+    def update_history_score(self, move, depth):
+        if move not in self.history_table:
+            self.history_table[move] = 0
+        self.history_table[move] += 3 ** depth
 
     def evaluate_threats(self):
         # player 1 threats are strong on rows that are odd
@@ -91,6 +112,8 @@ class Engine:
         return score
 
     def minimax(self, depth, alpha, beta):
+        self.num_evaluations += 1
+
         # TOFIX: interference
         # key = (self.board.hash_board(), depth)
         # cached = self.transposition_table.get(key)
@@ -99,11 +122,11 @@ class Engine:
         
         winner = self.board.check_winner()
         if winner == 1:
-            score = POSITIVE_INFINITY
+            score = POSITIVE_INFINITY - (42 - depth)
             # self.transposition_table.put(key, score)
             return score
         elif winner == 2:
-            score = NEGATIVE_INFINITY
+            score = NEGATIVE_INFINITY + (42 - depth)
             # self.transposition_table.put(key, score)
             return score
         elif self.board.is_full():
@@ -124,6 +147,7 @@ class Engine:
                 best_score = max(best_score, score)
                 alpha = max(alpha, best_score)
                 if beta <= alpha:
+                    self.update_history_score(move, depth)
                     break
         else:
             best_score = POSITIVE_INFINITY
@@ -134,6 +158,7 @@ class Engine:
                 best_score = min(best_score, score)
                 beta = min(beta, best_score)
                 if beta <= alpha:
+                    self.update_history_score(move, depth)
                     break
 
         # self.transposition_table.put(key, best_score)
@@ -171,6 +196,8 @@ class Engine:
     # result_container = [move, Final] 
     # Final: search finished or not
     def iterative_deepening(self, result_container: list):
+        self.num_evaluations = 0
+
         print(f"What engine sees:\n{self.board}")
 
         start_time = time.time()
@@ -187,11 +214,13 @@ class Engine:
                 break
             
             best_move, score = self.get_best_move(depth)
+            if best_move == POSITIVE_INFINITY or best_move == NEGATIVE_INFINITY:
+                break
+
             result_container.append((best_move, False))
-            print(f"Depth reached: {depth} in {time.time() - start_time:.2f} seconds, best move: {best_move}, score: {score}")
+            print(f"Depth {depth} finished in {time.time() - start_time:.2f} seconds | Best move: {best_move} | Score: {score} | Evaluations: {self.num_evaluations}")
             depth += 1
 
-        print(f"Depth reached: {depth - 1} in {time.time() - start_time:.2f} seconds")
         print(f"Best move: {best_move} with score {score}")
         result_container.append((best_move, True))
         
